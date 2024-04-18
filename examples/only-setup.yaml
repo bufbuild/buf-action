@@ -1,0 +1,19 @@
+# This file is used to setup the Buf CLI in the GitHub Actions environment.
+# After the buf-action is run, the Buf CLI is available for use in subsequent steps.
+name: ci
+on:
+  push:
+permissions:
+  contents: read
+jobs:
+  buf:      
+    name: Buf CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-action@v0.1.0
+        with:
+          # Add username or token secrets to your repository settings to
+          # authenticate with the Buf Schema Registry.
+          setup_only: true
+      - run: buf build --error-format=github-actions

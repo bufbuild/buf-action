@@ -1,0 +1,28 @@
+# This workflow skips checks when `buf skip` is applied to a PR.
+name: ci
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  delete:
+permissions:
+  contents: read
+jobs:
+  buf:      
+    name: Buf CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-action@v0.1.0
+        with:
+          username: ${{ secrets.BUF_USERNAME }}
+          token: ${{ secrets.BUF_TOKEN }}
+          lint: |
+            github.event_name == 'pull_request' && \
+            !contains(github.event.pull_request.labels.*.name, 'buf skip lint')
+          format: |
+            github.event_name == 'pull_request' && \
+            !contains(github.event.pull_request.labels.*.name, 'buf skip format')
+          breaking: |
+            github.event_name == 'pull_request' && \
+            !contains(github.event.pull_request.labels.*.name, 'buf skip breaking')

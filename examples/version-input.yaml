@@ -1,0 +1,16 @@
+# This workflow downloads the version of buf specified in the action input.
+name: ci
+on:
+  push:
+permissions:
+  contents: read
+jobs:
+  buf:      
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-action@v0.1.0
+        with:
+          setup_only: true
+          version: 1.32.0
+      - run: buf version

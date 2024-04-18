@@ -1,0 +1,38 @@
+{
+  "name": "buf-action",
+  "version": "0.1.0",
+  "description": "GitHub Action for buf",
+  "main": "src/main.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "prettier --write 'src/*.{json,js,jsx,ts,tsx,css}' --log-level error",
+    "lint": "eslint --max-warnings 0 src",
+    "lint:fix": "eslint --max-warnings 0 --fix src",
+    "build": "ncc build -o dist src/main.ts"
+  },
+  "keywords": [
+    "actions",
+    "buf",
+    "proto",
+    "protobuf"
+  ],
+  "author": "Buf Technologies, Inc.",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@eslint/js": "^9.2.0",
+    "@types/node": "^20.12.7",
+    "@vercel/ncc": "^0.38.1",
+    "eslint": "^8.57.0",
+    "globals": "^15.2.0",
+    "prettier": "3.2.5",
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^7.9.0"
+  },
+  "dependencies": {
+    "@actions/core": "^1.10.1",
+    "@actions/exec": "^1.1.1",
+    "@actions/github": "^6.0.0",
+    "@actions/tool-cache": "^2.0.1",
+    "semver": "^7.6.1"
+  }
+}

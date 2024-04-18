@@ -1,0 +1,17 @@
+# This workflow downloads the version of buf specified in the env var $BUF_VERSION.
+name: ci
+on:
+  push:
+permissions:
+  contents: read
+env:
+  BUF_VERSION: "1.32.0"
+jobs:
+  buf:      
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-action@v0.1.0
+        with:
+          setup_only: true
+      - run: buf version

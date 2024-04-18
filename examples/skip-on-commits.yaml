@@ -1,0 +1,26 @@
+# This workflow skips checks when `buf skip` is used in the commit message.
+name: ci
+on:
+  push:
+  delete:
+permissions:
+  contents: read
+jobs:
+  buf:      
+    name: Buf CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-action@v0.1.0
+        with:
+          username: ${{ secrets.BUF_USERNAME }}
+          token: ${{ secrets.BUF_TOKEN }}
+          lint: |
+            github.event_name == 'push' && \
+            !contains(github.event.head_commit.message, 'buf skip lint')
+          format: |
+            github.event_name == 'push' && \
+            !contains(github.event.head_commit.message, 'buf skip format')
+          breaking: |
+            github.event_name == 'push' && \
+            !contains(github.event.head_commit.message, 'buf skip breaking')

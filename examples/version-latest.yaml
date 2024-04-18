@@ -1,0 +1,15 @@
+# This workflow downloads the latest version of buf as none is specified.
+name: ci
+on:
+  push:
+permissions:
+  contents: read
+jobs:
+  buf:      
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-action@v0.1.0
+        with:
+          setup_only: true
+      - run: buf version

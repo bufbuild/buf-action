@@ -1,0 +1,21 @@
+# This workflow runs checks on push events before pushing the changes to the BSR.
+name: ci
+on:
+  push:
+  delete:
+permissions:
+  contents: read
+jobs:
+  buf:      
+    name: Buf CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-action@v0.1.0
+        with:
+          # Username and token are required to authenticate with the Buf Schema Registry.
+          username: ${{ secrets.BUF_USERNAME }}
+          token: ${{ secrets.BUF_TOKEN }}
+          lint: ${{ github.event_name == 'push' }}
+          format: ${{ github.event_name == 'push' }}
+          breaking: ${{ github.event_name == 'push' }}
