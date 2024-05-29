@@ -28,10 +28,7 @@ branding:
 inputs:
   version:
     description: |-
-      Version of buf to download and add to the PATH.
-      Example:
-        with:
-          version: 1.32.1
+      Version of buf to use. It will be download and added to the PATH if this version doesn't already exist.
     required: false
   username:
     description: |-
