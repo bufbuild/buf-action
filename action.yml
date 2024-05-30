@@ -28,7 +28,10 @@ branding:
 inputs:
   version:
     description: |-
-      Version of buf to use. It will be download and added to the PATH if this version doesn't already exist.
+      Version of the Buf CLI to use.
+      Example:
+        with:
+          version: 1.32.1
     required: false
   username:
     description: |-
