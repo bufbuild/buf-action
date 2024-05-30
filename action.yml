@@ -28,7 +28,7 @@ branding:
 inputs:
   version:
     description: |-
-      Version of buf to download and add to the PATH.
+      Version of the Buf CLI to use.
       Example:
         with:
           version: 1.32.2
