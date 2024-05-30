@@ -66,12 +66,12 @@ main()
   .then(() => core.debug(`done in ${process.uptime()} s`));
 
 interface Steps {
-  build: Result | undefined;
-  lint: Result | undefined;
-  format: Result | undefined;
-  breaking: Result | undefined;
-  push: Result | undefined;
-  archive: Result | undefined;
+  build?: Result;
+  lint?: Result;
+  format?: Result;
+  breaking?: Result;
+  push?: Result;
+  archive?: Result;
 }
 
 // runWorkflow runs the buf workflow. It returns the results of each step.
@@ -79,7 +79,7 @@ interface Steps {
 // Next, it runs lint, format, and breaking checks. If any of these fail, the workflow stops.
 // Finally, it pushes or archives the label to the registry.
 async function runWorkflow(bufPath: string, inputs: Inputs): Promise<Steps> {
-  const steps = {} as Steps;
+  const steps: Steps = {};
   steps.build = await build(bufPath, inputs);
   if (steps.build.status == Status.Failed) {
     return steps;
