@@ -31,7 +31,7 @@ inputs:
       Version of buf to download and add to the PATH.
       Example:
         with:
-          version: 1.32.1
+          version: 1.32.2
     required: false
   username:
     description: |-
@@ -186,8 +186,7 @@ inputs:
       Whether to run the archive step. Runs by default on deletes.
       Additional labels from the "labels" input are archived.
     required: false
-    #default: ${{ github.event_name == 'delete' }}
-    default: "false" # TODO: enable me when supported.
+    default: ${{ github.event_name == 'delete' }}
   archive_labels:
     description: |-
       Labels to archive (separated by newlines).

@@ -37597,8 +37597,7 @@ var semver = __nccwpck_require__(1383);
 
 
 
-// TODO: Set the required version to the the released version.
-const requiredVersion = ">1.31.0";
+const requiredVersion = ">=1.32.0";
 // installBuf installs the buf binary and returns the path to the binary.
 async function installBuf(github, versionInput) {
     let resolvedVersion = resolveVersion(versionInput);
