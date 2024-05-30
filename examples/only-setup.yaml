@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: bufbuild/buf-action@v0.1.0
+      - uses: bufbuild/buf-action@v0.1.1
         with:
           # Add username or token secrets to your repository settings to
           # authenticate with the Buf Schema Registry.
