@@ -12,5 +12,5 @@ jobs:
       - uses: bufbuild/buf-action@v0.1.0
         with:
           setup_only: true
-          version: 1.32.0
+          version: 1.32.2
       - run: buf version

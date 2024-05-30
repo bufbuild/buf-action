@@ -9,7 +9,7 @@ MAKEFLAGS += --no-print-directory
 BIN := .tmp/bin
 COPYRIGHT_YEARS := 2024
 LICENSE_IGNORE := -e dist\/
-BUF_VERSION ?= 1.32.1
+BUF_VERSION ?= 1.32.2
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
@@ -47,6 +47,7 @@ endif
 	$(SED_I) "s/version: [0-9]+\.[0-9]+\.[0-9]+/version: $(BUF_VERSION)/g" README.md
 	$(SED_I) "s/buf-action@v[0-9]+\.[0-9]+\.[0-9]+/buf-action@v$(VERSION)/g" README.md
 	$(SED_I) "s/buf-action@v[0-9]+\.[0-9]+\.[0-9]+/buf-action@v$(VERSION)/g" examples/*.yaml
+	$(SED_I) "s/version: [0-9]+\.[0-9]+\.[0-9]+/version: $(BUF_VERSION)/g" examples/*.yaml
 
 .PHONY: generate
 generate: $(BIN)/license-header ## Regenerate licenses

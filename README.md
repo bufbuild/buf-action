@@ -135,7 +135,7 @@ To ensure the version of `buf` is consistent across workflows it's recommended t
 ```yaml
 - uses: bufbuild/buf-action@v0.1.0
   with:
-    version: 1.32.1
+    version: 1.32.2
 ```
 
 If no version is specified in the workflow config, the action will resolve the version in order of precendence:
@@ -264,9 +264,9 @@ Here's an example migration from using multiple actions to the new consolidated 
 ```yaml
 steps:
   - uses: actions/checkout@v2
-  - uses: bufbuild/buf-setup-action@v1.31.0
+  - uses: bufbuild/buf-setup-action@v1.32.2
     with:
-      version: 1.32.1
+      version: 1.32.2
       buf_user: ${{ secrets.BUF_USERNAME }}
       buf_api_token: ${{ secrets.BUF_TOKEN }}
   - uses: bufbuild/buf-lint-action@v1
@@ -296,7 +296,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: bufbuild/buf-action@v0.1.0
         with:
-          version: 1.32.1
+          version: 1.32.2
           username: ${{ secrets.BUF_USERNAME }}
           token: ${{ secrets.BUF_TOKEN }}
 ```
