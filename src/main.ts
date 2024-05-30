@@ -22,7 +22,6 @@ import { commentOnPR } from "./comment";
 
 async function main() {
   const inputs = getInputs();
-  core.debug(`inputs: ${JSON.stringify(inputs, null, 2)}`);
   const github = getOctokit(inputs.github_token);
   const bufPath = await installBuf(github, inputs.version);
   await login(bufPath, inputs);
@@ -55,8 +54,8 @@ async function main() {
   // NB: Write empties the buffer must be after the comment.
   await summary.write();
   // Finally, set the status of the action.
-  for (const key of Object.keys(steps)) {
-    if (steps[key].status == Status.Failed) {
+  for (const [key, value] of Object.entries(steps)) {
+    if (value?.status == Status.Failed) {
       core.setFailed(`Failed ${key}`);
     }
   }
@@ -66,13 +65,13 @@ main()
   .catch((err) => core.setFailed(err.message))
   .then(() => core.debug(`done in ${process.uptime()} s`));
 
-class Steps {
-  build: Result;
-  lint: Result;
-  format: Result;
-  breaking: Result;
-  push: Result;
-  archive: Result;
+interface Steps {
+  build: Result | undefined;
+  lint: Result | undefined;
+  format: Result | undefined;
+  breaking: Result | undefined;
+  push: Result | undefined;
+  archive: Result | undefined;
 }
 
 // runWorkflow runs the buf workflow. It returns the results of each step.
@@ -80,25 +79,19 @@ class Steps {
 // Next, it runs lint, format, and breaking checks. If any of these fail, the workflow stops.
 // Finally, it pushes or archives the label to the registry.
 async function runWorkflow(bufPath: string, inputs: Inputs): Promise<Steps> {
-  const steps = new Steps();
+  const steps = {} as Steps;
   steps.build = await build(bufPath, inputs);
   if (steps.build.status == Status.Failed) {
     return steps;
   }
   const checks = await Promise.all([
-    lint(bufPath, inputs).then((result) => {
-      steps.lint = result;
-      return result;
-    }),
-    format(bufPath, inputs).then((result) => {
-      steps.format = result;
-      return result;
-    }),
-    breaking(bufPath, inputs).then((result) => {
-      steps.breaking = result;
-      return result;
-    }),
+    lint(bufPath, inputs),
+    format(bufPath, inputs),
+    breaking(bufPath, inputs),
   ]);
+  steps.lint = checks[0];
+  steps.format = checks[1];
+  steps.breaking = checks[2];
   if (checks.some((result) => result.status == Status.Failed)) {
     return steps;
   }
@@ -154,7 +147,7 @@ async function build(bufPath: string, inputs: Inputs): Promise<Result> {
 async function lint(bufPath: string, inputs: Inputs): Promise<Result> {
   if (!inputs.lint) {
     core.info("Skipping lint");
-    return Promise.resolve(skip());
+    return skip();
   }
   const args = ["lint", "--error-format", "github-actions"];
   if (inputs.input) {
