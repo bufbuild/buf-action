@@ -54,7 +54,10 @@ async function main() {
   // NB: Write empties the buffer must be after the comment.
   await summary.write();
   // Finally, set the status of the action.
-  for (const [key, value] of Object.entries(steps)) {
+  for (const [key, value] of Object.entries(steps) as [
+    keyof Steps,
+    Result | undefined,
+  ][]) {
     if (value?.status == Status.Failed) {
       core.setFailed(`Failed ${key}`);
     }
