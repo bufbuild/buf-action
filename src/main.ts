@@ -318,7 +318,7 @@ function skip(): Result {
   return { status: Status.Skipped, exitCode: 0, stdout: "", stderr: "" };
 }
 
-function message(status: Status): string {
+function message(status: Status | undefined): string {
   switch (status) {
     case Status.Passed:
       return "✅ passed";

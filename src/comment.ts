@@ -42,7 +42,7 @@ export async function commentOnPR(
       issue_number: prNumber,
     });
     const previousComment = comments.find((comment) =>
-      comment.body.includes(commentTag),
+      comment.body?.includes(commentTag),
     );
     if (previousComment) {
       await github.rest.issues.updateComment({

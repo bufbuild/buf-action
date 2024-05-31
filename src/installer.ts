@@ -46,14 +46,14 @@ export async function installBuf(
     });
     const version = bufVersion.stdout.trim();
     core.info(`Using buf (${version}) found in $PATH`);
-    if (!semver.satisfies(semver.coerce(version), requiredVersion)) {
+    if (!semver.satisfies(semverCoerce(version), requiredVersion)) {
       throw new Error(
         `The version of buf (${version}) does not satisfy the required version (${requiredVersion})`,
       );
     }
     if (
       resolvedVersion != "" &&
-      !semver.eq(semver.coerce(version), semver.coerce(resolvedVersion))
+      !semver.eq(semverCoerce(version), semverCoerce(resolvedVersion))
     ) {
       throw new Error(
         `The version of buf (${version}) does not equal the resolved version (${resolvedVersion})`,
@@ -64,7 +64,7 @@ export async function installBuf(
   if (resolvedVersion === "") {
     resolvedVersion = await latestVersion(github);
   }
-  if (!semver.satisfies(semver.coerce(resolvedVersion), requiredVersion)) {
+  if (!semver.satisfies(semverCoerce(resolvedVersion), requiredVersion)) {
     throw new Error(
       `The resolved version of buf (${resolvedVersion}) does not satisfy the required version (${requiredVersion})`,
     );
@@ -119,12 +119,18 @@ async function latestVersion(
   return resolvedVersion;
 }
 
+type platformTable = {
+  [platform in NodeJS.Platform]?: {
+    [arch in NodeJS.Architecture]?: string;
+  };
+};
+
 // downloadBuf downloads the buf binary and returns the path to the binary.
 async function downloadBuf(version: string): Promise<string> {
   // The available platforms can be found at:
   // https://nodejs.org/api/process.html#process_process_platform
   // https://nodejs.org/api/process.html#process_process_arch
-  const table = {
+  const table: platformTable = {
     darwin: {
       x64: "buf-Darwin-x86_64",
       arm64: "buf-Darwin-arm64",
@@ -158,4 +164,8 @@ async function downloadBuf(version: string): Promise<string> {
       `Failed to download buf version ${version} from "${downloadURL}": ${error}`,
     );
   }
+}
+
+function semverCoerce(version: string): string | semver.SemVer {
+  return semver.coerce(version) ?? version;
 }
