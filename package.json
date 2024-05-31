@@ -8,7 +8,8 @@
     "format": "prettier --write 'src/*.{json,js,jsx,ts,tsx,css}' --log-level error",
     "lint": "eslint --max-warnings 0 src",
     "lint:fix": "eslint --max-warnings 0 --fix src",
-    "build": "ncc build -o dist src/main.ts"
+    "build": "ncc build -o dist src/main.ts",
+    "generate": "license-header src --ignore 'dist/**'"
   },
   "keywords": [
     "actions",
@@ -18,7 +19,13 @@
   ],
   "author": "Buf Technologies, Inc.",
   "license": "Apache-2.0",
+  "licenseHeader": {
+    "licenseType": "apache",
+    "yearRange": "2024",
+    "copyrightHolder": "Buf Technologies, Inc."
+  },
   "devDependencies": {
+    "@bufbuild/license-header": "^0.0.4",
     "@eslint/js": "^9.2.0",
     "@types/node": "^20.12.7",
     "@vercel/ncc": "^0.38.1",
