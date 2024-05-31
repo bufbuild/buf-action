@@ -46,7 +46,7 @@ export async function installBuf(
     });
     const version = bufVersion.stdout.trim();
     core.info(`Using buf (${version}) found in $PATH`);
-    if (!semver.satisfies(semver.coerce(version) || version, requiredVersion)) {
+    if (!semver.satisfies(semverCoerce(version), requiredVersion)) {
       throw new Error(
         `The version of buf (${version}) does not satisfy the required version (${requiredVersion})`,
       );
@@ -54,8 +54,8 @@ export async function installBuf(
     if (
       resolvedVersion != "" &&
       !semver.eq(
-        semver.coerce(version) || version,
-        semver.coerce(resolvedVersion) || resolvedVersion,
+        semverCoerce(version),
+        semverCoerce(resolvedVersion),
       )
     ) {
       throw new Error(
@@ -69,7 +69,7 @@ export async function installBuf(
   }
   if (
     !semver.satisfies(
-      semver.coerce(resolvedVersion) || resolvedVersion,
+      semverCoerce(resolvedVersion),
       requiredVersion,
     )
   ) {
@@ -172,4 +172,8 @@ async function downloadBuf(version: string): Promise<string> {
       `Failed to download buf version ${version} from "${downloadURL}": ${error}`,
     );
   }
+}
+
+function semverCoerce(version: string): string | semver.SemVer {
+  return semver.coerce(version) ?? version;
 }
