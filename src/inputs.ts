@@ -87,6 +87,6 @@ export function getInputs(): Inputs {
 // Prefers the lowercase version of the variable if it exists.
 export function getEnv(name: string): string {
   return (
-    process.env[name.toLowerCase()] || process.env[name.toUpperCase()] || ""
+    process.env[name.toLowerCase()] ?? process.env[name.toUpperCase()] ?? ""
   );
 }
