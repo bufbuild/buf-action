@@ -53,10 +53,7 @@ export async function installBuf(
     }
     if (
       resolvedVersion != "" &&
-      !semver.eq(
-        semverCoerce(version),
-        semverCoerce(resolvedVersion),
-      )
+      !semver.eq(semverCoerce(version), semverCoerce(resolvedVersion))
     ) {
       throw new Error(
         `The version of buf (${version}) does not equal the resolved version (${resolvedVersion})`,
@@ -67,12 +64,7 @@ export async function installBuf(
   if (resolvedVersion === "") {
     resolvedVersion = await latestVersion(github);
   }
-  if (
-    !semver.satisfies(
-      semverCoerce(resolvedVersion),
-      requiredVersion,
-    )
-  ) {
+  if (!semver.satisfies(semverCoerce(resolvedVersion), requiredVersion)) {
     throw new Error(
       `The resolved version of buf (${resolvedVersion}) does not satisfy the required version (${requiredVersion})`,
     );

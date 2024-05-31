@@ -37568,7 +37568,7 @@ function getInputs() {
 // getEnv returns the case insensitive value of the environment variable.
 // Prefers the lowercase version of the variable if it exists.
 function getEnv(name) {
-    return (process.env[name.toLowerCase()] || process.env[name.toUpperCase()] || "");
+    return (process.env[name.toLowerCase()] ?? process.env[name.toUpperCase()] ?? "");
 }
 
 // EXTERNAL MODULE: external "fs"
@@ -37617,11 +37617,11 @@ async function installBuf(github, versionInput) {
         });
         const version = bufVersion.stdout.trim();
         core.info(`Using buf (${version}) found in $PATH`);
-        if (!semver.satisfies(semver.coerce(version) || version, requiredVersion)) {
+        if (!semver.satisfies(semverCoerce(version), requiredVersion)) {
             throw new Error(`The version of buf (${version}) does not satisfy the required version (${requiredVersion})`);
         }
         if (resolvedVersion != "" &&
-            !semver.eq(semver.coerce(version) || version, semver.coerce(resolvedVersion) || resolvedVersion)) {
+            !semver.eq(semverCoerce(version), semverCoerce(resolvedVersion))) {
             throw new Error(`The version of buf (${version}) does not equal the resolved version (${resolvedVersion})`);
         }
         return binName;
@@ -37629,7 +37629,7 @@ async function installBuf(github, versionInput) {
     if (resolvedVersion === "") {
         resolvedVersion = await latestVersion(github);
     }
-    if (!semver.satisfies(semver.coerce(resolvedVersion) || resolvedVersion, requiredVersion)) {
+    if (!semver.satisfies(semverCoerce(resolvedVersion), requiredVersion)) {
         throw new Error(`The resolved version of buf (${resolvedVersion}) does not satisfy the required version (${requiredVersion})`);
     }
     // Fetch the version of buf to use.
@@ -37706,6 +37706,9 @@ async function downloadBuf(version) {
     catch (error) {
         throw new Error(`Failed to download buf version ${version} from "${downloadURL}": ${error}`);
     }
+}
+function semverCoerce(version) {
+    return semver.coerce(version) ?? version;
 }
 
 ;// CONCATENATED MODULE: ./src/comment.ts
