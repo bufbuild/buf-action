@@ -9,7 +9,7 @@
     "lint": "eslint --max-warnings 0 src",
     "lint:fix": "eslint --max-warnings 0 --fix src",
     "build": "ncc build -o dist src/main.ts",
-    "generate": "license-header src --ignore 'dist/**'"
+    "generate": "license-header --ignore 'dist/**'"
   },
   "keywords": [
     "actions",
