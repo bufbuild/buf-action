@@ -86,5 +86,7 @@ export function getInputs(): Inputs {
 // getEnv returns the case insensitive value of the environment variable.
 // Prefers the lowercase version of the variable if it exists.
 export function getEnv(name: string): string {
-  return process.env[name.toLowerCase()] || process.env[name.toUpperCase()];
+  return (
+    process.env[name.toLowerCase()] || process.env[name.toUpperCase()] || ""
+  );
 }
