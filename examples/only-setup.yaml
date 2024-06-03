@@ -1,13 +1,12 @@
 # This file is used to setup the Buf CLI in the GitHub Actions environment.
 # After the buf-action is run, the Buf CLI is available for use in subsequent steps.
-name: ci
+name: Only setup
 on:
   push:
 permissions:
   contents: read
 jobs:
   buf:      
-    name: Buf CI
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -1,5 +1,5 @@
 # This workflow downloads the version of buf specified in the env var $BUF_VERSION.
-name: ci
+name: Version environment
 on:
   push:
 permissions:

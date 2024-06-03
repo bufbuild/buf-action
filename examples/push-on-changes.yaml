@@ -1,7 +1,7 @@
 # This workflow shows syncing changes only when the buf.yaml, README.md, LICENSE 
 # or .proto files are modified.
 # Caution: Restricting push can cause unintended behavior. Review the paths carefully.
-name: Buf CI
+name: Push on changes
 on:
   push:
     paths:
