@@ -1,5 +1,5 @@
 # This workflow downloads the version of buf specified in the action input.
-name: ci
+name: Version input
 on:
   push:
 permissions:

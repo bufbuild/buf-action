@@ -1,5 +1,5 @@
 # This workflow runs checks on push events before pushing the changes to the BSR.
-name: ci
+name: Validate push
 on:
   push:
   delete:
@@ -7,7 +7,6 @@ permissions:
   contents: read
 jobs:
   buf:      
-    name: Buf CI
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

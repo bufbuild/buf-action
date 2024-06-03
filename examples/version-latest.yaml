@@ -1,5 +1,5 @@
 # This workflow downloads the latest version of buf as none is specified.
-name: ci
+name: Version latest
 on:
   push:
 permissions:

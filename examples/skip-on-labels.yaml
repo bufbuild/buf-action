@@ -1,5 +1,5 @@
 # This workflow skips checks when `buf skip` is applied to a PR.
-name: ci
+name: Skip on labels
 on:
   push:
   pull_request:
@@ -9,7 +9,6 @@ permissions:
   contents: read
 jobs:
   buf:      
-    name: Buf CI
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -1,5 +1,5 @@
 # This workflow runs checks on pull_requests only, without push and archive steps.
-name: ci
+name: Only checks
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
@@ -8,7 +8,6 @@ permissions:
   pull-requests: write
 jobs:
   buf:      
-    name: Buf CI
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
