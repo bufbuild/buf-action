@@ -140,7 +140,6 @@ To ensure the version of `buf` is consistent across workflows it's recommended t
 
 If no version is specified in the workflow config, the action will resolve the version in order of precendence:
 - A version specified in the environment variable `${BUF_VERSION}`.
-- A version specified in a file named `.bufversion` in the current working directory.
 - The version of `buf` that is already installed on the runner (if it exists)
 - The latest version of the `buf` binary from the official releases on GitHub.
 

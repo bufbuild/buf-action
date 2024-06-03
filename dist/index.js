@@ -37571,8 +37571,6 @@ function getEnv(name) {
     return (process.env[name.toLowerCase()] ?? process.env[name.toUpperCase()] ?? "");
 }
 
-// EXTERNAL MODULE: external "fs"
-var external_fs_ = __nccwpck_require__(7147);
 // EXTERNAL MODULE: ./node_modules/@actions/tool-cache/lib/tool-cache.js
 var tool_cache = __nccwpck_require__(7784);
 // EXTERNAL MODULE: ./node_modules/semver/index.js
@@ -37591,7 +37589,6 @@ var semver = __nccwpck_require__(1383);
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 
 
 
@@ -37644,7 +37641,7 @@ async function installBuf(github, versionInput) {
     core.info(`Setup buf (${resolvedVersion}) at ${cachePath}`);
     return binName;
 }
-// resolveVersion from the input, environment, or .bufversion file.
+// resolveVersion from the input or environment.
 function resolveVersion(versionSpec) {
     if (versionSpec) {
         core.info(`Using the version of buf from the input: ${versionSpec}`);
@@ -37653,11 +37650,6 @@ function resolveVersion(versionSpec) {
     else if (getEnv("BUF_VERSION")) {
         const resolvedVersion = getEnv("BUF_VERSION");
         core.info(`Using the version of buf from $BUF_VERSION: ${resolvedVersion}`);
-        return resolvedVersion;
-    }
-    else if (external_fs_.existsSync(".bufversion")) {
-        const resolvedVersion = external_fs_.readFileSync(".bufversion", "utf8").trim();
-        core.info(`Using the version of buf from the .bufversion file: ${resolvedVersion}`);
         return resolvedVersion;
     }
     return "";
