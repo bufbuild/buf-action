@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as fs from "fs";
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import * as tc from "@actions/tool-cache";
@@ -87,7 +86,7 @@ export async function installBuf(
   return binName;
 }
 
-// resolveVersion from the input, environment, or .bufversion file.
+// resolveVersion from the input or environment.
 function resolveVersion(versionSpec: string): string {
   if (versionSpec) {
     core.info(`Using the version of buf from the input: ${versionSpec}`);
@@ -95,12 +94,6 @@ function resolveVersion(versionSpec: string): string {
   } else if (getEnv("BUF_VERSION")) {
     const resolvedVersion = getEnv("BUF_VERSION");
     core.info(`Using the version of buf from $BUF_VERSION: ${resolvedVersion}`);
-    return resolvedVersion;
-  } else if (fs.existsSync(".bufversion")) {
-    const resolvedVersion = fs.readFileSync(".bufversion", "utf8").trim();
-    core.info(
-      `Using the version of buf from the .bufversion file: ${resolvedVersion}`,
-    );
     return resolvedVersion;
   }
   return "";
