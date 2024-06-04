@@ -87,6 +87,8 @@ Subsequent steps will have `buf` available in their $PATH and can invoke `buf` d
 - run: buf build --error-format github-actions
 ```
 
+See the [only-setup.yaml](examples/only-setup.yaml) example.
+
 #### Skip steps
 
 To skip or disable parts of the workflow, each step corresponds to a boolean flag in the input.
@@ -127,6 +129,25 @@ For example to disable breaking change detection on commits, create an expressio
 ```     
 
 See [GitHub Actions job context](https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions#job-context) documentation.
+
+#### Only push on changes
+
+To push only on changes to the protos, restrict the push step for any changes to buf releated files.
+This can be achieved by using the `paths` filter on the `push` event.
+
+```yaml
+push:
+  paths:
+    # Caution: This workflow could miss changes if the paths are not correctly specified.
+    - '**.proto'
+    - '**/buf.yaml'
+    - '**/buf.lock'
+    - '**/buf.md'
+    - '**/README.md'
+    - '**/LICENSE'
+```
+
+See the [push-on-changes.yaml](examples/push-on-changes.yaml) example.
 
 ### Versioning
 

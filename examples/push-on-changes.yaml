@@ -8,6 +8,8 @@ on:
       # Caution: This workflow could miss changes if the paths are not correctly specified.
       - '**.proto'
       - '**/buf.yaml'
+      - '**/buf.lock'
+      - '**/buf.md'
       - '**/README.md'
       - '**/LICENSE'
 permissions:
