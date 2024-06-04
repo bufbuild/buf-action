@@ -38013,7 +38013,14 @@ async function archive(bufPath, inputs) {
     for (const label of inputs.archive_labels) {
         args.push("--label", label);
     }
-    return run(bufPath, args);
+    const result = await run(bufPath, args);
+    if (result.status == Status.Failed) {
+        if (/Failure: label with name ".*" was not found/.test(result.stderr)) {
+            core.info("Skipping archive, label not found");
+            return skip();
+        }
+    }
+    return result;
 }
 var Status;
 (function (Status) {

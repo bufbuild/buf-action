@@ -199,3 +199,39 @@ jobs:
           push: false
           archive: true
           comment: false
+  archive_not_exists:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs: push
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
+        run: |
+          mkdir -p proto/foo/v1
+          printf "version: v2\nmodules:\n  - path: proto\n    name: buf.build/${BUF_USERNAME}/foo\n" > buf.yaml
+          printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > proto/foo/v1/bar.proto
+      - uses: ./
+        with:
+          username: ${{ secrets.BUF_USERNAME }}
+          token: ${{ secrets.BUF_TOKEN }}
+          lint: false
+          format: false
+          breaking: false
+          push: false
+          archive: true
+          archive_labels: label_does_not_exist
+          comment: false
+      - uses: ./
+        with:
+          username: ${{ secrets.BUF_USERNAME }}
+          token: ${{ secrets.BUF_TOKEN }}
+          lint: false
+          format: false
+          breaking: false
+          push: false
+          archive: true
+          archive_labels: |
+            label_does_not_exist
+            label_does_not_exist_either
+          comment: false
