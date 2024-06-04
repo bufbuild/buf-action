@@ -15,6 +15,8 @@ This GitHub action makes it easy to use [`buf`][buf] within workflows.
   by running `buf` commands (e.g. `build`, `lint`, `breaking`, `format`, `push`) based on GitHub event triggers.
 - It is easy to configure to work with any setup.
 
+![Screenshots of the breaking change detection workflow](./docs/static/breaking-change-detection.png)
+
 ## Usage
 
 To use the recommended default behavior, create a new `.github/workflows/buf-ci.yaml` file in your repository with the following content:
