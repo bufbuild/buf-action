@@ -1,0 +1,16 @@
+{
+  "name": "Buf CI Workflow",
+  "description": "Buf CI starter workflow.",
+  "iconName": "example-icon",
+  "categories": [
+    "Proto",
+    "Protobuf"
+  ],
+  "filePatterns": [
+    "buf.yaml$",
+    ".*\\.proto$"
+  ],
+  "labels": [
+    "preview"
+  ]
+}
