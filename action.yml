@@ -186,7 +186,7 @@ inputs:
       Whether to run the archive step. Runs by default on deletes.
       Additional labels from the "labels" input are archived.
     required: false
-    default: ${{ github.event_name == 'delete' }}
+    default: ${{ github.event_name == 'delete' && github.ref_name != github.event.repository.default_branch }}
   archive_labels:
     description: |-
       Labels to archive (separated by newlines).
