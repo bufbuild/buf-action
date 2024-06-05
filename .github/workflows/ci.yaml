@@ -177,6 +177,28 @@ jobs:
           push: true
           archive: false
           comment: false
+  push-token-only:
+    needs: push
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' }} # --git-metadata is only available on push
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
+        run: |
+          mkdir -p proto/foo/v1
+          printf "version: v2\nmodules:\n  - path: proto\n    name: buf.build/${BUF_USERNAME}/foo\n" > buf.yaml
+          printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > proto/foo/v1/bar.proto
+      - uses: ./
+        with:
+          token: ${{ secrets.BUF_TOKEN }}
+          lint: false
+          format: false
+          breaking: false
+          push: true
+          archive: false
+          comment: false
+
   archive:
     if: github.event_name == 'push' && github.ref_name != github.event.repository.default_branch
     runs-on: ubuntu-latest
