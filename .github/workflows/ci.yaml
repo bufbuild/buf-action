@@ -178,7 +178,7 @@ jobs:
           archive: false
           comment: false
   push-token-only:
-    needs: push
+    needs: build
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' }} # --git-metadata is only available on push
     steps:
@@ -198,11 +198,12 @@ jobs:
           push: true
           archive: false
           comment: false
-
   archive:
     if: github.event_name == 'push' && github.ref_name != github.event.repository.default_branch
     runs-on: ubuntu-latest
-    needs: push
+    needs:
+      - push
+      - push-token-only
     steps:
       - uses: actions/checkout@v4
       - env:
@@ -223,10 +224,12 @@ jobs:
           # On push github.ref_name, on delete github.event.ref_name.
           archive_labels: ${{ github.ref_name }}
           comment: false
-  archive_not_exists:
+  archive-not-exists:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    needs: push
+    needs:
+      - push
+      - push-token-only
     steps:
       - uses: actions/checkout@v4
       - env:
