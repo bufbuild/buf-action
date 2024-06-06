@@ -158,6 +158,7 @@ jobs:
       - uses: actions/github-script@v7
         with:
           script: |
+            const commentTag = "<!-- Buf results -->";
             const { owner, repo } = context.repo;
             const prNumber = context.payload.pull_request?.number;
             if (!prNumber) {
