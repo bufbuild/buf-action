@@ -38006,10 +38006,14 @@ async function archive(bufPath, inputs) {
         core.info("Skipping archive");
         return skip();
     }
+    if (inputs.archive_labels.length == 0) {
+        core.info("Skipping archive, no labels provided");
+        return skip();
+    }
     // Archive is a special case, we want to iterate over all labels to allow
     // for partial failures. If one label fails on not exists, we continue to the
     // next. The last result is returned.
-    let result = skip();
+    let result = pass();
     for (const label of inputs.archive_labels) {
         const args = ["beta", "registry", "archive", "--label", label];
         if (inputs.input) {
@@ -38024,9 +38028,6 @@ async function archive(bufPath, inputs) {
             return latestResult;
         }
         result = latestResult;
-    }
-    if (inputs.archive_labels.length == 0) {
-        core.info("Skipping archive, no labels provided");
     }
     return result;
 }
@@ -38056,6 +38057,9 @@ async function run(bufPath, args) {
 }
 function skip() {
     return { status: Status.Skipped, exitCode: 0, stdout: "", stderr: "" };
+}
+function pass() {
+    return { status: Status.Passed, exitCode: 0, stdout: "", stderr: "" };
 }
 function message(status) {
     switch (status) {
