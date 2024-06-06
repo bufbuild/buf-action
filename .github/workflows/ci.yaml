@@ -158,6 +158,9 @@ jobs:
       - uses: actions/github-script@v7
         with:
           script: |
+            const expectedComment = `The latest Buf updates on your PR.
+            <table><tr><th>Name</th><th>Status</th></tr><tr><td>build</td><td>✅ passed</td></tr><tr><td>lint</td><td>⏩ skipped</td></tr><tr><td>format</td><td>❌ failed</td></tr><tr><td>breaking</td><td>✅ passed</td></tr></table>
+            <!-- Buf results -->`
             const commentTag = "<!-- Buf results -->";
             const { owner, repo } = context.repo;
             const prNumber = context.payload.pull_request?.number;
@@ -177,8 +180,12 @@ jobs:
               core.setFailed('Missing comment on pull request.');
               return;
             }
-            // TODO: Check the comment body.
-            core.info(`Comment: ${previousComment.body}`);
+            if (!previousComment.body?.includes(expectedComment)) {
+              core.setFailed('Comment does not match expected.');
+              core.info(`Expected: ${expectedComment}`);
+              core.info(`Comment: ${previousComment.body}`);
+              return;
+            }
             await github.rest.issues.deleteComment({
               owner: owner,
               repo: repo,
