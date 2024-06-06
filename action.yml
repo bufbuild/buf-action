@@ -196,8 +196,9 @@ inputs:
             label1
             label2
     required: false
+    # See https://docs.github.com/en/rest/using-the-rest-api/github-event-types?apiVersion=2022-11-28#deleteevent
     default: |
-      ${{ github.event.ref_name }}
+      ${{ github.event.ref }}
 
 runs:
   using: "node20"
