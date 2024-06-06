@@ -197,7 +197,7 @@ inputs:
             label2
     required: false
     default: |
-      ${{ github.ref_name }}
+      ${{ github.event.ref_name }}
 
 runs:
   using: "node20"
