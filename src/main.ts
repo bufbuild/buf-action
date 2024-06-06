@@ -272,14 +272,32 @@ async function archive(bufPath: string, inputs: Inputs): Promise<Result> {
     core.info("Skipping archive");
     return skip();
   }
-  const args = ["beta", "registry", "archive"];
-  if (inputs.input) {
-    args.push(inputs.input);
+  if (inputs.archive_labels.length == 0) {
+    core.info("Skipping archive, no labels provided");
+    return skip();
   }
+  // Archive is a special case, we want to iterate over all labels to allow
+  // for partial failures. If one label fails on not exists, we continue to the
+  // next. The last result is returned.
+  let result = pass();
   for (const label of inputs.archive_labels) {
-    args.push("--label", label);
+    const args = ["beta", "registry", "archive", "--label", label];
+    if (inputs.input) {
+      args.push(inputs.input);
+    }
+    const latestResult = await run(bufPath, args);
+    if (latestResult.status == Status.Failed) {
+      if (
+        /Failure: label with name ".*" was not found/.test(latestResult.stderr)
+      ) {
+        core.info(`Skipping archive, label ${label} not found`);
+        continue;
+      }
+      return latestResult;
+    }
+    result = latestResult;
   }
-  return run(bufPath, args);
+  return result;
 }
 
 enum Status {
@@ -316,6 +334,9 @@ async function run(bufPath: string, args: string[]): Promise<Result> {
 
 function skip(): Result {
   return { status: Status.Skipped, exitCode: 0, stdout: "", stderr: "" };
+}
+function pass(): Result {
+  return { status: Status.Passed, exitCode: 0, stdout: "", stderr: "" };
 }
 
 function message(status: Status | undefined): string {
