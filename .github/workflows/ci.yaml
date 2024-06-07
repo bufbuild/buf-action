@@ -186,9 +186,9 @@ jobs:
               core.info(`Comment: ${previousComment.body}`);
               return;
             }
-            await github.graphql(`
-              mutation MinimizeComment(id:ID!) {
-                minimizeComment(input:{subjectId:$id,classifier:RESOLVED}) {
+            console.log(await github.graphql(`
+              mutation {
+                minimizeComment(input:{subjectId:$"${previousComment.node_id}",classifier:RESOLVED}) {
                   clientMutationId
                   minimizedComment {
                       isMinimized
@@ -197,10 +197,7 @@ jobs:
                   }
                 }
               }
-              variables {
-                id: "${previousComment.node_id}"
-              }
-            `)
+            `))
             core.info('Updated comment.');
   push:
     runs-on: ubuntu-latest
