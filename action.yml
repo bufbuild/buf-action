@@ -65,7 +65,7 @@ inputs:
     description: |-
       Comment on the pull request with the results of the lint, format, and breaking steps.
     required: false
-    default: "true"
+    default: ${{ github.event_name == 'pull_request' }}
 
   input:
     description: |-
