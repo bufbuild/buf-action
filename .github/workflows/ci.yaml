@@ -188,7 +188,7 @@ jobs:
             }
             console.log(await github.graphql(`
               mutation {
-                minimizeComment(input:{subjectId:"${previousComment.node_id}",classifier:"RESOLVED"}) {
+                minimizeComment(input:{subjectId:"${previousComment.node_id}",classifier:RESOLVED}) {
                   clientMutationId
                   minimizedComment {
                       isMinimized
