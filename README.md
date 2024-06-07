@@ -121,7 +121,7 @@ Never hardcode these values in the workflow file.
 To help code review feedback the action outputs a GitHub summary of the current check status and comments on the pull requests.
 For each subsequent run the comment updates displaying the latest status:
 
-![Comment example showing the GitHub summary](./docs/static/comment-example.png "Summary comment example")
+![Comment example showing the GitHub summary](./static/img/comment-example.png "Summary comment example")
 
 To disable the comment, set the input `comment` to `false` and remove the permission `pull_request: write` as this is no longer required.
 
