@@ -8,16 +8,18 @@
 > [!CAUTION]
 > This is in alpha and is under development, stay tuned!
 
-This GitHub action makes it easy to use [`buf`][buf] within workflows.
+This GitHub action makes it easy to run [`buf`][buf] within a workflow to check for
+[build](https://buf.build/docs/reference/cli/buf/build),
+[lint](https://buf.build/docs/lint/overview),
+[format](https://buf.build/docs/format/style),
+and [breaking change](https://buf.build/docs/breaking/overview) errors,
+as well as to automatically [publish schema changes](https://buf.build/docs/bsr/module/publish) to a public or private instance of the [Buf Schema Registry](https://buf.build/product/bsr).
 
-- It installs and caches `buf`.
-- It implements default behavior that follows best practices
-  by running `buf` commands (e.g. `build`, `lint`, `breaking`, `format`, `push`) based on GitHub event triggers.
-- It is easy to configure to work with any setup.
+![Breaking change annotations in a GitHub pull request](./static/img/breaking.png)
 
 ## Usage
 
-To use the recommended default behavior, create a new `.github/workflows/buf-ci.yaml` file in your repository with the following content:
+To use this action with the recommended default behavior, create a new `.github/workflows/buf-ci.yaml` file in your repository with the following content:
 
 ```yaml
 name: Buf CI
@@ -46,11 +48,11 @@ See [action.yml](action.yml) for all options.
 
 | GitHub action event | Default behavior | `buf` commands |
 | - | - | - |
-| [`push`][push-event] | Push content to the BSR every time a new commit, tag, or branch is pushed to GitHub.  | `buf push` |
-| [`pull_request`][pull-request-event] | Run all checks and post (or update) a summary comment on the PR every time it is updated. | `buf build`<br>`buf lint`<br>`buf format`<br>`buf breaking` |
+| [`push`][push-event] | Modules that are configured with a BSR name are [pushed to the BSR](https://buf.build/docs/bsr/module/publish) every time a new commit, tag, or branch is pushed to GitHub.  | `buf push` |
+| [`pull_request`][pull-request-event] | Run all checks and post (or update) a summary comment on the PR every time the PR is updated. Errors are added as annotations on the PR. | `buf build`<br>`buf lint`<br>`buf format`<br>`buf breaking` |
 | [`delete`][delete-event] | Archive the corresponding label on the BSR every time a Git branch or tag is deleted from GitHub. | `buf beta registry archive --label` |
 
-This behavior is the recommended workflow for managing the development of protos in GitHub.
+This behavior is the recommended workflow for a GitHub repository that contains Protobuf files.
 However, the action can also be configured in a number of ways to match your preferred workflow.
 
 #### Skipping steps
