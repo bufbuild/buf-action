@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: bufbuild/buf-action@v0.1.2
+      - uses: bufbuild/buf-action@v0.1.3
         with:
           username: ${{ secrets.BUF_USERNAME }}
           token: ${{ secrets.BUF_TOKEN }}
@@ -67,13 +67,12 @@ When a label is applied to a PR the action will re-run skipping the check specif
 All label checks are case-insensitive.
 Ensure the workflow file includes the types `labeled` and `unlabeled` events to automatically re-run on label changes.
 
-
 ### Versioning
 
 To ensure the version of `buf` is consistent across workflows it's recommended to always use an explicit version.
 
 ```yaml
-- uses: bufbuild/buf-action@v0.1.2
+- uses: bufbuild/buf-action@v0.1.3
   with:
     version: 1.32.2
 ```
@@ -93,7 +92,7 @@ The `username` and `token` values can be stored as secrets in the repository set
 The `token` value can be [generated from the Buf Schema Registry UI](https://buf.build/docs/bsr/authentication#create-an-api-token).
 
 ```yaml
-- uses: bufbuild/buf-action@v0.1.2
+- uses: bufbuild/buf-action@v0.1.3
   with:
     username: ${{ secrets.BUF_USERNAME }}
     token: ${{ secrets.BUF_TOKEN }}
@@ -131,7 +130,7 @@ runs-on: ubuntu-latest
 permissions:
   contents: read
 steps:
-  - uses: bufbuild/buf-action@v0.1.2
+  - uses: bufbuild/buf-action@v0.1.3
     with:
       comment: false
 ```
@@ -143,7 +142,7 @@ To run the action for inputs not specified at the root of the repository, set th
 Breaking change detection will also be required to be set to include a `subdir` configured to the same input path.
 
 ```yaml
-- uses: bufbuild/buf-action@v0.1.2
+- uses: bufbuild/buf-action@v0.1.3
   with:
     input: protos
     breaking_against: |
@@ -160,7 +159,7 @@ Alternatively, you may wish to pre-checkout the base branch for breaking changes
   with:
     path: base
     ref: ${{ github.event.pull_request.base.sha }}
-- uses: bufbuild/buf-action@v0.1.2
+- uses: bufbuild/buf-action@v0.1.3
   with:
     input: head/protos
     breaking_against: base/protos
@@ -182,7 +181,7 @@ This will install `buf` and optionally login to the schema registry but no addit
 Subsequent steps will have `buf` available in their $PATH and can invoke `buf` directly.
 
 ```yaml
-- uses: bufbuild/buf-action@v0.1.2
+- uses: bufbuild/buf-action@v0.1.3
   with:
     setup_only: true
 - run: buf build --error-format github-actions
@@ -196,7 +195,7 @@ To skip or disable parts of the workflow, each step corresponds to a boolean fla
 For example to disable linting set the input `lint` to `false`:
 
 ```yaml
-- uses: bufbuild/buf-action@v0.1.2
+- uses: bufbuild/buf-action@v0.1.3
   with:
     lint: false
 ```
@@ -209,7 +208,7 @@ To trigger steps on different events use the GitHub action context to deduce the
 For example to enable formatting checks on both pull requests and push create an expression for the input `format`:
 
 ```yaml
-- uses: bufbuild/buf-action@v0.1.2
+- uses: bufbuild/buf-action@v0.1.3
   with:
     format: ${{ contains(fromJSON('["push", "pull_request"]'), github.event_name) }}
 ```
@@ -222,7 +221,7 @@ To conditionally run checks based on user input, use the GitHub action context t
 For example to disable breaking change detection on commits, create an expression on the input `breaking` to check the contents of the commit message:
 
 ```yaml
-- uses: bufbuild/buf-action@v0.1.2
+- uses: bufbuild/buf-action@v0.1.3
   with:
     breaking: |
       contains(fromJSON('["push", "pull_request"]'), github.event_name) &&
@@ -315,7 +314,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: bufbuild/buf-action@v0.1.2
+      - uses: bufbuild/buf-action@v0.1.3
         with:
           version: 1.32.2
           username: ${{ secrets.BUF_USERNAME }}
