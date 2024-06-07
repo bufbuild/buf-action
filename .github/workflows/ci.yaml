@@ -159,7 +159,8 @@ jobs:
         with:
           script: |
             const expectedComment = `The latest Buf updates on your PR.
-            <table><tr><th>Name</th><th>Status</th></tr><tr><td>build</td><td>✅ passed</td></tr><tr><td>lint</td><td>⏩ skipped</td></tr><tr><td>format</td><td>❌ failed</td></tr><tr><td>breaking</td><td>✅ passed</td></tr></table>
+
+            <table><tr><th>Name</th><th>Status</th></tr><tr><td>build</td><td>✅ passed</td></tr><tr><td>format</td><td>❌ failed</td></tr><tr><td>breaking</td><td>✅ passed</td></tr></table>
             <!-- Buf results -->`
             const commentTag = "<!-- Buf results -->";
             const { owner, repo } = context.repo;
