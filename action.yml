@@ -146,7 +146,6 @@ inputs:
   push:
     description: |-
       Whether to run the push step. Runs by default on pushes.
-      Sets "--git-metadata" with additional labels from the "labels" input.
     required: false
     default: ${{ github.event_name == 'push' }}
   push_create:
@@ -172,6 +171,7 @@ inputs:
   push_git_metadata:
     description: |-
       Set additional git metadata for the push using "--git-metadata".
+      Defaults to true.
     required: false
     default: "true"
   push_source_control_url:
