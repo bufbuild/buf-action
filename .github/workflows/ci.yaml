@@ -186,6 +186,12 @@ jobs:
               core.info(`Comment: ${previousComment.body}`);
               return;
             }
+            await github.rest.issues.updateComment({
+              owner: owner,
+              repo: repo,
+              comment_id: previousComment.id,
+              body: `${previousComment.body}\nNB: This is a test comment.`,
+            });
             console.log(await github.graphql(`
               mutation {
                 minimizeComment(input:{subjectId:"${previousComment.node_id}",classifier:RESOLVED}) {
