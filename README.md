@@ -15,9 +15,7 @@ This GitHub action makes it easy to run [`buf`][buf] within a workflow to check 
 and [breaking change](https://buf.build/docs/breaking/overview) errors,
 as well as to automatically [publish schema changes](https://buf.build/docs/bsr/module/publish) to a public or private instance of the [Buf Schema Registry](https://buf.build/product/bsr).
 
-![Breaking change annotations in a GitHub pull request](./static/img/breaking.png)
-
-![annotations example for lint and breaking changes](./docs/static/annotations-example.png "Annotations example")
+![Annotations example for lint and breaking changes](./static/img/annotations-example.png "Annotations example")
 
 ## Usage
 
@@ -123,7 +121,7 @@ Never hardcode these values in the workflow file.
 To help code review feedback the action outputs a GitHub summary of the current check status and comments on the pull requests.
 For each subsequent run the comment updates displaying the latest status:
 
-![comment example showing the GitHub summary](./docs/static/comment-example.png "Comment example")
+![Comment example showing the GitHub summary](./docs/static/comment-example.png "Summary comment example")
 
 To disable the comment, set the input `comment` to `false` and remove the permission `pull_request: write` as this is no longer required.
 
@@ -149,7 +147,7 @@ Breaking change detection will also be required to be set to include a `subdir` 
   with:
     input: protos
     breaking_against: |
-      ${{ github.event.repository.clone_url }}#format=git,tag=${{ github.event.pull_request.base.sha }},subdir=protos
+      ${{ github.event.repository.clone_url }}#format=git,commit=${{ github.event.pull_request.base.sha }},subdir=protos
 ```
 
 Alternatively, you may wish to pre-checkout the base branch for breaking changes.
