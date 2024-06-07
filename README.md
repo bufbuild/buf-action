@@ -187,7 +187,7 @@ Subsequent steps will have `buf` available in their $PATH and can invoke `buf` d
 - run: buf build --error-format github-actions
 ```
 
-See the [only-setup.yaml](examples/only-setup.yaml) example.
+See the [only-setup.yaml](examples/only-setup/buf-ci.yaml) example.
 
 #### Skip steps
 
@@ -247,7 +247,7 @@ push:
     - '**/LICENSE'
 ```
 
-See the [push-on-changes.yaml](examples/push-on-changes.yaml) example.
+See the [push-on-changes.yaml](examples/push-on-changes/buf-ci.yaml) example.
 
 
 ### Check generation

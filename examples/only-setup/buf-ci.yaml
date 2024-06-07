@@ -1,6 +1,6 @@
 # This file is used to setup the Buf CLI in the GitHub Actions environment.
 # After the buf-action is run, the Buf CLI is available for use in subsequent steps.
-name: Only setup
+name: Buf CI
 on:
   push:
 permissions:
