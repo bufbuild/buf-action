@@ -65,7 +65,7 @@ inputs:
     description: |-
       Comment on the pull request with the results of the lint, format, and breaking steps.
     required: false
-    default: "true"
+    default: ${{ github.event_name == 'pull_request' }}
 
   input:
     description: |-
@@ -130,8 +130,7 @@ inputs:
       Input to compare against for breaking change detection.
       Defaults to the base branch of the pull request or the commit before the push.
     required: false
-    # TODO: change to #commit when available (its an alias for #tag).
-    default: ${{ github.event.repository.clone_url }}#format=git,tag=${{ github.event.pull_request.base.sha || github.event.before }}
+    default: ${{ github.event.repository.clone_url }}#format=git,commit=${{ github.event.pull_request.base.sha || github.event.before }}
   breaking_against_config:
     description: |-
       Path to buf.yaml or data to use for the against configuration.
@@ -152,12 +151,12 @@ inputs:
     default: ${{ github.event_name == 'push' }}
   push_create:
     description: |-
-      Create the repository if it does not exist. Must set "push_create_visibility".
+      Create the repository if it does not exist.
     required: false
     default: "true"
   push_create_visibility:
     description: |-
-      Repository's visibility setting if created. Must be set if "push_create" is true.
+      Repository's visibility setting if created.
       Must be either "public" or "private".
     required: false
   push_labels:
@@ -178,13 +177,11 @@ inputs:
   push_source_control_url:
     description: |-
       Set the source control URL for the pushed modules.
-      To override the default, disable "push_git_metadata".
     required: false
 
   archive:
     description: |-
       Whether to run the archive step. Runs by default on deletes.
-      Additional labels from the "labels" input are archived.
     required: false
     default: ${{ github.event_name == 'delete' }}
   archive_labels:
@@ -196,7 +193,6 @@ inputs:
             label1
             label2
     required: false
-    # See https://docs.github.com/en/rest/using-the-rest-api/github-event-types?apiVersion=2022-11-28#deleteevent
     default: |
       ${{ github.event.ref }}
 

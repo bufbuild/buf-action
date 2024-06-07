@@ -1,5 +1,5 @@
 # This workflow skips checks when `buf skip` is applied to a PR.
-name: Skip on labels
+name: Buf CI
 on:
   push:
   pull_request:

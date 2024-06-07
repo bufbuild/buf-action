@@ -1,11 +1,9 @@
-# This workflow downloads the version of buf specified in the env var $BUF_VERSION.
-name: Version environment
+# This workflow downloads the latest version of buf as none is specified.
+name: Buf CI
 on:
   push:
 permissions:
   contents: read
-env:
-  BUF_VERSION: "1.32.0"
 jobs:
   buf:      
     runs-on: ubuntu-latest

@@ -155,6 +155,56 @@ jobs:
           push: false
           archive: false
           comment: true
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const expectedComment = `The latest Buf updates on your PR.
+            <table><tr><th>Name</th><th>Status</th></tr><tr><td>build</td><td>✅ passed</td></tr><tr><td>lint</td><td>⏩ skipped</td></tr><tr><td>format</td><td>❌ failed</td></tr><tr><td>breaking</td><td>✅ passed</td></tr></table>
+            <!-- Buf results -->`
+            const commentTag = "<!-- Buf results -->";
+            const { owner, repo } = context.repo;
+            const prNumber = context.payload.pull_request?.number;
+            if (!prNumber) {
+              core.setFailed('No pull request number found.');
+              return;
+            }
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: owner,
+              repo: repo,
+              issue_number: prNumber,
+            });
+            const previousComment = comments.find((comment) =>
+              comment.body?.includes(commentTag),
+            );
+            if (!previousComment) {
+              core.setFailed('Missing comment on pull request.');
+              return;
+            }
+            if (!previousComment.body?.includes(expectedComment)) {
+              core.setFailed('Comment does not match expected.');
+              core.info(`Expected: ${expectedComment}`);
+              core.info(`Comment: ${previousComment.body}`);
+              return;
+            }
+            await github.rest.issues.updateComment({
+              owner: owner,
+              repo: repo,
+              comment_id: previousComment.id,
+              body: `${previousComment.body}\nNB: This is a test comment.`,
+            });
+            console.log(await github.graphql(`
+              mutation {
+                minimizeComment(input:{subjectId:"${previousComment.node_id}",classifier:RESOLVED}) {
+                  clientMutationId
+                  minimizedComment {
+                      isMinimized
+                      minimizedReason
+                      viewerCanMinimize
+                  }
+                }
+              }
+            `))
+            core.info('Updated comment.');
   push:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' }} # --git-metadata is only available on push

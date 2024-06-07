@@ -40,11 +40,9 @@ updateversion:
 ifndef VERSION
 	$(error "VERSION must be set")
 endif
-	$(SED_I) "s/version: [0-9]+\.[0-9]+\.[0-9]+/version: $(BUF_VERSION)/g" action.yml
-	$(SED_I) "s/version: [0-9]+\.[0-9]+\.[0-9]+/version: $(BUF_VERSION)/g" README.md
-	$(SED_I) "s/buf-action@v[0-9]+\.[0-9]+\.[0-9]+/buf-action@v$(VERSION)/g" README.md
-	$(SED_I) "s/buf-action@v[0-9]+\.[0-9]+\.[0-9]+/buf-action@v$(VERSION)/g" examples/*.yaml
-	$(SED_I) "s/version: [0-9]+\.[0-9]+\.[0-9]+/version: $(BUF_VERSION)/g" examples/*.yaml
+	$(SED_I) "s/version: [0-9]+\.[0-9]+\.[0-9]+/version: $(BUF_VERSION)/g" action.yml README.md examples/*.yaml examples/*/*.yaml
+	$(SED_I) "s/buf-action@v[0-9]+\.[0-9]+\.[0-9]+/buf-action@v$(VERSION)/g" README.md examples/*.yaml examples/*/*.yaml
+	$(SED_I) "s/\"version\": \"[0-9]+\.[0-9]+\.[0-9]+\"/\"version\": \"$(VERSION)\"/g" package.json
 
 .PHONY: generate
 generate: node_modules ## Regenerate licenses

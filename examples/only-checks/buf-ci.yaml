@@ -1,5 +1,5 @@
 # This workflow runs checks on pull_requests only, without push and archive steps.
-name: Only checks
+name: Buf CI
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]

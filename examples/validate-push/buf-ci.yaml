@@ -1,5 +1,5 @@
 # This workflow runs checks on push events before pushing the changes to the BSR.
-name: Validate push
+name: Buf CI
 on:
   push:
   delete:
