@@ -186,12 +186,22 @@ jobs:
               core.info(`Comment: ${previousComment.body}`);
               return;
             }
-            await github.rest.issues.deleteComment({
-              owner: owner,
-              repo: repo,
-              comment_id: previousComment.id,
-            });
-            core.info('Deleted comment.');
+            await github.graphql(`
+              mutation MinimizeComment(id:ID!) {
+                minimizeComment(input:{subjectId:$id,classifier:RESOLVED}) {
+                  clientMutationId
+                  minimizedComment {
+                      isMinimized
+                      minimizedReason
+                      viewerCanMinimize
+                  }
+                }
+              }
+              variables {
+                id: "${previousComment.id}"
+              }
+            `)
+            core.info('Updated comment.');
   push:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' }} # --git-metadata is only available on push
