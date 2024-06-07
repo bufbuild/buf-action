@@ -37719,7 +37719,8 @@ function semverCoerce(version) {
 // limitations under the License.
 
 const commentTag = "<!-- Buf results -->";
-async function commentOnPR(context, github, comment) {
+async function commentOnPR(context, github, summary) {
+    const comment = `The latest Buf updates on your PR.\n\n${summary}`;
     try {
         const { owner, repo } = context.repo;
         const prNumber = context.payload.pull_request?.number;
@@ -37793,24 +37794,13 @@ async function main() {
     // Run the buf workflow.
     const steps = await runWorkflow(bufPath, inputs);
     // Create a summary of the steps.
-    const table = [
-        [
-            { data: "Name", header: true },
-            { data: "Status", header: true },
-        ],
-        ["build", message(steps.build?.status)],
-        ["lint", message(steps.lint?.status)],
-        ["format", message(steps.format?.status)],
-        ["breaking", message(steps.breaking?.status)],
-    ];
-    const summary = core.summary.addRaw("The latest Buf updates on your PR.", true)
-        .addTable(table);
+    const summary = createSummary(inputs, steps);
     // Comment on the PR with the summary, if requested.
     if (inputs.comment) {
         await commentOnPR(lib_github.context, github, summary.stringify());
     }
     // Write the summary to a file defined by GITHUB_STEP_SUMMARY.
-    // NB: Write empties the buffer must be after the comment.
+    // NB: Write empties the buffer and must be after the comment.
     await summary.write();
     // Finally, set the status of the action.
     for (const [key, value] of Object.entries(steps)) {
@@ -37822,6 +37812,26 @@ async function main() {
 main()
     .catch((err) => core.setFailed(err.message))
     .then(() => core.debug(`done in ${process.uptime()} s`));
+function createSummary(inputs, steps) {
+    const table = [
+        [
+            { data: "Name", header: true },
+            { data: "Status", header: true },
+        ],
+        ["build", message(steps.build?.status)],
+    ];
+    if (inputs.lint)
+        table.push(["lint", message(steps.lint?.status)]);
+    if (inputs.format)
+        table.push(["format", message(steps.format?.status)]);
+    if (inputs.breaking)
+        table.push(["breaking", message(steps.breaking?.status)]);
+    if (inputs.push)
+        table.push(["push", message(steps.push?.status)]);
+    if (inputs.archive)
+        table.push(["archive", message(steps.archive?.status)]);
+    return core.summary.addTable(table);
+}
 // runWorkflow runs the buf workflow. It returns the results of each step.
 // First, it builds the input. If the build fails, the workflow stops.
 // Next, it runs lint, format, and breaking checks. If any of these fail, the workflow stops.

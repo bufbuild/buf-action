@@ -21,8 +21,9 @@ const commentTag = "<!-- Buf results -->";
 export async function commentOnPR(
   context: Context,
   github: InstanceType<typeof GitHub>,
-  comment: string,
+  summary: string,
 ): Promise<boolean> {
+  const comment = `The latest Buf updates on your PR.\n\n${summary}`;
   try {
     const { owner, repo } = context.repo;
     const prNumber = context.payload.pull_request?.number;
