@@ -67,67 +67,6 @@ When a label is applied to a PR the action will re-run skipping the check specif
 All label checks are case-insensitive.
 Ensure the workflow file includes the types `labeled` and `unlabeled` events to automatically re-run on label changes.
 
-
-### Customizing behavior
-
-#### Example workflows
-
-Check out the [examples](examples) directory for more detailed workflows.
-
-#### Setup only
-
-To only setup the action without running any commands, set the input `setup_only` to `true`.
-This will install `buf` and optionally login to the schema registry but no additional commands will be run.
-Subsequent steps will have `buf` available in their $PATH and can invoke `buf` directly.
-
-```yaml
-- uses: bufbuild/buf-action@v0.1.3
-  with:
-    setup_only: true
-- run: buf build --error-format github-actions
-```
-
-#### Skip steps
-
-To skip or disable parts of the workflow, each step corresponds to a boolean flag in the input.
-For example to disable linting set the input `lint` to `false`:
-
-```yaml
-- uses: bufbuild/buf-action@v0.1.3
-  with:
-    lint: false
-```
-
-See [action.yml](action.yml) for all available inputs.
-
-#### Customize when steps run
-
-To trigger steps on different events use the GitHub action context to deduce the event type.
-For example to enable formatting checks on both pull requests and push create an expression for the input `format`:
-
-```yaml
-- uses: bufbuild/buf-action@v0.1.3
-  with:
-    format: ${{ contains(fromJSON('["push", "pull_request"]'), github.event_name) }}
-```
-
-See [GitHub Actions expressions](https://docs.github.com/en/actions/learn-github-actions/expressions) documentation.
-
-#### Skip checks on commit messages
-
-To conditionally run checks based on user input, use the GitHub action context to check for the contents of the commit.
-For example to disable breaking change detection on commits, create an expression on the input `breaking` to check the contents of the commit message:
-
-```yaml
-- uses: bufbuild/buf-action@v0.1.3
-  with:
-    breaking: |
-      contains(fromJSON('["push", "pull_request"]'), github.event_name) &&
-      !contains(github.event.head_commit.message, 'buf skip breaking')
-```     
-
-See [GitHub Actions job context](https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions#job-context) documentation.
-
 ### Versioning
 
 To ensure the version of `buf` is consistent across workflows it's recommended to always use an explicit version.
@@ -227,6 +166,88 @@ Alternatively, you may wish to pre-checkout the base branch for breaking changes
 ```
 
 For more information on inputs, see the [Buf Inputs Reference](https://buf.build/docs/reference/inputs).
+
+
+### Customizing behavior
+
+#### Example workflows
+
+Check out the [examples](examples) directory for more detailed workflows.
+
+#### Setup only
+
+To only setup the action without running any commands, set the input `setup_only` to `true`.
+This will install `buf` and optionally login to the schema registry but no additional commands will be run.
+Subsequent steps will have `buf` available in their $PATH and can invoke `buf` directly.
+
+```yaml
+- uses: bufbuild/buf-action@v0.1.3
+  with:
+    setup_only: true
+- run: buf build --error-format github-actions
+```
+
+See the [only-setup.yaml](examples/only-setup.yaml) example.
+
+#### Skip steps
+
+To skip or disable parts of the workflow, each step corresponds to a boolean flag in the input.
+For example to disable linting set the input `lint` to `false`:
+
+```yaml
+- uses: bufbuild/buf-action@v0.1.3
+  with:
+    lint: false
+```
+
+See [action.yml](action.yml) for all available inputs.
+
+#### Customize when steps run
+
+To trigger steps on different events use the GitHub action context to deduce the event type.
+For example to enable formatting checks on both pull requests and push create an expression for the input `format`:
+
+```yaml
+- uses: bufbuild/buf-action@v0.1.3
+  with:
+    format: ${{ contains(fromJSON('["push", "pull_request"]'), github.event_name) }}
+```
+
+See [GitHub Actions expressions](https://docs.github.com/en/actions/learn-github-actions/expressions) documentation.
+
+#### Skip checks on commit messages
+
+To conditionally run checks based on user input, use the GitHub action context to check for the contents of the commit.
+For example to disable breaking change detection on commits, create an expression on the input `breaking` to check the contents of the commit message:
+
+```yaml
+- uses: bufbuild/buf-action@v0.1.3
+  with:
+    breaking: |
+      contains(fromJSON('["push", "pull_request"]'), github.event_name) &&
+      !contains(github.event.head_commit.message, 'buf skip breaking')
+```
+
+See [GitHub Actions job context](https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions#job-context) documentation.
+
+#### Only push on changes
+
+To push only on changes to the protos, restrict the push step for any changes to buf releated files.
+This can be achieved by using the `paths` filter on the `push` event.
+
+```yaml
+push:
+  paths:
+    # Caution: This workflow could miss changes if the paths are not correctly specified.
+    - '**.proto'
+    - '**/buf.yaml'
+    - '**/buf.lock'
+    - '**/buf.md'
+    - '**/README.md'
+    - '**/LICENSE'
+```
+
+See the [push-on-changes.yaml](examples/push-on-changes.yaml) example.
 
 
 ### Check generation
