@@ -15,6 +15,8 @@ This GitHub action makes it easy to use [`buf`][buf] within workflows.
   by running `buf` commands (e.g. `build`, `lint`, `breaking`, `format`, `push`) based on GitHub event triggers.
 - It is easy to configure to work with any setup.
 
+![annotations example for lint and breaking changes](./docs/static/annotations-example.png "Annotations example")
+
 ## Usage
 
 To use the recommended default behavior, create a new `.github/workflows/buf-ci.yaml` file in your repository with the following content:
@@ -119,8 +121,7 @@ Never hardcode these values in the workflow file.
 To help code review feedback the action outputs a GitHub summary of the current check status and comments on the pull requests.
 For each subsequent run the comment updates displaying the latest status:
 
-> The latest Buf updates on your PR.
-> <table><tr><th>Name</th><th>Status</th></tr><tr><td>build</td><td>✅ passed</td></tr><tr><td>lint</td><td>⏩ skipped</td></tr><tr><td>format</td><td>✅ passed</td></tr><tr><td>breaking</td><td>✅ passed</td></tr></table>
+![comment example showing the GitHub summary](./docs/static/comment-example.png "Comment example")
 
 To disable the comment, set the input `comment` to `false` and remove the permission `pull_request: write` as this is no longer required.
 
