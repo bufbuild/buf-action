@@ -1,7 +1,7 @@
 # This file showcases the Buf CI workflow in a step by step breakdown.
 # Based on the buf-ci.yaml file, this action walks through the Buf CI workflow
 # and shows what each step does.
-name: Only setup defaults
+name: Buf CI
 on:
   push:
   pull_request:

@@ -1,5 +1,5 @@
 # This workflow skips checks when `buf skip` is used in the commit message.
-name: Skip on commits
+name: Buf CI
 on:
   push:
   delete:
