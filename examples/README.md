@@ -6,7 +6,7 @@ This directory contains examples of how to use the `buf` GitHub Action.
 
 - [buf-ci.yaml](./buf-ci.yaml): Recommended configuration for using `buf` in a CI environment.
 
-- [only-check/buf-ci.yaml](./only-check/buf-ci.yaml): How to use `buf` to only run checks on pull requests.
+- [only-checks/buf-ci.yaml](./only-checks/buf-ci.yaml): How to use `buf` to only run checks on pull requests.
 - [only-setup/buf-ci.yaml](./only-setup/buf-ci.yaml): How to use `buf` to only install `buf`.
 - [only-setup-defaults/buf-ci.yaml](./only-setup-defaults/buf-ci.yaml): Showcases the default steps of the `buf` action.
 - [only-sync/buf-ci.yaml](./only-sync/buf-ci.yaml): How to use `buf` to only sync the repository labels.
