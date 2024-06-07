@@ -198,7 +198,7 @@ jobs:
                 }
               }
               variables {
-                id: "${previousComment.id}"
+                id: "${previousComment.node_id}"
               }
             `)
             core.info('Updated comment.');
