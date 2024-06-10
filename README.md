@@ -114,16 +114,27 @@ The action reports the status of the most recent checks in a comment on each pul
 
 To disable the comment, set the input `comment` to `false` and remove the permission `pull_request: write` as this is no longer required.
 
-<!-- would this be better shown as a diff? -->
-```yaml
+```diff
 name: Buf CI
-runs-on: ubuntu-latest
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  delete:
 permissions:
   contents: read
-steps:
-  - uses: bufbuild/buf-action@v0.1
-    with:
-      comment: false
+- pull-requests: write
+jobs:
+  buf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-action@v0.1
+        with:
+          version: 1.32.2
+          username: ${{ secrets.BUF_USERNAME }}
+          token: ${{ secrets.BUF_TOKEN }}
++         comment: false
 ```
 
 ### Specify input directory
