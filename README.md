@@ -141,7 +141,6 @@ To run the action for inputs not specified at the root of the repository,
 set the input `input` to the path of your `buf.yaml` directory.
 
 Breaking change detection will also need to be configured with the correct value for `breaking_against`.
-
 If you are using a URL, add the `subdir` parameter to match `input`.
 
 ```yaml
