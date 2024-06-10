@@ -37878,7 +37878,7 @@ async function login(bufPath, inputs) {
         input: Buffer.from(resolvedToken + "\n"),
     });
 }
-// build runs "buf build" step.
+// build runs the "buf build" step.
 async function build(bufPath, inputs) {
     const args = ["build", "--error-format", "github-actions"];
     if (inputs.input) {

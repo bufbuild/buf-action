@@ -134,7 +134,7 @@ async function login(bufPath: string, inputs: Inputs) {
   );
 }
 
-// build runs "buf build" step.
+// build runs the "buf build" step.
 async function build(bufPath: string, inputs: Inputs): Promise<Result> {
   const args = ["build", "--error-format", "github-actions"];
   if (inputs.input) {
