@@ -15,7 +15,7 @@
 name: "Buf Action"
 author: "Buf"
 description: |-
-  Run build, lint, format, and breaking change checks on Protobuf files, and publish schemas to the Buf Schema Registry
+  Run build, lint, format, and breaking change checks on Protobuf files, and publish schemas to the Buf Schema Registry.
 
 branding:
   icon: play
