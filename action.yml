@@ -15,11 +15,7 @@
 name: "Buf Action"
 author: "Buf"
 description: |-
-  This action automates buf within GitHub Actions.
-  It handles buf installation, caching, login to the registry, and running of buf commands based on GitHub event triggers.
-  By default, the action will check lint, format, and breaking changes on pull requests.
-  On pushes, it syncs the repository with the Buf Schema Registry, and on deletes, it archives the corresponding label.
-  The action can be configured to skip steps, run only specific steps, or run steps on different events.
+  Run build, lint, format, and breaking change checks on Protobuf files, and publish schemas to the Buf Schema Registry
 
 branding:
   icon: play
