@@ -93,9 +93,6 @@ The `username` and `token` values should be
 [stored as secrets in the repository settings](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions).
 The `token` value can be [generated from the Buf Schema Registry UI](https://buf.build/docs/bsr/authentication#create-an-api-token).
 
-> [!IMPORTANT]  
-> Never hardcode these values in the workflow file.
-
 ```yaml
 - uses: bufbuild/buf-action@v0.1
   with:
