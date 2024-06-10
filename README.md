@@ -107,7 +107,6 @@ For more information on authentication, see the [Buf Schema Registry Authenticat
 
 ### Summary comment
 
-<!-- Do we want to avoid posting a comment if no proto files have changed? -->
 The action reports the status of the most recent checks in a comment on each pull request.
 
 ![Comment example showing the GitHub summary](./static/img/comment-example.png "Summary comment example")
