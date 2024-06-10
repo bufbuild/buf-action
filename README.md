@@ -38,7 +38,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: bufbuild/buf-action@v0.1
         with:
-          version: 1.32.2
           username: ${{ secrets.BUF_USERNAME }}
           token: ${{ secrets.BUF_TOKEN }}
 ```
@@ -68,7 +67,7 @@ Ensure the workflow file includes the `pull_request` event types `labeled` and `
 
 ### Versioning
 
-To ensure the version of `buf` is consistent across workflows it's recommended to always use an explicit version.
+For reproducible builds, you can pin to an explicit version of `buf` by setting `version`.
 
 ```yaml
 - uses: bufbuild/buf-action@v0.1
@@ -129,7 +128,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: bufbuild/buf-action@v0.1
         with:
-          version: 1.32.2
           username: ${{ secrets.BUF_USERNAME }}
           token: ${{ secrets.BUF_TOKEN }}
 +         comment: false
