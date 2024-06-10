@@ -47,6 +47,7 @@ export interface Inputs {
   archive_labels: string[];
 }
 
+// getInputs decodes the inputs from the environment variables.
 export function getInputs(): Inputs {
   return {
     version: core.getInput("version"),

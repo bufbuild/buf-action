@@ -19,9 +19,11 @@ import { GitHub } from "@actions/github/lib/utils";
 import * as semver from "semver";
 import { getEnv } from "./inputs";
 
+// requiredVersion is the minimum version of buf required.
 const requiredVersion = ">=1.32.0";
 
-// installBuf installs the buf binary and returns the path to the binary.
+// installBuf installs the buf binary and returns the path to the binary. The
+// versionInput should be an explicit version of buf.
 export async function installBuf(
   github: InstanceType<typeof GitHub>,
   versionInput: string,
@@ -159,6 +161,8 @@ async function downloadBuf(version: string): Promise<string> {
   }
 }
 
+// semverCoerce coerces the version to a semver version. This is useful for
+// custom versions that are not semver compliant e.g. "v1.32.0-beta.1".
 function semverCoerce(version: string): string | semver.SemVer {
   return semver.coerce(version) ?? version;
 }
