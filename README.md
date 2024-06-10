@@ -64,6 +64,8 @@ by adding a label with a (case-insensitive) special name to that PR.
 - `buf skip format`: skips format. 
 
 Ensure the workflow file includes the `pull_request` event types `labeled` and `unlabeled` so checks re-run on label changes.
+To disable this behaviour, override the action inputs `breaking`, `lint`, and `format`.
+See [examples/disable-skip/buf-ci.yaml](examples/disable-skip/buf-ci.yaml) for an example.
 
 ### Versioning
 
