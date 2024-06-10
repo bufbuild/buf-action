@@ -1,27 +1,5 @@
 ![The Buf logo](https://raw.githubusercontent.com/bufbuild/protovalidate/main/.github/buf-logo.svg)
 
-- [buf-action](#buf-action)
-  - [Usage](#usage)
-    - [Default behavior](#default-behavior)
-    - [Skipping steps](#skipping-steps)
-    - [Versioning](#versioning)
-    - [Authentication](#authentication)
-    - [Summary comment](#summary-comment)
-    - [Specify inputs](#specify-inputs)
-    - [Setup only](#setup-only)
-    - [Skip steps](#skip-steps)
-    - [Customize when steps run](#customize-when-steps-run)
-    - [Skip checks on commit messages](#skip-checks-on-commit-messages)
-    - [Only push on changes](#only-push-on-changes)
-    - [Check generation](#check-generation)
-      - [Builtin protoc plugins](#builtin-protoc-plugins)
-    - [Example workflows](#example-workflows)
-  - [Migrating from individual Buf actions](#migrating-from-individual-buf-actions)
-  - [Feedback and support](#feedback-and-support)
-  - [Status: alpha](#status-alpha)
-  - [Legal](#legal)
-
-
 # buf-action
 
 [![ci](https://github.com/bufbuild/buf-action/actions/workflows/ci.yaml/badge.svg?branch=main)][ci]
