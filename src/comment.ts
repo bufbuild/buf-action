@@ -16,8 +16,14 @@ import * as core from "@actions/core";
 import { Context } from "@actions/github/lib/context";
 import { GitHub } from "@actions/github/lib/utils";
 
+// commentTag is the tag used to identify the comment. This is a non-visible
+// string injected into the comment body.
 const commentTag = "<!-- Buf results -->";
 
+// commentOnPR comments on the PR with the summary of the Buf results. The
+// summary should be a markdown formatted string. This function returns true if
+// the comment was successfully created or updated. On failure, it returns
+// false but does not throw an error.
 export async function commentOnPR(
   context: Context,
   github: InstanceType<typeof GitHub>,

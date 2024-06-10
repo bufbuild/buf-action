@@ -37532,6 +37532,7 @@ var lib_github = __nccwpck_require__(5438);
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// getInputs decodes the inputs from the environment variables.
 function getInputs() {
     return {
         version: core.getInput("version"),
@@ -37594,8 +37595,10 @@ var semver = __nccwpck_require__(1383);
 
 
 
+// requiredVersion is the minimum version of buf required.
 const requiredVersion = ">=1.32.0";
-// installBuf installs the buf binary and returns the path to the binary.
+// installBuf installs the buf binary and returns the path to the binary. The
+// versionInput should be an explicit version of buf.
 async function installBuf(github, versionInput) {
     let resolvedVersion = resolveVersion(versionInput);
     if (resolvedVersion != "" && !tool_cache.isExplicitVersion(resolvedVersion)) {
@@ -37614,11 +37617,10 @@ async function installBuf(github, versionInput) {
         });
         const version = bufVersion.stdout.trim();
         core.info(`Using buf (${version}) found in $PATH`);
-        if (!semver.satisfies(semverCoerce(version), requiredVersion)) {
+        if (!semver.satisfies(version, requiredVersion)) {
             throw new Error(`The version of buf (${version}) does not satisfy the required version (${requiredVersion})`);
         }
-        if (resolvedVersion != "" &&
-            !semver.eq(semverCoerce(version), semverCoerce(resolvedVersion))) {
+        if (resolvedVersion != "" && !semver.eq(version, resolvedVersion)) {
             throw new Error(`The version of buf (${version}) does not equal the resolved version (${resolvedVersion})`);
         }
         return binName;
@@ -37626,7 +37628,7 @@ async function installBuf(github, versionInput) {
     if (resolvedVersion === "") {
         resolvedVersion = await latestVersion(github);
     }
-    if (!semver.satisfies(semverCoerce(resolvedVersion), requiredVersion)) {
+    if (!semver.satisfies(resolvedVersion, requiredVersion)) {
         throw new Error(`The resolved version of buf (${resolvedVersion}) does not satisfy the required version (${requiredVersion})`);
     }
     // Fetch the version of buf to use.
@@ -37666,9 +37668,6 @@ async function latestVersion(github) {
 }
 // downloadBuf downloads the buf binary and returns the path to the binary.
 async function downloadBuf(version) {
-    // The available platforms can be found at:
-    // https://nodejs.org/api/process.html#process_process_platform
-    // https://nodejs.org/api/process.html#process_process_arch
     const table = {
         darwin: {
             x64: "buf-Darwin-x86_64",
@@ -37699,9 +37698,6 @@ async function downloadBuf(version) {
         throw new Error(`Failed to download buf version ${version} from "${downloadURL}": ${error}`);
     }
 }
-function semverCoerce(version) {
-    return semver.coerce(version) ?? version;
-}
 
 ;// CONCATENATED MODULE: ./src/comment.ts
 // Copyright 2024 Buf Technologies, Inc.
@@ -37718,7 +37714,13 @@ function semverCoerce(version) {
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// commentTag is the tag used to identify the comment. This is a non-visible
+// string injected into the comment body.
 const commentTag = "<!-- Buf results -->";
+// commentOnPR comments on the PR with the summary of the Buf results. The
+// summary should be a markdown formatted string. This function returns true if
+// the comment was successfully created or updated. On failure, it returns
+// false but does not throw an error.
 async function commentOnPR(context, github, summary) {
     const comment = `The latest Buf updates on your PR.\n\n${summary}`;
     try {
@@ -37782,6 +37784,7 @@ async function commentOnPR(context, github, summary) {
 
 
 
+// main is the entrypoint for the action.
 async function main() {
     const inputs = getInputs();
     const github = (0,lib_github.getOctokit)(inputs.github_token);
@@ -37812,6 +37815,8 @@ async function main() {
 main()
     .catch((err) => core.setFailed(err.message))
     .then(() => core.debug(`done in ${process.uptime()} s`));
+// createSummary creates a GitHub summary of the steps. The summary is a table
+// with the name and status of each step.
 function createSummary(inputs, steps) {
     const table = [
         [
@@ -37873,6 +37878,7 @@ async function login(bufPath, inputs) {
         input: Buffer.from(resolvedToken + "\n"),
     });
 }
+// build runs the "buf build" step.
 async function build(bufPath, inputs) {
     const args = ["build", "--error-format", "github-actions"];
     if (inputs.input) {
@@ -37895,6 +37901,7 @@ async function build(bufPath, inputs) {
     }
     return run(bufPath, args);
 }
+// lint runs the "buf lint" step.
 async function lint(bufPath, inputs) {
     if (!inputs.lint) {
         core.info("Skipping lint");
@@ -37918,6 +37925,7 @@ async function lint(bufPath, inputs) {
     }
     return run(bufPath, args);
 }
+// format runs the "buf format" step.
 async function format(bufPath, inputs) {
     if (!inputs.format) {
         core.info("Skipping format");
@@ -37947,6 +37955,7 @@ async function format(bufPath, inputs) {
     }
     return run(bufPath, args);
 }
+// breaking runs the "buf breaking" step.
 async function breaking(bufPath, inputs) {
     if (!inputs.breaking) {
         core.info("Skipping breaking");
@@ -37982,6 +37991,7 @@ async function breaking(bufPath, inputs) {
     }
     return run(bufPath, args);
 }
+// push runs the "buf push" step.
 async function push(bufPath, inputs) {
     if (!inputs.push) {
         core.info("Skipping push");
@@ -38011,6 +38021,7 @@ async function push(bufPath, inputs) {
     }
     return run(bufPath, args);
 }
+// archive runs the "buf archive" step.
 async function archive(bufPath, inputs) {
     if (!inputs.archive) {
         core.info("Skipping archive");
@@ -38041,13 +38052,19 @@ async function archive(bufPath, inputs) {
     }
     return result;
 }
+// Status is the status of a command execution.
 var Status;
 (function (Status) {
+    // Unknown is the default status.
     Status[Status["Unknown"] = 0] = "Unknown";
+    // Passed is the status of a successful command execution.
     Status[Status["Passed"] = 1] = "Passed";
+    // Failed is the status of a failed command execution.
     Status[Status["Failed"] = 2] = "Failed";
+    // Skipped is the status of a skipped command execution.
     Status[Status["Skipped"] = 3] = "Skipped";
 })(Status || (Status = {}));
+// run executes the buf command with the given arguments.
 async function run(bufPath, args) {
     return exec.getExecOutput(bufPath, args, {
         ignoreReturnCode: true,
@@ -38065,12 +38082,16 @@ async function run(bufPath, args) {
         status: output.exitCode == 0 ? Status.Passed : Status.Failed,
     }));
 }
+// skip returns a skipped result.
 function skip() {
     return { status: Status.Skipped, exitCode: 0, stdout: "", stderr: "" };
 }
+// pass returns a successful result.
 function pass() {
     return { status: Status.Passed, exitCode: 0, stdout: "", stderr: "" };
 }
+// message returns a human-readable message for the status. An undefined status
+// is considered cancelled.
 function message(status) {
     switch (status) {
         case Status.Passed:

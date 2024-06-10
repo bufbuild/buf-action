@@ -20,6 +20,7 @@ import { getInputs, Inputs, getEnv } from "./inputs";
 import { installBuf } from "./installer";
 import { commentOnPR } from "./comment";
 
+// main is the entrypoint for the action.
 async function main() {
   const inputs = getInputs();
   const github = getOctokit(inputs.github_token);
@@ -56,6 +57,8 @@ main()
   .catch((err) => core.setFailed(err.message))
   .then(() => core.debug(`done in ${process.uptime()} s`));
 
+// Steps is the result of each step in the workflow. Each step is optional.
+// Steps are run in order, buy may be batched together if independent.
 interface Steps {
   build?: Result;
   lint?: Result;
@@ -65,6 +68,8 @@ interface Steps {
   archive?: Result;
 }
 
+// createSummary creates a GitHub summary of the steps. The summary is a table
+// with the name and status of each step.
 function createSummary(inputs: Inputs, steps: Steps): typeof core.summary {
   const table = [
     [
@@ -129,6 +134,7 @@ async function login(bufPath: string, inputs: Inputs) {
   );
 }
 
+// build runs the "buf build" step.
 async function build(bufPath: string, inputs: Inputs): Promise<Result> {
   const args = ["build", "--error-format", "github-actions"];
   if (inputs.input) {
@@ -152,6 +158,7 @@ async function build(bufPath: string, inputs: Inputs): Promise<Result> {
   return run(bufPath, args);
 }
 
+// lint runs the "buf lint" step.
 async function lint(bufPath: string, inputs: Inputs): Promise<Result> {
   if (!inputs.lint) {
     core.info("Skipping lint");
@@ -176,6 +183,7 @@ async function lint(bufPath: string, inputs: Inputs): Promise<Result> {
   return run(bufPath, args);
 }
 
+// format runs the "buf format" step.
 async function format(bufPath: string, inputs: Inputs): Promise<Result> {
   if (!inputs.format) {
     core.info("Skipping format");
@@ -206,6 +214,7 @@ async function format(bufPath: string, inputs: Inputs): Promise<Result> {
   return run(bufPath, args);
 }
 
+// breaking runs the "buf breaking" step.
 async function breaking(bufPath: string, inputs: Inputs): Promise<Result> {
   if (!inputs.breaking) {
     core.info("Skipping breaking");
@@ -242,6 +251,7 @@ async function breaking(bufPath: string, inputs: Inputs): Promise<Result> {
   return run(bufPath, args);
 }
 
+// push runs the "buf push" step.
 async function push(bufPath: string, inputs: Inputs): Promise<Result> {
   if (!inputs.push) {
     core.info("Skipping push");
@@ -272,6 +282,7 @@ async function push(bufPath: string, inputs: Inputs): Promise<Result> {
   return run(bufPath, args);
 }
 
+// archive runs the "buf archive" step.
 async function archive(bufPath: string, inputs: Inputs): Promise<Result> {
   if (!inputs.archive) {
     core.info("Skipping archive");
@@ -305,17 +316,24 @@ async function archive(bufPath: string, inputs: Inputs): Promise<Result> {
   return result;
 }
 
+// Status is the status of a command execution.
 enum Status {
+  // Unknown is the default status.
   Unknown = 0,
+  // Passed is the status of a successful command execution.
   Passed,
+  // Failed is the status of a failed command execution.
   Failed,
+  // Skipped is the status of a skipped command execution.
   Skipped,
 }
 
+// Result is the result of a command execution.
 interface Result extends exec.ExecOutput {
   status: Status;
 }
 
+// run executes the buf command with the given arguments.
 async function run(bufPath: string, args: string[]): Promise<Result> {
   return exec
     .getExecOutput(bufPath, args, {
@@ -337,13 +355,18 @@ async function run(bufPath: string, args: string[]): Promise<Result> {
     }));
 }
 
+// skip returns a skipped result.
 function skip(): Result {
   return { status: Status.Skipped, exitCode: 0, stdout: "", stderr: "" };
 }
+
+// pass returns a successful result.
 function pass(): Result {
   return { status: Status.Passed, exitCode: 0, stdout: "", stderr: "" };
 }
 
+// message returns a human-readable message for the status. An undefined status
+// is considered cancelled.
 function message(status: Status | undefined): string {
   switch (status) {
     case Status.Passed:
