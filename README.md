@@ -66,8 +66,6 @@ by adding a label with a (case-insensitive) special name to that PR.
 
 Ensure the workflow file includes the `pull_request` event types `labeled` and `unlabeled` so checks re-run on label changes.
 
-<!-- show how to disable the ability to allow these checks to be skipped? --> 
-
 ### Versioning
 
 To ensure the version of `buf` is consistent across workflows it's recommended to always use an explicit version.
