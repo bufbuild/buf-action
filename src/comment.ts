@@ -58,13 +58,18 @@ export async function commentOnPR(
         prNumber: prNumber,
       },
     );
-    core.info(`Files changed in PR #${prNumber}:`);
-    core.info(JSON.stringify(filesChanged));
-    filesChanged.repository.pullRequest.files.nodes.forEach(
+    const protoFile = filesChanged.repository.pullRequest.files.nodes.find(
       (file: { path: string }) => {
-        core.info(`File changed: ${file.path}`);
+        return file.path.endsWith(".proto");
       },
     );
+    if (
+      !protoFile &&
+      filesChanged.repository.pullRequest.files.nodes.length < 100
+    ) {
+      core.info("Skipping comment, no proto files changed");
+      return false;
+    }
     const content = {
       owner: owner,
       repo: repo,

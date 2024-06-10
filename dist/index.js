@@ -37747,11 +37747,14 @@ async function commentOnPR(context, github, summary) {
             repo: repo,
             prNumber: prNumber,
         });
-        core.info(`Files changed in PR #${prNumber}:`);
-        core.info(JSON.stringify(filesChanged));
-        filesChanged.repository.pullRequest.files.nodes.forEach((file) => {
-            core.info(`File changed: ${file.path}`);
+        const protoFile = filesChanged.repository.pullRequest.files.nodes.find((file) => {
+            return file.path.endsWith(".proto");
         });
+        if (!protoFile &&
+            filesChanged.repository.pullRequest.files.nodes.length < 100) {
+            core.info("Skipping comment, no proto files changed");
+            return false;
+        }
         const content = {
             owner: owner,
             repo: repo,
