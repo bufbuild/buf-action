@@ -37617,11 +37617,11 @@ async function installBuf(github, versionInput) {
         });
         const version = bufVersion.stdout.trim();
         core.info(`Using buf (${version}) found in $PATH`);
-        if (!semver.satisfies(semverCoerce(version), requiredVersion)) {
+        if (!semver.satisfies(version, requiredVersion)) {
             throw new Error(`The version of buf (${version}) does not satisfy the required version (${requiredVersion})`);
         }
         if (resolvedVersion != "" &&
-            !semver.eq(semverCoerce(version), semverCoerce(resolvedVersion))) {
+            !semver.eq(version, resolvedVersion)) {
             throw new Error(`The version of buf (${version}) does not equal the resolved version (${resolvedVersion})`);
         }
         return binName;
@@ -37629,7 +37629,7 @@ async function installBuf(github, versionInput) {
     if (resolvedVersion === "") {
         resolvedVersion = await latestVersion(github);
     }
-    if (!semver.satisfies(semverCoerce(resolvedVersion), requiredVersion)) {
+    if (!semver.satisfies(resolvedVersion, requiredVersion)) {
         throw new Error(`The resolved version of buf (${resolvedVersion}) does not satisfy the required version (${requiredVersion})`);
     }
     // Fetch the version of buf to use.
@@ -37669,9 +37669,6 @@ async function latestVersion(github) {
 }
 // downloadBuf downloads the buf binary and returns the path to the binary.
 async function downloadBuf(version) {
-    // The available platforms can be found at:
-    // https://nodejs.org/api/process.html#process_process_platform
-    // https://nodejs.org/api/process.html#process_process_arch
     const table = {
         darwin: {
             x64: "buf-Darwin-x86_64",
@@ -37701,11 +37698,6 @@ async function downloadBuf(version) {
     catch (error) {
         throw new Error(`Failed to download buf version ${version} from "${downloadURL}": ${error}`);
     }
-}
-// semverCoerce coerces the version to a semver version. This is useful for
-// custom versions that are not semver compliant e.g. "v1.32.0-beta.1".
-function semverCoerce(version) {
-    return semver.coerce(version) ?? version;
 }
 
 ;// CONCATENATED MODULE: ./src/comment.ts
