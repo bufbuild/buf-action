@@ -37620,8 +37620,7 @@ async function installBuf(github, versionInput) {
         if (!semver.satisfies(version, requiredVersion)) {
             throw new Error(`The version of buf (${version}) does not satisfy the required version (${requiredVersion})`);
         }
-        if (resolvedVersion != "" &&
-            !semver.eq(version, resolvedVersion)) {
+        if (resolvedVersion != "" && !semver.eq(version, resolvedVersion)) {
             throw new Error(`The version of buf (${version}) does not equal the resolved version (${resolvedVersion})`);
         }
         return binName;
