@@ -88,7 +88,8 @@ way for consumers of your APIs to generate code.
 Authenticating with the BSR is required for both the push and archive label steps.
 
 To authenticate with the BSR, set the inputs `username` and `token`.
-The `username` and `token` values should be stored as secrets in the repository settings.
+The `username` and `token` values should be
+[stored as secrets in the repository settings](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions).
 The `token` value can be [generated from the Buf Schema Registry UI](https://buf.build/docs/bsr/authentication#create-an-api-token).
 
 > [!IMPORTANT]  
