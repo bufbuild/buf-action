@@ -1,5 +1,27 @@
 ![The Buf logo](https://raw.githubusercontent.com/bufbuild/protovalidate/main/.github/buf-logo.svg)
 
+- [buf-action](#buf-action)
+  - [Usage](#usage)
+    - [Default behavior](#default-behavior)
+    - [Skipping steps](#skipping-steps)
+    - [Versioning](#versioning)
+    - [Authentication](#authentication)
+    - [Summary comment](#summary-comment)
+    - [Specify inputs](#specify-inputs)
+    - [Setup only](#setup-only)
+    - [Skip steps](#skip-steps)
+    - [Customize when steps run](#customize-when-steps-run)
+    - [Skip checks on commit messages](#skip-checks-on-commit-messages)
+    - [Only push on changes](#only-push-on-changes)
+    - [Check generation](#check-generation)
+      - [Builtin protoc plugins](#builtin-protoc-plugins)
+    - [Example workflows](#example-workflows)
+  - [Migrating from individual Buf actions](#migrating-from-individual-buf-actions)
+  - [Feedback and support](#feedback-and-support)
+  - [Status: alpha](#status-alpha)
+  - [Legal](#legal)
+
+
 # buf-action
 
 [![ci](https://github.com/bufbuild/buf-action/actions/workflows/ci.yaml/badge.svg?branch=main)][ci]
@@ -38,6 +60,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: bufbuild/buf-action@v0.1.3
         with:
+          version: 1.32.2
           username: ${{ secrets.BUF_USERNAME }}
           token: ${{ secrets.BUF_TOKEN }}
 ```
@@ -46,28 +69,30 @@ See [action.yml](action.yml) for all options.
 
 ### Default behavior
 
+The default behavior of this action is the recommended workflow for a GitHub repository that contains Protobuf files.
+
 | GitHub action event | Default behavior | `buf` commands |
 | - | - | - |
-| [`push`][push-event] | Modules that are configured with a BSR name are [pushed to the BSR](https://buf.build/docs/bsr/module/publish) every time a new commit, tag, or branch is pushed to GitHub.  | `buf push` |
-| [`pull_request`][pull-request-event] | Run all checks and post (or update) a summary comment on the PR every time the PR is updated. Errors are added as annotations on the PR. | `buf build`<br>`buf lint`<br>`buf format`<br>`buf breaking` |
+| [`push`][push-event] | Modules that are configured with a BSR name are [pushed to the BSR](https://buf.build/docs/bsr/module/publish) every time a new Git commit, tag, or branch is pushed to GitHub.  | `buf push` |
+| [`pull_request`][pull-request-event] | Run all checks and post (or update) a [summary comment](#summary-comment) on the PR every time the PR is updated. Errors are added as annotations on the PR. | `buf build`<br>`buf lint`<br>`buf format`<br>`buf breaking` |
 | [`delete`][delete-event] | Archive the corresponding label on the BSR every time a Git branch or tag is deleted from GitHub. | `buf beta registry archive --label` |
 
-This behavior is the recommended workflow for a GitHub repository that contains Protobuf files.
-However, the action can also be configured in a number of ways to match your preferred workflow.
+### Skipping steps
 
-#### Skipping steps
+The default configuration makes it possible to skip lint, formatting, or breaking change checks on a PR
+by adding a label with a (case-insensitive) special name to that PR.
 
-For specific project requirements you may want to skip certain checks in CI.
-By default this action uses labels on pull requests to enable skipping of lint, formatting or breaking change detection checks.
-To use this behaviour you'll need to add the following labels to your repository:
-
+<!--
+Unclear to me if it makes sense to allow skipping lint and format by default.
+Unlike breaking, these checks run on the whole module, not just the diff, so skipping is somewhat ineffective.
+-->
 - `buf skip lint`: skips lint.
 - `buf skip format`: skips format. 
 - `buf skip breaking`: skips breaking change detection.
 
-When a label is applied to a PR the action will re-run skipping the check specified by the label.
-All label checks are case-insensitive.
-Ensure the workflow file includes the types `labeled` and `unlabeled` events to automatically re-run on label changes.
+Ensure the workflow file includes the `pull_request` event types `labeled` and `unlabeled` so checks re-run on label changes.
+
+<!-- show how to disable the ability to allow these checks to be skipped? --> 
 
 ### Versioning
 
@@ -81,18 +106,23 @@ To ensure the version of `buf` is consistent across workflows it's recommended t
 
 If no version is specified in the workflow config, the action will resolve the version in order of precendence:
 - A version specified in the environment variable `${BUF_VERSION}`.
-- The version of `buf` that is already installed on the runner (if it exists)
+- The version of `buf` that is already installed on the runner (if it exists).
 - The latest version of the `buf` binary from the official releases on GitHub.
 
 ### Authentication
 
-Syncing the repository with the Buf Schema Registry (BSR) provides a seamless experience from your GitHub sources to your consumers of your schemas.
-Authenticating with the BSR is required for both push and label archive steps.
+[Publishing schemas](https://buf.build/docs/bsr/module/publish) to the Buf Schema Registry (BSR) provides a seamless
+way for consumers of your APIs to generate code.
+Authenticating with the BSR is required for both the push and archive label steps.
 
 To authenticate with the BSR, set the inputs `username` and `token`.
-The `username` and `token` values can be stored as secrets in the repository settings.
+The `username` and `token` values should be stored as secrets in the repository settings.
 The `token` value can be [generated from the Buf Schema Registry UI](https://buf.build/docs/bsr/authentication#create-an-api-token).
 
+> [!IMPORTANT]  
+> Never hardcode these values in the workflow file.
+
+<!-- what is the difference between these? which should we recommend? is it ok to just pass token and not username? -->
 ```yaml
 - uses: bufbuild/buf-action@v0.1.3
   with:
@@ -103,28 +133,23 @@ The `token` value can be [generated from the Buf Schema Registry UI](https://buf
 Alternatively, you can set the environment variable `BUF_TOKEN`.
 
 ```yaml
-- uses: bufbuild/buf-action@v1
+- uses: bufbuild/buf-action@v0.1.3
   env:
     BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
 ```
 
 For more information on authentication, see the [Buf Schema Registry Authentication Reference](https://buf.build/docs/bsr/authentication).
 
-#### Security considerations
-
-Always use secrets to store `token` and `username` values.
-Never hardcode these values in the workflow file.
-
-
 ### Summary comment
 
-To help code review feedback the action outputs a GitHub summary of the current check status and comments on the pull requests.
-For each subsequent run the comment updates displaying the latest status:
+<!-- Do we want to avoid posting a comment if no proto files have changed? -->
+The action reports the status of the most recent checks in a comment on each pull request.
 
 ![Comment example showing the GitHub summary](./static/img/comment-example.png "Summary comment example")
 
 To disable the comment, set the input `comment` to `false` and remove the permission `pull_request: write` as this is no longer required.
 
+<!-- would this be better shown as a diff? -->
 ```yaml
 name: Buf CI
 runs-on: ubuntu-latest
@@ -136,9 +161,9 @@ steps:
       comment: false
 ```
 
-
 ### Specify inputs
 
+<!-- Order higher? -->
 To run the action for inputs not specified at the root of the repository, set the input `input` to the path of your `buf.yaml` directory.
 Breaking change detection will also be required to be set to include a `subdir` configured to the same input path.
 
@@ -151,6 +176,7 @@ Breaking change detection will also be required to be set to include a `subdir` 
 ```
 
 Alternatively, you may wish to pre-checkout the base branch for breaking changes.
+<!-- why? -->
 
 ```yaml
 - uses: actions/checkout@v4
@@ -168,14 +194,7 @@ Alternatively, you may wish to pre-checkout the base branch for breaking changes
 
 For more information on inputs, see the [Buf Inputs Reference](https://buf.build/docs/reference/inputs).
 
-
-### Customizing behavior
-
-#### Example workflows
-
-Check out the [examples](examples) directory for more detailed workflows.
-
-#### Setup only
+### Setup only
 
 To only setup the action without running any commands, set the input `setup_only` to `true`.
 This will install `buf` and optionally login to the schema registry but no additional commands will be run.
@@ -190,20 +209,20 @@ Subsequent steps will have `buf` available in their $PATH and can invoke `buf` d
 
 See the [only-setup.yaml](examples/only-setup/buf-ci.yaml) example.
 
-#### Skip steps
+### Skip steps
 
 To skip or disable parts of the workflow, each step corresponds to a boolean flag in the input.
-For example to disable linting set the input `lint` to `false`:
+For example to disable formatting set the input `format` to `false`:
 
 ```yaml
 - uses: bufbuild/buf-action@v0.1.3
   with:
-    lint: false
+    format: false
 ```
 
 See [action.yml](action.yml) for all available inputs.
 
-#### Customize when steps run
+### Customize when steps run
 
 To trigger steps on different events use the GitHub action context to deduce the event type.
 For example to enable formatting checks on both pull requests and push create an expression for the input `format`:
@@ -216,7 +235,7 @@ For example to enable formatting checks on both pull requests and push create an
 
 See [GitHub Actions expressions](https://docs.github.com/en/actions/learn-github-actions/expressions) documentation.
 
-#### Skip checks on commit messages
+### Skip checks on commit messages
 
 To conditionally run checks based on user input, use the GitHub action context to check for the contents of the commit.
 For example to disable breaking change detection on commits, create an expression on the input `breaking` to check the contents of the commit message:
@@ -231,15 +250,15 @@ For example to disable breaking change detection on commits, create an expressio
 
 See [GitHub Actions job context](https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions#job-context) documentation.
 
-#### Only push on changes
+### Only push on changes
 
 To push only on changes to the protos, restrict the push step for any changes to buf releated files.
 This can be achieved by using the `paths` filter on the `push` event.
 
+<!-- comment on why we don't do this by default -->
 ```yaml
 push:
   paths:
-    # Caution: This workflow could miss changes if the paths are not correctly specified.
     - '**.proto'
     - '**/buf.yaml'
     - '**/buf.lock'
@@ -249,7 +268,6 @@ push:
 ```
 
 See the [push-on-changes.yaml](examples/push-on-changes/buf-ci.yaml) example.
-
 
 ### Check generation
 
@@ -271,75 +289,28 @@ Some projects require the use of builtin `protoc` plugins, such as `protoc-gen-c
 To use these plugins, please additionaly install `protoc` such as with the action
 [`setup-protoc`](https://github.com/marketplace/actions/setup-protoc).
 
+### Example workflows
 
-## Migration to `buf-action`
+Check out the [examples](examples) directory for more detailed workflows.
 
-If you're currently using [`buf-setup-action`][buf-setup] and other Buf Actions like [`buf-breaking-action`][buf-breaking], [`buf-lint-action`][buf-lint], or [`buf-push-action`][buf-push], you may want to migrate to this action which consolidates these functionalities into a single action with additional capabilities.
+## Migrating from individual Buf actions
 
-### Example Migration
-
-Here's an example migration from using multiple actions to the new consolidated `buf-action`:
-
-### Before (using `buf-setup-action` and other actions)
-
-```yaml
-steps:
-  - uses: actions/checkout@v2
-  - uses: bufbuild/buf-setup-action@v1.32.2
-    with:
-      version: 1.32.2
-      buf_user: ${{ secrets.BUF_USERNAME }}
-      buf_api_token: ${{ secrets.BUF_TOKEN }}
-  - uses: bufbuild/buf-lint-action@v1
-  - uses: bufbuild/buf-breaking-action@v1
-    with:
-      against: 'https://github.com/acme/weather.git#branch=${{ github.event.repository.default_branch }}'
-  - uses: bufbuild/buf-push-action@v1
-    with:
-      buf_token: ${{ secrets.BUF_TOKEN }}
-      create_visibility: private
-      draft: ${{ github.ref_name != github.event.repository.default_branch }}
-```
-
-### After (using `buf-action`)
-
-```yaml
-name: Buf CI
-on:
-  push:
-  pull_request:
-jobs:
-  buf:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: bufbuild/buf-action@v0.1.3
-        with:
-          version: 1.32.2
-          username: ${{ secrets.BUF_USERNAME }}
-          token: ${{ secrets.BUF_TOKEN }}
-```
-
-### Benefits of migrating
-
-- **Consolidated configuration**: Manage all Buf-related tasks in one action.
-- **Simplified workflow**: Less configuration and setup, with built-in best practices.
-- **Improved functionality**: Additional capabilities like automatic commenting on pull requests, conditional checks with labels and more customizable behaviour.
-- **Enhanced sync**: Push and archive with git metadata for improved synchronization with the Buf Schema Registry (BSR).
-
+If you're currently using any of our individual actions
+([buf-setup-action][buf-setup], [buf-breaking-action][buf-breaking], [buf-lint-action][buf-lint], [buf-push-action][buf-push]),
+we recommend migrating to this consolidated action that has additional capabilities. Benefits to migrating include:
+- Less configuration and setup, with built-in best practices.
+- Enhanced integration with Git data when pushing to the Buf Schema Registry (BSR).
+- Status comments on pull requests.
+- Easy configuration for custom behavior.
 
 ## Feedback and support
 
-If you have any feedback or need support, please reach out to us on the [Buf Slack][slack].
+If you have any feedback or need support, please reach out to us on the [Buf Slack][slack],
 or [GitHub Issues](https://github.com/bufbuild/buf-action/issues).
-
 
 ## Status: alpha
 
 Not yet stable.
-
 
 ## Legal
 
