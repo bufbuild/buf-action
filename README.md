@@ -51,7 +51,7 @@ The default behavior of this action is the recommended workflow for a GitHub rep
 
 | GitHub action event | Default behavior | `buf` commands |
 | - | - | - |
-| [`push`][push-event] | Modules that are configured with a BSR name are [pushed to the BSR](https://buf.build/docs/bsr/module/publish) every time a new Git commit, tag, or branch is pushed to GitHub.  | `buf push` |
+| [`push`][push-event] | Modules that are configured with a BSR name are [pushed to the BSR](https://buf.build/docs/bsr/module/publish) every time a new Git commit, tag, or branch is pushed to GitHub. | `buf push` |
 | [`pull_request`][pull-request-event] | Run all checks and post (or update) a [summary comment](#summary-comment) on the PR every time the PR is updated. Errors are added as annotations on the PR. | `buf build`<br>`buf lint`<br>`buf format`<br>`buf breaking` |
 | [`delete`][delete-event] | Archive the corresponding label on the BSR every time a Git branch or tag is deleted from GitHub. | `buf beta registry archive --label` |
 
