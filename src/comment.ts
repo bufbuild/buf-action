@@ -15,6 +15,7 @@
 import * as core from "@actions/core";
 import { Context } from "@actions/github/lib/context";
 import { GitHub } from "@actions/github/lib/utils";
+import type { GraphQlQueryResponseData } from "@octokit/graphql";
 
 // commentTag is the tag used to identify the comment. This is a non-visible
 // string injected into the comment body.
@@ -37,6 +38,33 @@ export async function commentOnPR(
       core.info("This is not a PR, skipping commenting");
       return false;
     }
+    const filesChanged = await github.graphql<GraphQlQueryResponseData>(
+      `
+      query FilesChanged($owner: String!, $repo: String!, $prNumber: Int!){
+        repository(owner: $owner, name: $repo) {
+          pullRequest(number: $prNumber) {
+            files(first: 100) {
+              nodes {
+                path
+              }
+            }
+          }
+        }
+      }
+    `,
+      {
+        owner: owner,
+        repo: repo,
+        prNumber: prNumber,
+      },
+    );
+    core.info(`Files changed in PR #${prNumber}:`);
+    core.info(JSON.stringify(filesChanged));
+    filesChanged.repository.pullRequest.files.nodes.forEach(
+      (file: { path: string }) => {
+        core.info(`File changed: ${file.path}`);
+      },
+    );
     const content = {
       owner: owner,
       repo: repo,
