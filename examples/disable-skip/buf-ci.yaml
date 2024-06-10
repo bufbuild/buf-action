@@ -1,0 +1,24 @@
+# This workflow disables the use of labels for skipping checks. It does this by
+# removing the expressions that check for the presence of the 'buf skip' labels.
+# As a result, the pull_request types for labeled and unlabeled events can now
+# also be removed (NB: the 'pull_request' default event types include opened,
+# synchronize, and reopened).
+name: Buf CI
+on:
+  push:
+  pull_request:
+  delete:
+permissions:
+  contents: read
+jobs:
+  buf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-action@v0.1.3
+        with:
+          username: ${{ secrets.BUF_USERNAME }}
+          token: ${{ secrets.BUF_TOKEN }}
+          lint: ${{ github.event_name == 'pull_request' }}
+          format: ${{ github.event_name == 'pull_request' }}
+          breaking: ${{ github.event_name == 'pull_request' }}
