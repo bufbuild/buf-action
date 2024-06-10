@@ -60,13 +60,9 @@ The default behavior of this action is the recommended workflow for a GitHub rep
 The default configuration makes it possible to skip lint, formatting, or breaking change checks on a PR
 by adding a label with a (case-insensitive) special name to that PR.
 
-<!--
-Unclear to me if it makes sense to allow skipping lint and format by default.
-Unlike breaking, these checks run on the whole module, not just the diff, so skipping is somewhat ineffective.
--->
+- `buf skip breaking`: skips breaking change detection.
 - `buf skip lint`: skips lint.
 - `buf skip format`: skips format. 
-- `buf skip breaking`: skips breaking change detection.
 
 Ensure the workflow file includes the `pull_request` event types `labeled` and `unlabeled` so checks re-run on label changes.
 
@@ -100,20 +96,11 @@ The `token` value can be [generated from the Buf Schema Registry UI](https://buf
 > [!IMPORTANT]  
 > Never hardcode these values in the workflow file.
 
-<!-- what is the difference between these? which should we recommend? is it ok to just pass token and not username? -->
 ```yaml
 - uses: bufbuild/buf-action@v0.1
   with:
     username: ${{ secrets.BUF_USERNAME }}
     token: ${{ secrets.BUF_TOKEN }}
-```
-
-Alternatively, you can set the environment variable `BUF_TOKEN`.
-
-```yaml
-- uses: bufbuild/buf-action@v0.1
-  env:
-    BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
 ```
 
 For more information on authentication, see the [Buf Schema Registry Authentication Reference](https://buf.build/docs/bsr/authentication).
@@ -139,11 +126,14 @@ steps:
       comment: false
 ```
 
-### Specify inputs
+### Specify input directory
 
-<!-- Order higher? -->
-To run the action for inputs not specified at the root of the repository, set the input `input` to the path of your `buf.yaml` directory.
-Breaking change detection will also be required to be set to include a `subdir` configured to the same input path.
+To run the action for inputs not specified at the root of the repository,
+set the input `input` to the path of your `buf.yaml` directory.
+
+Breaking change detection will also need to be configured with the correct value for `breaking_against`.
+
+If you are using a URL, add the `subdir` parameter to match `input`.
 
 ```yaml
 - uses: bufbuild/buf-action@v0.1
@@ -153,8 +143,8 @@ Breaking change detection will also be required to be set to include a `subdir` 
       ${{ github.event.repository.clone_url }}#format=git,commit=${{ github.event.pull_request.base.sha }},subdir=protos
 ```
 
-Alternatively, you may wish to pre-checkout the base branch for breaking changes.
-<!-- why? -->
+Alternatively, you can checkout the base for the breaking comparison to a local folder
+and then set the value of `breaking_against` to point to that local folder.
 
 ```yaml
 - uses: actions/checkout@v4
@@ -233,7 +223,6 @@ See [GitHub Actions job context](https://docs.github.com/en/actions/reference/co
 To push only on changes to the protos, restrict the push step for any changes to buf releated files.
 This can be achieved by using the `paths` filter on the `push` event.
 
-<!-- comment on why we don't do this by default -->
 ```yaml
 push:
   paths:
@@ -247,11 +236,12 @@ push:
 
 See the [push-on-changes.yaml](examples/push-on-changes/buf-ci.yaml) example.
 
-### Check generation
+### Verify generated files are up-to-date
 
-For projects that make use of the local code generation features we recommend checking for diffs on pull requests.
-This isn't available as a built-in step but can easily be added by invoking `buf`.
-To check the generation of files match the committed protobuf files, use the `buf generate` command and compare them with `git diff`.
+If your project uses local code generation, we recommend checking for diffs on pull requests (and failing if there is a diff).
+This isn't available as a built-in step because generating code may require manual setup, but can easily be added by invoking `buf`.
+
+To check that generated files match committed protobuf files, run the `buf generate` command and then `git diff`.
 If differences exist, `git diff` returns a non-zero exit code with the `--exit-code` flag.
 
 ```yaml
