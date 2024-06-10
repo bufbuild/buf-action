@@ -246,7 +246,7 @@ See the [push-on-changes.yaml](examples/push-on-changes/buf-ci.yaml) example.
 
 ### Verify generated files are up-to-date
 
-If your project uses local code generation, we recommend checking for diffs on pull requests (and failing if there is a diff).
+If your project uses local code generation, we recommend checking for diffs on pull requests.
 This isn't available as a built-in step because generating code may require manual setup, but can easily be added by invoking `buf`.
 
 To check that generated files match committed protobuf files, run the `buf generate` command and then `git diff`.
