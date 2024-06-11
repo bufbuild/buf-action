@@ -46258,12 +46258,15 @@ var dist = __nccwpck_require__(4083);
 
 
 
+
 // parseModules extracts the module names from the given input. The input is a
 // directory.
 function parseModules(input) {
-    const configFile = external_fs_.readFileSync(external_path_.join(input, "buf.yaml"), "utf8")
-        .trim();
+    const bufYamlPath = external_path_.join(input, "buf.yaml");
+    core.info(`Parsing buf.yaml in ${bufYamlPath}`);
+    const configFile = external_fs_.readFileSync(bufYamlPath, "utf8").trim();
     const config = dist/* parse */.Qc(configFile);
+    core.info(`Parsed buf.yaml: ${JSON.stringify(config)}`);
     if (config.name) {
         return [config.name];
     }

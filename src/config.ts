@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import * as core from "@actions/core";
 import * as fs from "fs";
 import * as path from "path";
 import * as yaml from "yaml";
@@ -19,10 +20,11 @@ import * as yaml from "yaml";
 // parseModules extracts the module names from the given input. The input is a
 // directory.
 export function parseModules(input: string): string[] {
-  const configFile = fs
-    .readFileSync(path.join(input, "buf.yaml"), "utf8")
-    .trim();
+  const bufYamlPath = path.join(input, "buf.yaml");
+  core.info(`Parsing buf.yaml in ${bufYamlPath}`);
+  const configFile = fs.readFileSync(bufYamlPath, "utf8").trim();
   const config = yaml.parse(configFile);
+  core.info(`Parsed buf.yaml: ${JSON.stringify(config)}`);
   if (config.name) {
     return [config.name];
   }
