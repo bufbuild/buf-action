@@ -46271,7 +46271,9 @@ function parseModules(input) {
         return [config.name];
     }
     if (config.modules) {
-        return config.modules.map((module) => module.name);
+        return config.modules
+            .map((module) => module.name)
+            .filter((n) => n);
     }
     return [];
 }

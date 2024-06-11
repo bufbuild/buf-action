@@ -29,7 +29,9 @@ export function parseModules(input: string): string[] {
     return [config.name];
   }
   if (config.modules) {
-    return config.modules.map((module: { name: string }) => module.name);
+    return config.modules
+      .map((module: { name: string | undefined }) => module.name)
+      .filter((n: string | undefined) => n);
   }
   return [];
 }
