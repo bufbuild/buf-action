@@ -231,23 +231,6 @@ jobs:
           push: true
           archive: false
           comment: false
-        # Test multi-module push, only one module is pushed.
-      - env:
-          BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
-        run: |
-          mkdir -p multi/bar/v1
-          printf "version: v2\nmodules:\n  - path: proto\n    name: buf.build/${BUF_USERNAME}/foo\n  - path: multi\n" > buf.yaml
-          printf "syntax = \"proto3\";\npackage bar.v1;\nmessage Foo {}\n" > multi/bar/v1/foo.proto
-      - uses: ./
-        with:
-          username: ${{ secrets.BUF_USERNAME }}
-          token: ${{ secrets.BUF_TOKEN }}
-          lint: false
-          format: false
-          breaking: false
-          push: true
-          archive: false
-          comment: false
   test-push-token-only:
     needs: build
     runs-on: ubuntu-latest
@@ -269,12 +252,13 @@ jobs:
           push: true
           archive: false
           comment: false
-  test-push-no-modules:
+  test-push-no-named-modules:
     needs: build
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' }} # --git-metadata is only available on push
     steps:
       - uses: actions/checkout@v4
+        # Test v2 buf.yaml config.
       - run: |
           mkdir -p proto/foo/v1
           printf "version: v2\nmodules:\n  - path: proto\n" > buf.yaml
@@ -288,6 +272,7 @@ jobs:
           push: true
           archive: false
           comment: false
+        # Test v1 buf.yaml config.
       - run: |
           rm -rf proto
           mkdir -p proto/foo/v1
@@ -303,6 +288,25 @@ jobs:
           archive: false
           comment: false
           input: proto
+        # Test v2 with multiple modules, one without a name.
+      - env:
+          BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
+        run: |
+          mkdir -p foo/foo/v1 bar/bar/v1
+          printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > foo/foo/v1/bar.proto
+          printf "syntax = \"proto3\";\npackage bar.v1;\nmessage Foo {}\n" > bar/bar/v1/foo.proto
+          printf "version: v2\nmodules:\n  - path: foo\n    name: buf.build/${BUF_USERNAME}/foo\n  - path: bar\n" > buf.yaml
+      - uses: ./
+        continue-on-error: true # all modules must have a name
+        with:
+          username: ${{ secrets.BUF_USERNAME }}
+          token: ${{ secrets.BUF_TOKEN }}
+          lint: false
+          format: false
+          breaking: false
+          push: true
+          archive: false
+          comment: false
   test-archive:
     if: github.event_name == 'push' && github.ref_name != github.event.repository.default_branch
     runs-on: ubuntu-latest
