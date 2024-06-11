@@ -235,7 +235,7 @@ jobs:
       - env:
           BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
         run: |
-          mkdir -p multi/foo/v1
+          mkdir -p multi/bar/v1
           printf "version: v2\nmodules:\n  - path: proto\n    name: buf.build/${BUF_USERNAME}/foo\n  - path: multi\n" > buf.yaml
           printf "syntax = \"proto3\";\npackage bar.v1;\nmessage Foo {}\n" > multi/bar/v1/foo.proto
       - uses: ./
