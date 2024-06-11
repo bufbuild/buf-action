@@ -21,10 +21,9 @@ import * as yaml from "yaml";
 // directory.
 export function parseModules(input: string): string[] {
   const bufYamlPath = path.join(input, "buf.yaml");
-  core.info(`Parsing buf.yaml in ${bufYamlPath}`);
   const configFile = fs.readFileSync(bufYamlPath, "utf8").trim();
   const config = yaml.parse(configFile);
-  core.info(`Parsed buf.yaml: ${JSON.stringify(config)}`);
+  core.debug(`Parsed ${bufYamlPath}: ${JSON.stringify(config)}`);
   if (config.name) {
     return [config.name];
   }

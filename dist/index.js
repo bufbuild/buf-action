@@ -46263,10 +46263,9 @@ var dist = __nccwpck_require__(4083);
 // directory.
 function parseModules(input) {
     const bufYamlPath = external_path_.join(input, "buf.yaml");
-    core.info(`Parsing buf.yaml in ${bufYamlPath}`);
     const configFile = external_fs_.readFileSync(bufYamlPath, "utf8").trim();
     const config = dist/* parse */.Qc(configFile);
-    core.info(`Parsed buf.yaml: ${JSON.stringify(config)}`);
+    core.debug(`Parsed ${bufYamlPath}: ${JSON.stringify(config)}`);
     if (config.name) {
         return [config.name];
     }
