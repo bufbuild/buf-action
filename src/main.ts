@@ -19,7 +19,7 @@ import { context, getOctokit } from "@actions/github";
 import { getInputs, Inputs, getEnv } from "./inputs";
 import { installBuf } from "./installer";
 import { commentOnPR } from "./comment";
-import { parseModules } from "./config";
+import { parseModuleNames } from "./config";
 
 // main is the entrypoint for the action.
 async function main() {
@@ -109,9 +109,9 @@ async function runWorkflow(bufPath: string, inputs: Inputs): Promise<Steps> {
   if (checks.some((result) => result.status == Status.Failed)) {
     return steps;
   }
-  const modules = parseModules(inputs.input);
-  if (modules.length == 0) {
-    core.info("No modules found, skipping push and archive");
+  const moduleNames = parseModuleNames(inputs.input);
+  if (moduleNames.length == 0) {
+    core.info("No module names found, skipping push and archive");
     steps.push = skip();
     steps.archive = skip();
     return steps;

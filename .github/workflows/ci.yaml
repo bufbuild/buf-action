@@ -27,7 +27,7 @@ jobs:
       - name: Check diff
         run: |
           make checkgenerate
-  setup:
+  test-setup:
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -36,9 +36,9 @@ jobs:
         with:
           setup_only: true
       - run: buf --version | grep $BUF_VERSION
-  setup-latest:
+  test-setup-latest:
     runs-on: ubuntu-latest
-    needs: build
+    needs: test-setup
     env:
       BUF_VERSION: "" # Use the latest version
     steps:
@@ -47,8 +47,8 @@ jobs:
         with:
           setup_only: true
       - run: buf --version
-  setup-macos:
-    needs: setup
+  test-setup-macos:
+    needs: test-setup
     if: github.event_name == 'push'
     runs-on: macos-latest
     steps:
@@ -57,8 +57,8 @@ jobs:
         with:
           setup_only: true
       - run: buf --version | grep $BUF_VERSION
-  setup-windows:
-    needs: setup
+  test-setup-windows:
+    needs: test-setup
     if: github.event_name == 'push'
     runs-on: windows-latest
     steps:
@@ -67,8 +67,8 @@ jobs:
         with:
           setup_only: true
       - run: buf --version | Select-String -Pattern $env:BUF_VERSION -CaseSensitive -SimpleMatch
-  setup-self-hosted:
-    needs: setup
+  test-setup-self-hosted:
+    needs: test-setup
     # Disable this job, only for testing.
     if: false
     runs-on: self-hosted
@@ -78,7 +78,7 @@ jobs:
         with:
           setup_only: true
       - run: buf --version | grep $BUF_VERSION
-  lint:
+  test-lint:
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -95,7 +95,7 @@ jobs:
           push: false
           archive: false
           comment: false
-  format:
+  test-format:
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -112,7 +112,7 @@ jobs:
           push: false
           archive: false
           comment: false
-  breaking:
+  test-breaking:
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -130,10 +130,13 @@ jobs:
           push: false
           archive: false
           comment: false
-  comment:
+  test-comment:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    needs: [lint,format,breaking]
+    needs: 
+      - test-lint
+      - test-format
+      - test-breaking
     steps:
       - uses: actions/checkout@v4
       - env:
@@ -206,7 +209,7 @@ jobs:
               }
             `))
             core.info('Updated comment.');
-  push:
+  test-push:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' }} # --git-metadata is only available on push
     needs: build
@@ -228,7 +231,7 @@ jobs:
           push: true
           archive: false
           comment: false
-  push-token-only:
+  test-push-token-only:
     needs: build
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' }} # --git-metadata is only available on push
@@ -249,7 +252,7 @@ jobs:
           push: true
           archive: false
           comment: false
-  push-no-modules:
+  test-push-no-modules:
     needs: build
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' }} # --git-metadata is only available on push
@@ -283,13 +286,13 @@ jobs:
           archive: false
           comment: false
           input: proto
-  archive:
+  test-archive:
     if: github.event_name == 'push' && github.ref_name != github.event.repository.default_branch
     runs-on: ubuntu-latest
     needs:
-      - push
-      - push-token-only
-      - push-no-modules
+      - test-push
+      - test-push-token-only
+      - test-push-no-modules
     steps:
       - uses: actions/checkout@v4
       - env:
@@ -310,13 +313,13 @@ jobs:
           # On push github.ref_name, on delete github.event.ref_name.
           archive_labels: ${{ github.ref_name }}
           comment: false
-  archive-not-exists:
+  test-archive-not-exists:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     needs:
-      - push
-      - push-token-only
-      - push-no-modules
+      - test-push
+      - test-push-token-only
+      - test-push-no-modules
     steps:
       - uses: actions/checkout@v4
       - env:
@@ -349,13 +352,13 @@ jobs:
             label_does_not_exist
             label_does_not_exist_either
           comment: false
-  archive-no-modules:
+  test-archive-no-modules:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     needs:
-      - push
-      - push-token-only
-      - push-no-modules
+      - test-push
+      - test-push-token-only
+      - test-push-no-modules
     steps:
       - uses: actions/checkout@v4
       - run: |

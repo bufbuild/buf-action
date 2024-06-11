@@ -17,9 +17,9 @@ import * as fs from "fs";
 import * as path from "path";
 import * as yaml from "yaml";
 
-// parseModules extracts the module names from the given input. The input is a
-// directory.
-export function parseModules(input: string): string[] {
+// parseModuleNames extracts the module names from the given input. The input
+// is a directory containing a buf.yaml file.
+export function parseModuleNames(input: string): string[] {
   const bufYamlPath = path.join(input, "buf.yaml");
   const configFile = fs.readFileSync(bufYamlPath, "utf8").trim();
   const config = yaml.parse(configFile);

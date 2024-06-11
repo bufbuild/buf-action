@@ -46259,9 +46259,9 @@ var dist = __nccwpck_require__(4083);
 
 
 
-// parseModules extracts the module names from the given input. The input is a
-// directory.
-function parseModules(input) {
+// parseModuleNames extracts the module names from the given input. The input
+// is a directory containing a buf.yaml file.
+function parseModuleNames(input) {
     const bufYamlPath = external_path_.join(input, "buf.yaml");
     const configFile = external_fs_.readFileSync(bufYamlPath, "utf8").trim();
     const config = dist/* parse */.Qc(configFile);
@@ -46372,9 +46372,9 @@ async function runWorkflow(bufPath, inputs) {
     if (checks.some((result) => result.status == Status.Failed)) {
         return steps;
     }
-    const modules = parseModules(inputs.input);
-    if (modules.length == 0) {
-        core.info("No modules found, skipping push and archive");
+    const moduleNames = parseModuleNames(inputs.input);
+    if (moduleNames.length == 0) {
+        core.info("No module names found, skipping push and archive");
         steps.push = skip();
         steps.archive = skip();
         return steps;
