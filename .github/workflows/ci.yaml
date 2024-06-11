@@ -231,6 +231,23 @@ jobs:
           push: true
           archive: false
           comment: false
+        # Test multi-module push, only one module is pushed.
+      - env:
+          BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
+        run: |
+          mkdir -p multi/foo/v1
+          printf "version: v2\nmodules:\n  - path: proto\n    name: buf.build/${BUF_USERNAME}/foo\n  - path: multi\n" > buf.yaml
+          printf "syntax = \"proto3\";\npackage bar.v1;\nmessage Foo {}\n" > multi/bar/v1/foo.proto
+      - uses: ./
+        with:
+          username: ${{ secrets.BUF_USERNAME }}
+          token: ${{ secrets.BUF_TOKEN }}
+          lint: false
+          format: false
+          breaking: false
+          push: true
+          archive: false
+          comment: false
   test-push-token-only:
     needs: build
     runs-on: ubuntu-latest
