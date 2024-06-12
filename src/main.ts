@@ -110,14 +110,8 @@ async function runWorkflow(bufPath: string, inputs: Inputs): Promise<Steps> {
     return steps;
   }
   const moduleNames = parseModuleNames(inputs.input);
-  if (moduleNames.length == 0) {
-    core.info("No module names found, skipping push and archive");
-    steps.push = skip();
-    steps.archive = skip();
-    return steps;
-  }
-  steps.push = await push(bufPath, inputs);
-  steps.archive = await archive(bufPath, inputs);
+  steps.push = await push(bufPath, inputs, moduleNames);
+  steps.archive = await archive(bufPath, inputs, moduleNames);
   return steps;
 }
 
@@ -260,9 +254,17 @@ async function breaking(bufPath: string, inputs: Inputs): Promise<Result> {
 }
 
 // push runs the "buf push" step.
-async function push(bufPath: string, inputs: Inputs): Promise<Result> {
+async function push(
+  bufPath: string,
+  inputs: Inputs,
+  moduleNames: string[],
+): Promise<Result> {
   if (!inputs.push) {
     core.info("Skipping push");
+    return skip();
+  }
+  if (moduleNames.length == 0) {
+    core.info("Skipping push, no named module detected");
     return skip();
   }
   const args = ["push", "--error-format", "github-actions"];
@@ -291,9 +293,17 @@ async function push(bufPath: string, inputs: Inputs): Promise<Result> {
 }
 
 // archive runs the "buf archive" step.
-async function archive(bufPath: string, inputs: Inputs): Promise<Result> {
-  if (!inputs.archive) {
+async function archive(
+  bufPath: string,
+  inputs: Inputs,
+  moduleNames: string[],
+): Promise<Result> {
+  if (!inputs.archive || moduleNames.length == 0) {
     core.info("Skipping archive");
+    return skip();
+  }
+  if (moduleNames.length == 0) {
+    core.info("Skipping archive, no named module detected");
     return skip();
   }
   if (inputs.archive_labels.length == 0) {
