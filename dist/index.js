@@ -45990,6 +45990,10 @@ var exec = __nccwpck_require__(1514);
 var lib_github = __nccwpck_require__(5438);
 // EXTERNAL MODULE: ./node_modules/semver/index.js
 var semver = __nccwpck_require__(1383);
+// EXTERNAL MODULE: external "fs"
+var external_fs_ = __nccwpck_require__(7147);
+// EXTERNAL MODULE: external "path"
+var external_path_ = __nccwpck_require__(1017);
 ;// CONCATENATED MODULE: ./src/inputs.ts
 // Copyright 2024 Buf Technologies, Inc.
 //
@@ -46029,6 +46033,8 @@ function getInputs() {
         breaking_against: core.getInput("breaking_against"),
         breaking_against_config: core.getInput("breaking_against_config"),
         breaking_limit_to_input_files: core.getBooleanInput("breaking_limit_to_input_files"),
+        generate: core.getBooleanInput("generate"),
+        generate_template: core.getInput("generate_template"),
         push: core.getBooleanInput("push"),
         push_create: core.getBooleanInput("push_create"),
         push_create_visibility: core.getInput("push_create_visibility"),
@@ -46255,10 +46261,6 @@ async function commentOnPR(context, github, summary) {
     }
 }
 
-// EXTERNAL MODULE: external "fs"
-var external_fs_ = __nccwpck_require__(7147);
-// EXTERNAL MODULE: external "path"
-var external_path_ = __nccwpck_require__(1017);
 // EXTERNAL MODULE: ./node_modules/yaml/dist/index.js
 var dist = __nccwpck_require__(4083);
 ;// CONCATENATED MODULE: ./src/config.ts
@@ -46320,6 +46322,8 @@ function parseModuleNames(input) {
 
 
 
+
+
 // main is the entrypoint for the action.
 async function main() {
     const inputs = getInputs();
@@ -46368,6 +46372,8 @@ function createSummary(inputs, steps) {
         table.push(["format", message(steps.format?.status)]);
     if (inputs.breaking)
         table.push(["breaking", message(steps.breaking?.status)]);
+    if (inputs.generate)
+        table.push(["generate", message(steps.generate?.status)]);
     if (inputs.push)
         table.push(["push", message(steps.push?.status)]);
     if (inputs.archive)
@@ -46388,10 +46394,12 @@ async function runWorkflow(bufPath, bufVersion, inputs) {
         lint(bufPath, inputs),
         format(bufPath, inputs),
         breaking(bufPath, inputs),
+        generate(bufPath, inputs),
     ]);
     steps.lint = checks[0];
     steps.format = checks[1];
     steps.breaking = checks[2];
+    steps.generate = checks[3];
     if (checks.some((result) => result.status == Status.Failed)) {
         return steps;
     }
@@ -46528,6 +46536,45 @@ async function breaking(bufPath, inputs) {
         args.push("--exclude-imports");
     }
     return run(bufPath, args);
+}
+async function generate(bufPath, inputs) {
+    if (!inputs.generate) {
+        core.info("Skipping generate");
+        return skip();
+    }
+    const isPath = external_path_.parse(inputs.generate_template).ext != "";
+    if (isPath && !external_fs_.existsSync(inputs.generate_template)) {
+        core.info(`Skipping generate, template not found: ${inputs.generate_template}`);
+        return skip();
+    }
+    const args = ["generate", "--error-format", "github-actions"];
+    if (inputs.input) {
+        args.push(inputs.input);
+    }
+    if (inputs.disable_symlinks) {
+        args.push("--disable-symlinks");
+    }
+    for (const path of inputs.paths) {
+        args.push("--path", path);
+    }
+    for (const path of inputs.exclude_paths) {
+        args.push("--exclude-path", path);
+    }
+    // TODO: more options.
+    const generateResult = await run(bufPath, args);
+    if (generateResult.status == Status.Failed) {
+        return generateResult;
+    }
+    const gitStatusResult = await run("git", [
+        "status",
+        "--porcelain",
+        "--untracked-files=all",
+    ]);
+    if (gitStatusResult.stdout != "") {
+        gitStatusResult.status = Status.Failed;
+        gitStatusResult.stderr = "Uncommitted changes detected";
+    }
+    return gitStatusResult;
 }
 // push runs the "buf push" step.
 async function push(bufPath, bufVersion, inputs, moduleNames) {

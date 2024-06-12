@@ -2,3 +2,6 @@
 /.tmp/
 /.vscode/
 /node_modules/
+/proto/
+buf.yaml
+buf.gen.yaml

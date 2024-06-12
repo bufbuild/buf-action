@@ -139,6 +139,26 @@ inputs:
     required: false
     default: "false"
 
+  generate:
+    description: |-
+      Whether to run the generate step.
+    required: false
+    default: ${{ github.event_name == 'pull_request' }}
+  generate_template:
+    description: |-
+      Template file or data (YAML or JSON) to use for code generation check.
+    required: false
+    default: "buf.gen.yaml"
+  #generate_output:
+  #  description: |-
+  #    Output directory for code generation.
+  #  required: false
+  #generate_types:
+  #  description: |-
+  #    Types to generate. Separate multiple types with newlines
+  #  required: false
+  #  default: "go"
+
   push:
     description: |-
       Whether to run the push step. Runs by default on pushes.

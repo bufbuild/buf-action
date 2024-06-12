@@ -16,6 +16,8 @@ import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import { context, getOctokit } from "@actions/github";
 import * as semver from "semver";
+import * as fs from "fs";
+import * as path from "path";
 
 import { getInputs, Inputs, getEnv } from "./inputs";
 import { Outputs } from "./outputs";
@@ -68,6 +70,7 @@ interface Steps {
   lint?: Result;
   format?: Result;
   breaking?: Result;
+  generate?: Result;
   push?: Result;
   archive?: Result;
 }
@@ -86,6 +89,8 @@ function createSummary(inputs: Inputs, steps: Steps): typeof core.summary {
   if (inputs.format) table.push(["format", message(steps.format?.status)]);
   if (inputs.breaking)
     table.push(["breaking", message(steps.breaking?.status)]);
+  if (inputs.generate)
+    table.push(["generate", message(steps.generate?.status)]);
   if (inputs.push) table.push(["push", message(steps.push?.status)]);
   if (inputs.archive) table.push(["archive", message(steps.archive?.status)]);
   return core.summary.addTable(table);
@@ -109,10 +114,12 @@ async function runWorkflow(
     lint(bufPath, inputs),
     format(bufPath, inputs),
     breaking(bufPath, inputs),
+    generate(bufPath, inputs),
   ]);
   steps.lint = checks[0];
   steps.format = checks[1];
   steps.breaking = checks[2];
+  steps.generate = checks[3];
   if (checks.some((result) => result.status == Status.Failed)) {
     return steps;
   }
@@ -258,6 +265,48 @@ async function breaking(bufPath: string, inputs: Inputs): Promise<Result> {
     args.push("--exclude-imports");
   }
   return run(bufPath, args);
+}
+
+async function generate(bufPath: string, inputs: Inputs): Promise<Result> {
+  if (!inputs.generate) {
+    core.info("Skipping generate");
+    return skip();
+  }
+  const isPath = path.parse(inputs.generate_template).ext != "";
+  if (isPath && !fs.existsSync(inputs.generate_template)) {
+    core.info(
+      `Skipping generate, template not found: ${inputs.generate_template}`,
+    );
+    return skip();
+  }
+  const args = ["generate", "--error-format", "github-actions"];
+  if (inputs.input) {
+    args.push(inputs.input);
+  }
+  if (inputs.disable_symlinks) {
+    args.push("--disable-symlinks");
+  }
+  for (const path of inputs.paths) {
+    args.push("--path", path);
+  }
+  for (const path of inputs.exclude_paths) {
+    args.push("--exclude-path", path);
+  }
+  // TODO: more options.
+  const generateResult = await run(bufPath, args);
+  if (generateResult.status == Status.Failed) {
+    return generateResult;
+  }
+  const gitStatusResult = await run("git", [
+    "status",
+    "--porcelain",
+    "--untracked-files=all",
+  ]);
+  if (gitStatusResult.stdout != "") {
+    gitStatusResult.status = Status.Failed;
+    gitStatusResult.stderr = "Uncommitted changes detected";
+  }
+  return gitStatusResult;
 }
 
 // push runs the "buf push" step.

@@ -37,6 +37,8 @@ export interface Inputs {
   breaking_against: string;
   breaking_against_config: string;
   breaking_limit_to_input_files: boolean;
+  generate: boolean;
+  generate_template: string;
   push: boolean;
   push_create: boolean;
   push_create_visibility: string;
@@ -73,6 +75,8 @@ export function getInputs(): Inputs {
     breaking_limit_to_input_files: core.getBooleanInput(
       "breaking_limit_to_input_files",
     ),
+    generate: core.getBooleanInput("generate"),
+    generate_template: core.getInput("generate_template"),
     push: core.getBooleanInput("push"),
     push_create: core.getBooleanInput("push_create"),
     push_create_visibility: core.getInput("push_create_visibility"),
