@@ -17,11 +17,16 @@ import * as exec from "@actions/exec";
 import { context, getOctokit } from "@actions/github";
 import * as semver from "semver";
 
+import { createConnectTransport } from "@connectrpc/connect-web";
+import { createPromiseClient, ConnectError, Code } from "@connectrpc/connect";
+import { LabelService } from "@buf/bufbuild_registry.connectrpc_es/buf/registry/module/v1/label_service_connect";
+import { LabelRef } from "@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/label_pb";
+
 import { getInputs, Inputs, getEnv } from "./inputs";
 import { Outputs } from "./outputs";
 import { installBuf } from "./installer";
 import { commentOnPR } from "./comment";
-import { parseModuleNames } from "./config";
+import { parseModuleNames, resolveHost } from "./config";
 
 // main is the entrypoint for the action.
 async function main() {
@@ -118,7 +123,7 @@ async function runWorkflow(
   }
   const moduleNames = parseModuleNames(inputs.input);
   steps.push = await push(bufPath, bufVersion, inputs, moduleNames);
-  steps.archive = await archive(bufPath, inputs, moduleNames);
+  steps.archive = await archive(inputs, moduleNames);
   return steps;
 }
 
@@ -305,11 +310,7 @@ async function push(
 }
 
 // archive runs the "buf archive" step.
-async function archive(
-  bufPath: string,
-  inputs: Inputs,
-  moduleNames: string[],
-): Promise<Result> {
+async function archive(inputs: Inputs, moduleNames: string[]): Promise<Result> {
   if (!inputs.archive) {
     core.info("Skipping archive");
     return skip();
@@ -322,28 +323,54 @@ async function archive(
     core.info("Skipping archive, no labels provided");
     return skip();
   }
-  // Archive is a special case, we want to iterate over all labels to allow
-  // for partial failures. If one label fails on not exists, we continue to the
-  // next. The last result is returned.
-  let result = pass();
+
+  const host = resolveHost(moduleNames);
+  const baseURL = `https://${host}`;
+  const transport = createConnectTransport({
+    baseUrl: baseURL,
+  });
+  const client = createPromiseClient(LabelService, transport);
+
   for (const label of inputs.archive_labels) {
-    const args = ["beta", "registry", "archive", "--label", label];
-    if (inputs.input) {
-      args.push(inputs.input);
-    }
-    const latestResult = await run(bufPath, args);
-    if (latestResult.status == Status.Failed) {
-      if (
-        /Failure: label with name ".*" was not found/.test(latestResult.stderr)
-      ) {
-        core.info(`Skipping archive, label ${label} not found`);
-        continue;
+    for (const moduleName of moduleNames) {
+      console.log(`Archiving ${moduleName} with label ${label}`);
+      const moduleNameParts = moduleName.split("/");
+      const labelRef = new LabelRef({
+        value: {
+          case: "name",
+          value: {
+            owner: moduleNameParts[1],
+            module: moduleNameParts[2],
+            label: label,
+          },
+        },
+      });
+      try {
+        const res = await client.archiveLabels(
+          { labelRefs: [labelRef] },
+          {
+            headers: {
+              Authorization: `Bearer ${core.getInput("token") || getEnv("BUF_TOKEN")}`,
+            },
+          },
+        );
+        console.log("Archive response", res);
+      } catch (err) {
+        const connectError = ConnectError.from(err);
+        if (connectError.code == Code.NotFound) {
+          core.info(`Skipping archive, label ${label} not found`);
+          continue;
+        }
+        return {
+          status: Status.Failed,
+          exitCode: 1,
+          stdout: "",
+          stderr: connectError.message,
+        };
       }
-      return latestResult;
     }
-    result = latestResult;
   }
-  return result;
+  return pass();
 }
 
 // Status is the status of a command execution.
