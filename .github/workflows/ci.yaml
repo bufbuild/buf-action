@@ -8,7 +8,7 @@ permissions:
   contents: read
   pull-requests: write
 env:
-  BUF_VERSION: "1.32.2"
+  BUF_VERSION: "1.33.0"
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -297,7 +297,6 @@ jobs:
           printf "syntax = \"proto3\";\npackage bar.v1;\nmessage Foo {}\n" > bar/bar/v1/foo.proto
           printf "version: v2\nmodules:\n  - path: foo\n    name: buf.build/${BUF_USERNAME}/foo\n  - path: bar\n" > buf.yaml
       - uses: ./
-        continue-on-error: true # all modules must have a name
         with:
           username: ${{ secrets.BUF_USERNAME }}
           token: ${{ secrets.BUF_TOKEN }}
