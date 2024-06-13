@@ -45988,6 +45988,8 @@ var core = __nccwpck_require__(2186);
 var exec = __nccwpck_require__(1514);
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
 var lib_github = __nccwpck_require__(5438);
+// EXTERNAL MODULE: ./node_modules/semver/index.js
+var semver = __nccwpck_require__(1383);
 ;// CONCATENATED MODULE: ./src/inputs.ts
 // Copyright 2024 Buf Technologies, Inc.
 //
@@ -46043,10 +46045,28 @@ function getEnv(name) {
     return (process.env[name.toLowerCase()] ?? process.env[name.toUpperCase()] ?? "");
 }
 
+;// CONCATENATED MODULE: ./src/outputs.ts
+// Copyright 2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// Outputs are the outputs of the action, matching the outputs in the action.yml.
+var Outputs;
+(function (Outputs) {
+    Outputs["BufVersion"] = "buf_version";
+})(Outputs || (Outputs = {}));
+
 // EXTERNAL MODULE: ./node_modules/@actions/tool-cache/lib/tool-cache.js
 var tool_cache = __nccwpck_require__(7784);
-// EXTERNAL MODULE: ./node_modules/semver/index.js
-var semver = __nccwpck_require__(1383);
 ;// CONCATENATED MODULE: ./src/installer.ts
 // Copyright 2024 Buf Technologies, Inc.
 //
@@ -46094,7 +46114,7 @@ async function installBuf(github, versionInput) {
         if (resolvedVersion != "" && !semver.eq(version, resolvedVersion)) {
             throw new Error(`The version of buf (${version}) does not equal the resolved version (${resolvedVersion})`);
         }
-        return binName;
+        return [binName, version];
     }
     if (resolvedVersion === "") {
         resolvedVersion = await latestVersion(github);
@@ -46112,7 +46132,7 @@ async function installBuf(github, versionInput) {
     }
     core.addPath(cachePath);
     core.info(`Setup buf (${resolvedVersion}) at ${cachePath}`);
-    return binName;
+    return [binName, resolvedVersion];
 }
 // resolveVersion from the input or environment.
 function resolveVersion(versionSpec) {
@@ -46298,18 +46318,21 @@ function parseModuleNames(input) {
 
 
 
+
+
 // main is the entrypoint for the action.
 async function main() {
     const inputs = getInputs();
     const github = (0,lib_github.getOctokit)(inputs.github_token);
-    const bufPath = await installBuf(github, inputs.version);
+    const [bufPath, bufVersion] = await installBuf(github, inputs.version);
+    core.setOutput(Outputs.BufVersion, bufVersion);
     await login(bufPath, inputs);
     if (inputs.setup_only) {
         core.info("Setup only, skipping steps");
         return;
     }
     // Run the buf workflow.
-    const steps = await runWorkflow(bufPath, inputs);
+    const steps = await runWorkflow(bufPath, bufVersion, inputs);
     // Create a summary of the steps.
     const summary = createSummary(inputs, steps);
     // Comment on the PR with the summary, if requested.
@@ -46355,7 +46378,7 @@ function createSummary(inputs, steps) {
 // First, it builds the input. If the build fails, the workflow stops.
 // Next, it runs lint, format, and breaking checks. If any of these fail, the workflow stops.
 // Finally, it pushes or archives the label to the registry.
-async function runWorkflow(bufPath, inputs) {
+async function runWorkflow(bufPath, bufVersion, inputs) {
     const steps = {};
     steps.build = await build(bufPath, inputs);
     if (steps.build.status == Status.Failed) {
@@ -46373,7 +46396,7 @@ async function runWorkflow(bufPath, inputs) {
         return steps;
     }
     const moduleNames = parseModuleNames(inputs.input);
-    steps.push = await push(bufPath, inputs, moduleNames);
+    steps.push = await push(bufPath, bufVersion, inputs, moduleNames);
     steps.archive = await archive(bufPath, inputs, moduleNames);
     return steps;
 }
@@ -46507,7 +46530,7 @@ async function breaking(bufPath, inputs) {
     return run(bufPath, args);
 }
 // push runs the "buf push" step.
-async function push(bufPath, inputs, moduleNames) {
+async function push(bufPath, bufVersion, inputs, moduleNames) {
     if (!inputs.push) {
         core.info("Skipping push");
         return skip();
@@ -46517,6 +46540,10 @@ async function push(bufPath, inputs, moduleNames) {
         return skip();
     }
     const args = ["push", "--error-format", "github-actions"];
+    // Add --exclude-unnamed on buf versions that support the flag.
+    if (semver.satisfies(bufVersion, ">=1.33.0")) {
+        args.push("--exclude-unnamed");
+    }
     if (inputs.input) {
         args.push(inputs.input);
     }
