@@ -18,6 +18,7 @@ import * as path from "path";
 import * as yaml from "yaml";
 
 export interface ModuleName {
+  name: string; // Full module name
   registry: string;
   owner: string;
   module: string;
@@ -63,6 +64,7 @@ export function parseModuleName(moduleName: string): ModuleName {
     throw new Error(`Invalid module name: ${moduleName}`);
   }
   return {
+    name: moduleName,
     registry: parts[0],
     owner: parts[1],
     module: parts[2],

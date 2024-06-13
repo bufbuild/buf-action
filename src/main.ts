@@ -340,7 +340,7 @@ async function archive(
 
   for (const label of inputs.archive_labels) {
     for (const moduleName of moduleNames) {
-      console.log(`Archiving ${moduleName} with label ${label}`);
+      core.info(`Archiving label ${label} for ${moduleName.name}`);
       const labelRef = new LabelRef({
         value: {
           case: "name",

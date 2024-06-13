@@ -54160,6 +54160,7 @@ function parseModuleName(moduleName) {
         throw new Error(`Invalid module name: ${moduleName}`);
     }
     return {
+        name: moduleName,
         registry: parts[0],
         owner: parts[1],
         module: parts[2],
@@ -54462,7 +54463,7 @@ async function archive(inputs, moduleNames) {
     const client = createPromiseClient(LabelService, transport);
     for (const label of inputs.archive_labels) {
         for (const moduleName of moduleNames) {
-            console.log(`Archiving ${moduleName} with label ${label}`);
+            core.info(`Archiving label ${label} for ${moduleName.name}`);
             const labelRef = new LabelRef({
                 value: {
                     case: "name",
