@@ -272,7 +272,7 @@ async function push(
     return skip();
   }
   if (moduleNames.length == 0) {
-    core.info("Skipping push, no named module detected");
+    core.info("Skipping push, no named modules detected");
     return skip();
   }
   const args = ["push", "--error-format", "github-actions"];
@@ -310,12 +310,12 @@ async function archive(
   inputs: Inputs,
   moduleNames: string[],
 ): Promise<Result> {
-  if (!inputs.archive || moduleNames.length == 0) {
+  if (!inputs.archive) {
     core.info("Skipping archive");
     return skip();
   }
   if (moduleNames.length == 0) {
-    core.info("Skipping archive, no named module detected");
+    core.info("Skipping archive, no named modules detected");
     return skip();
   }
   if (inputs.archive_labels.length == 0) {
