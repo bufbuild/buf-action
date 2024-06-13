@@ -27,7 +27,7 @@ const requiredVersion = ">=1.32.0";
 export async function installBuf(
   github: InstanceType<typeof GitHub>,
   versionInput: string,
-): Promise<string> {
+): Promise<[string, string]> {
   let resolvedVersion = resolveVersion(versionInput);
   if (resolvedVersion != "" && !tc.isExplicitVersion(resolvedVersion)) {
     throw new Error(
@@ -57,7 +57,7 @@ export async function installBuf(
         `The version of buf (${version}) does not equal the resolved version (${resolvedVersion})`,
       );
     }
-    return binName;
+    return [binName, version];
   }
   if (resolvedVersion === "") {
     resolvedVersion = await latestVersion(github);
@@ -82,7 +82,7 @@ export async function installBuf(
   }
   core.addPath(cachePath);
   core.info(`Setup buf (${resolvedVersion}) at ${cachePath}`);
-  return binName;
+  return [binName, resolvedVersion];
 }
 
 // resolveVersion from the input or environment.

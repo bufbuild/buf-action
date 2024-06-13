@@ -15,16 +15,20 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import { context, getOctokit } from "@actions/github";
+import * as semver from "semver";
 
 import { getInputs, Inputs, getEnv } from "./inputs";
+import { Outputs } from "./outputs";
 import { installBuf } from "./installer";
 import { commentOnPR } from "./comment";
+import { parseModuleNames } from "./config";
 
 // main is the entrypoint for the action.
 async function main() {
   const inputs = getInputs();
   const github = getOctokit(inputs.github_token);
-  const bufPath = await installBuf(github, inputs.version);
+  const [bufPath, bufVersion] = await installBuf(github, inputs.version);
+  core.setOutput(Outputs.BufVersion, bufVersion);
   await login(bufPath, inputs);
 
   if (inputs.setup_only) {
@@ -32,7 +36,7 @@ async function main() {
     return;
   }
   // Run the buf workflow.
-  const steps = await runWorkflow(bufPath, inputs);
+  const steps = await runWorkflow(bufPath, bufVersion, inputs);
   // Create a summary of the steps.
   const summary = createSummary(inputs, steps);
   // Comment on the PR with the summary, if requested.
@@ -91,7 +95,11 @@ function createSummary(inputs: Inputs, steps: Steps): typeof core.summary {
 // First, it builds the input. If the build fails, the workflow stops.
 // Next, it runs lint, format, and breaking checks. If any of these fail, the workflow stops.
 // Finally, it pushes or archives the label to the registry.
-async function runWorkflow(bufPath: string, inputs: Inputs): Promise<Steps> {
+async function runWorkflow(
+  bufPath: string,
+  bufVersion: string,
+  inputs: Inputs,
+): Promise<Steps> {
   const steps: Steps = {};
   steps.build = await build(bufPath, inputs);
   if (steps.build.status == Status.Failed) {
@@ -108,8 +116,9 @@ async function runWorkflow(bufPath: string, inputs: Inputs): Promise<Steps> {
   if (checks.some((result) => result.status == Status.Failed)) {
     return steps;
   }
-  steps.push = await push(bufPath, inputs);
-  steps.archive = await archive(bufPath, inputs);
+  const moduleNames = parseModuleNames(inputs.input);
+  steps.push = await push(bufPath, bufVersion, inputs, moduleNames);
+  steps.archive = await archive(bufPath, inputs, moduleNames);
   return steps;
 }
 
@@ -252,12 +261,25 @@ async function breaking(bufPath: string, inputs: Inputs): Promise<Result> {
 }
 
 // push runs the "buf push" step.
-async function push(bufPath: string, inputs: Inputs): Promise<Result> {
+async function push(
+  bufPath: string,
+  bufVersion: string,
+  inputs: Inputs,
+  moduleNames: string[],
+): Promise<Result> {
   if (!inputs.push) {
     core.info("Skipping push");
     return skip();
   }
+  if (moduleNames.length == 0) {
+    core.info("Skipping push, no named modules detected");
+    return skip();
+  }
   const args = ["push", "--error-format", "github-actions"];
+  // Add --exclude-unnamed on buf versions that support the flag.
+  if (semver.satisfies(bufVersion, ">=1.33.0")) {
+    args.push("--exclude-unnamed");
+  }
   if (inputs.input) {
     args.push(inputs.input);
   }
@@ -283,9 +305,17 @@ async function push(bufPath: string, inputs: Inputs): Promise<Result> {
 }
 
 // archive runs the "buf archive" step.
-async function archive(bufPath: string, inputs: Inputs): Promise<Result> {
+async function archive(
+  bufPath: string,
+  inputs: Inputs,
+  moduleNames: string[],
+): Promise<Result> {
   if (!inputs.archive) {
     core.info("Skipping archive");
+    return skip();
+  }
+  if (moduleNames.length == 0) {
+    core.info("Skipping archive, no named modules detected");
     return skip();
   }
   if (inputs.archive_labels.length == 0) {
