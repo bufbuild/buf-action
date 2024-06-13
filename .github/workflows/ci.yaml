@@ -252,7 +252,7 @@ jobs:
           push: true
           archive: false
           comment: false
-  test-push-no-named-modules:
+  test-push-unnamed:
     needs: build
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' }} # --git-metadata is only available on push
@@ -312,7 +312,7 @@ jobs:
     needs:
       - test-push
       - test-push-token-only
-      - test-push-no-modules
+      - test-push-unnamed
     steps:
       - uses: actions/checkout@v4
       - env:
@@ -339,7 +339,7 @@ jobs:
     needs:
       - test-push
       - test-push-token-only
-      - test-push-no-modules
+      - test-push-unnamed
     steps:
       - uses: actions/checkout@v4
       - env:
@@ -372,13 +372,13 @@ jobs:
             label_does_not_exist
             label_does_not_exist_either
           comment: false
-  test-archive-no-modules:
+  test-archive-unnamed:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     needs:
       - test-push
       - test-push-token-only
-      - test-push-no-modules
+      - test-push-unnamed
     steps:
       - uses: actions/checkout@v4
       - run: |
