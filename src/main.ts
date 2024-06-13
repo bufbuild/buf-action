@@ -26,7 +26,11 @@ import { getInputs, Inputs, getEnv } from "./inputs";
 import { Outputs } from "./outputs";
 import { installBuf } from "./installer";
 import { commentOnPR } from "./comment";
-import { parseModuleNames, resolveHost } from "./config";
+import {
+  parseModuleNames,
+  resolveHostFromModuleNames,
+  ModuleName,
+} from "./config";
 
 // main is the entrypoint for the action.
 async function main() {
@@ -270,7 +274,7 @@ async function push(
   bufPath: string,
   bufVersion: string,
   inputs: Inputs,
-  moduleNames: string[],
+  moduleNames: ModuleName[],
 ): Promise<Result> {
   if (!inputs.push) {
     core.info("Skipping push");
@@ -310,7 +314,10 @@ async function push(
 }
 
 // archive runs the "buf archive" step.
-async function archive(inputs: Inputs, moduleNames: string[]): Promise<Result> {
+async function archive(
+  inputs: Inputs,
+  moduleNames: ModuleName[],
+): Promise<Result> {
   if (!inputs.archive) {
     core.info("Skipping archive");
     return skip();
@@ -324,7 +331,7 @@ async function archive(inputs: Inputs, moduleNames: string[]): Promise<Result> {
     return skip();
   }
 
-  const host = resolveHost(moduleNames);
+  const host = resolveHostFromModuleNames(moduleNames);
   const baseURL = `https://${host}`;
   const transport = createConnectTransport({
     baseUrl: baseURL,
@@ -334,19 +341,18 @@ async function archive(inputs: Inputs, moduleNames: string[]): Promise<Result> {
   for (const label of inputs.archive_labels) {
     for (const moduleName of moduleNames) {
       console.log(`Archiving ${moduleName} with label ${label}`);
-      const moduleNameParts = moduleName.split("/");
       const labelRef = new LabelRef({
         value: {
           case: "name",
           value: {
-            owner: moduleNameParts[1],
-            module: moduleNameParts[2],
+            owner: moduleName.owner,
+            module: moduleName.module,
             label: label,
           },
         },
       });
       try {
-        const res = await client.archiveLabels(
+        await client.archiveLabels(
           { labelRefs: [labelRef] },
           {
             headers: {
@@ -354,7 +360,6 @@ async function archive(inputs: Inputs, moduleNames: string[]): Promise<Result> {
             },
           },
         );
-        console.log("Archive response", res);
       } catch (err) {
         const connectError = ConnectError.from(err);
         if (connectError.code == Code.NotFound) {

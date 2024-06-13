@@ -17,9 +17,15 @@ import * as fs from "fs";
 import * as path from "path";
 import * as yaml from "yaml";
 
+export interface ModuleName {
+  registry: string;
+  owner: string;
+  module: string;
+}
+
 // parseModuleNames extracts the module names from the given input. The input
 // is a directory containing a buf.yaml file.
-export function parseModuleNames(input: string): string[] {
+export function parseModuleNames(input: string): ModuleName[] {
   const bufYamlPath = path.join(input, "buf.yaml");
   const configFile = fs.readFileSync(bufYamlPath, "utf8").trim();
   const config = yaml.parse(configFile);
@@ -30,24 +36,35 @@ export function parseModuleNames(input: string): string[] {
   if (config.modules) {
     return config.modules
       .map((module: { name: string | undefined }) => module.name)
-      .filter((n: string | undefined) => n);
+      .filter((n: string | undefined) => n)
+      .map((n: string) => parseModuleName(n));
   }
   return [];
 }
 
 // resolveHost returns the host of the module names. If multiple hosts are
 // detected, an error is thrown.
-export function resolveHost(moduleNames: string[]): string {
+export function resolveHostFromModuleNames(moduleNames: ModuleName[]): string {
   const hosts = new Set<string>();
   for (const moduleName of moduleNames) {
-    const parts = moduleName.split("/");
-    if (parts.length != 3) {
-      throw new Error(`Invalid module name: ${moduleName}`);
-    }
-    hosts.add(parts[0]);
+    hosts.add(moduleName.registry);
   }
   if (hosts.size != 1) {
     throw new Error(`Multiple hosts detected: ${Array.from(hosts)}`);
   }
   return hosts.values().next().value;
+}
+
+// parseModuleName parses the module name into its registry, owner, and
+// repository parts.
+export function parseModuleName(moduleName: string): ModuleName {
+  const parts = moduleName.split("/");
+  if (parts.length != 3) {
+    throw new Error(`Invalid module name: ${moduleName}`);
+  }
+  return {
+    registry: parts[0],
+    owner: parts[1],
+    module: parts[2],
+  };
 }

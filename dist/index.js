@@ -54135,25 +54135,35 @@ function parseModuleNames(input) {
     if (config.modules) {
         return config.modules
             .map((module) => module.name)
-            .filter((n) => n);
+            .filter((n) => n)
+            .map((n) => parseModuleName(n));
     }
     return [];
 }
 // resolveHost returns the host of the module names. If multiple hosts are
 // detected, an error is thrown.
-function resolveHost(moduleNames) {
+function resolveHostFromModuleNames(moduleNames) {
     const hosts = new Set();
     for (const moduleName of moduleNames) {
-        const parts = moduleName.split("/");
-        if (parts.length != 3) {
-            throw new Error(`Invalid module name: ${moduleName}`);
-        }
-        hosts.add(parts[0]);
+        hosts.add(moduleName.registry);
     }
     if (hosts.size != 1) {
         throw new Error(`Multiple hosts detected: ${Array.from(hosts)}`);
     }
     return hosts.values().next().value;
+}
+// parseModuleName parses the module name into its registry, owner, and
+// repository parts.
+function parseModuleName(moduleName) {
+    const parts = moduleName.split("/");
+    if (parts.length != 3) {
+        throw new Error(`Invalid module name: ${moduleName}`);
+    }
+    return {
+        registry: parts[0],
+        owner: parts[1],
+        module: parts[2],
+    };
 }
 
 ;// CONCATENATED MODULE: ./src/main.ts
@@ -54444,7 +54454,7 @@ async function archive(inputs, moduleNames) {
         core.info("Skipping archive, no labels provided");
         return skip();
     }
-    const host = resolveHost(moduleNames);
+    const host = resolveHostFromModuleNames(moduleNames);
     const baseURL = `https://${host}`;
     const transport = createConnectTransport({
         baseUrl: baseURL,
@@ -54453,24 +54463,22 @@ async function archive(inputs, moduleNames) {
     for (const label of inputs.archive_labels) {
         for (const moduleName of moduleNames) {
             console.log(`Archiving ${moduleName} with label ${label}`);
-            const moduleNameParts = moduleName.split("/");
             const labelRef = new LabelRef({
                 value: {
                     case: "name",
                     value: {
-                        owner: moduleNameParts[1],
-                        module: moduleNameParts[2],
+                        owner: moduleName.owner,
+                        module: moduleName.module,
                         label: label,
                     },
                 },
             });
             try {
-                const res = await client.archiveLabels({ labelRefs: [labelRef] }, {
+                await client.archiveLabels({ labelRefs: [labelRef] }, {
                     headers: {
                         Authorization: `Bearer ${core.getInput("token") || getEnv("BUF_TOKEN")}`,
                     },
                 });
-                console.log("Archive response", res);
             }
             catch (err) {
                 const connectError = connect_error_ConnectError.from(err);
