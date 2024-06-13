@@ -340,7 +340,6 @@ async function archive(
 
   for (const label of inputs.archive_labels) {
     for (const moduleName of moduleNames) {
-      core.info(`Archiving label ${label} for ${moduleName.name}`);
       const labelRef = new LabelRef({
         value: {
           case: "name",
@@ -360,12 +359,18 @@ async function archive(
             },
           },
         );
+        core.info(`Archived label ${label} for ${moduleName.name}`);
       } catch (err) {
         const connectError = ConnectError.from(err);
         if (connectError.code == Code.NotFound) {
-          core.info(`Skipping archive, label ${label} not found`);
+          core.info(
+            `Skipping archive, label ${label} not found for ${moduleName.name}`,
+          );
           continue;
         }
+        core.error(
+          `Failed to archive label ${label} for ${moduleName.name}: ${connectError.message}`,
+        );
         return {
           status: Status.Failed,
           exitCode: 1,
