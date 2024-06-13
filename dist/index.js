@@ -46372,7 +46372,7 @@ function createSummary(inputs, steps) {
         table.push(["format", message(steps.format?.status)]);
     if (inputs.breaking)
         table.push(["breaking", message(steps.breaking?.status)]);
-    if (inputs.generate)
+    if (inputs.generate && steps.generate?.status != Status.Skipped)
         table.push(["generate", message(steps.generate?.status)]);
     if (inputs.push)
         table.push(["push", message(steps.push?.status)]);
