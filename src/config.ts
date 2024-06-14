@@ -43,19 +43,6 @@ export function parseModuleNames(input: string): ModuleName[] {
   return [];
 }
 
-// resolveHost returns the host of the module names. If multiple hosts are
-// detected, an error is thrown.
-export function resolveHostFromModuleNames(moduleNames: ModuleName[]): string {
-  const hosts = new Set<string>();
-  for (const moduleName of moduleNames) {
-    hosts.add(moduleName.registry);
-  }
-  if (hosts.size != 1) {
-    throw new Error(`Multiple hosts detected: ${Array.from(hosts)}`);
-  }
-  return hosts.values().next().value;
-}
-
 // parseModuleName parses the module name into its registry, owner, and
 // repository parts.
 export function parseModuleName(moduleName: string): ModuleName {

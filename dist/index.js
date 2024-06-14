@@ -54140,18 +54140,6 @@ function parseModuleNames(input) {
     }
     return [];
 }
-// resolveHost returns the host of the module names. If multiple hosts are
-// detected, an error is thrown.
-function resolveHostFromModuleNames(moduleNames) {
-    const hosts = new Set();
-    for (const moduleName of moduleNames) {
-        hosts.add(moduleName.registry);
-    }
-    if (hosts.size != 1) {
-        throw new Error(`Multiple hosts detected: ${Array.from(hosts)}`);
-    }
-    return hosts.values().next().value;
-}
 // parseModuleName parses the module name into its registry, owner, and
 // repository parts.
 function parseModuleName(moduleName) {
@@ -54455,14 +54443,13 @@ async function archive(inputs, moduleNames) {
         core.info("Skipping archive, no labels provided");
         return skip();
     }
-    const host = resolveHostFromModuleNames(moduleNames);
-    const baseURL = `https://${host}`;
-    const transport = createConnectTransport({
-        baseUrl: baseURL,
-    });
-    const client = createPromiseClient(LabelService, transport);
-    for (const label of inputs.archive_labels) {
-        for (const moduleName of moduleNames) {
+    for (const moduleName of moduleNames) {
+        const baseURL = `https://${moduleName.registry}`;
+        const transport = createConnectTransport({
+            baseUrl: baseURL,
+        });
+        const client = createPromiseClient(LabelService, transport);
+        for (const label of inputs.archive_labels) {
             const labelRef = new LabelRef({
                 value: {
                     case: "name",

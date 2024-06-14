@@ -26,11 +26,7 @@ import { getInputs, Inputs, getEnv } from "./inputs";
 import { Outputs } from "./outputs";
 import { installBuf } from "./installer";
 import { commentOnPR } from "./comment";
-import {
-  parseModuleNames,
-  resolveHostFromModuleNames,
-  ModuleName,
-} from "./config";
+import { parseModuleNames, ModuleName } from "./config";
 
 // main is the entrypoint for the action.
 async function main() {
@@ -330,16 +326,13 @@ async function archive(
     core.info("Skipping archive, no labels provided");
     return skip();
   }
-
-  const host = resolveHostFromModuleNames(moduleNames);
-  const baseURL = `https://${host}`;
-  const transport = createConnectTransport({
-    baseUrl: baseURL,
-  });
-  const client = createPromiseClient(LabelService, transport);
-
-  for (const label of inputs.archive_labels) {
-    for (const moduleName of moduleNames) {
+  for (const moduleName of moduleNames) {
+    const baseURL = `https://${moduleName.registry}`;
+    const transport = createConnectTransport({
+      baseUrl: baseURL,
+    });
+    const client = createPromiseClient(LabelService, transport);
+    for (const label of inputs.archive_labels) {
       const labelRef = new LabelRef({
         value: {
           case: "name",
