@@ -6,7 +6,7 @@ SHELL := bash
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 MAKEFLAGS += --no-print-directory
-BUF_VERSION ?= 1.32.2
+BUF_VERSION ?= 1.32.3
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
@@ -40,8 +40,11 @@ updateversion:
 ifndef VERSION
 	$(error "VERSION must be set")
 endif
+ifndef VERSION_SHORT
+	$(error "VERSION_SHORT must be set")
+endif
 	$(SED_I) "s/version: [0-9]+\.[0-9]+\.[0-9]+/version: $(BUF_VERSION)/g" action.yml README.md examples/*.yaml examples/*/*.yaml
-	$(SED_I) "s/buf-action@v[0-9]+\.[0-9]+\.[0-9]+/buf-action@v$(VERSION)/g" README.md examples/*.yaml examples/*/*.yaml
+	$(SED_I) "s/buf-action@v[0-9]+\.[0-9]+[\.[0-9]+]?/buf-action@v$(VERSION_SHORT)/g" README.md examples/*.yaml examples/*/*.yaml
 	$(SED_I) "s/\"version\": \"[0-9]+\.[0-9]+\.[0-9]+\"/\"version\": \"$(VERSION)\"/g" package.json
 
 .PHONY: generate
