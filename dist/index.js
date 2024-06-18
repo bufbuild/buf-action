@@ -45990,6 +45990,7849 @@ var exec = __nccwpck_require__(1514);
 var lib_github = __nccwpck_require__(5438);
 // EXTERNAL MODULE: ./node_modules/semver/index.js
 var semver = __nccwpck_require__(1383);
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/service-type.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/**
+ * MethodKind represents the four method types that can be declared in
+ * protobuf with the `stream` keyword:
+ *
+ * 1. Unary:           rpc (Input) returns (Output)
+ * 2. ServerStreaming: rpc (Input) returns (stream Output)
+ * 3. ClientStreaming: rpc (stream Input) returns (Output)
+ * 4. BiDiStreaming:   rpc (stream Input) returns (stream Output)
+ */
+var service_type_MethodKind;
+(function (MethodKind) {
+    MethodKind[MethodKind["Unary"] = 0] = "Unary";
+    MethodKind[MethodKind["ServerStreaming"] = 1] = "ServerStreaming";
+    MethodKind[MethodKind["ClientStreaming"] = 2] = "ClientStreaming";
+    MethodKind[MethodKind["BiDiStreaming"] = 3] = "BiDiStreaming";
+})(service_type_MethodKind || (service_type_MethodKind = {}));
+/**
+ * Is this method side-effect-free (or safe in HTTP parlance), or just
+ * idempotent, or neither? HTTP based RPC implementation may choose GET verb
+ * for safe methods, and PUT verb for idempotent methods instead of the
+ * default POST.
+ *
+ * This enum matches the protobuf enum google.protobuf.MethodOptions.IdempotencyLevel,
+ * defined in the well-known type google/protobuf/descriptor.proto, but
+ * drops UNKNOWN.
+ */
+var MethodIdempotency;
+(function (MethodIdempotency) {
+    /**
+     * Idempotent, no side effects.
+     */
+    MethodIdempotency[MethodIdempotency["NoSideEffects"] = 1] = "NoSideEffects";
+    /**
+     * Idempotent, but may have side effects.
+     */
+    MethodIdempotency[MethodIdempotency["Idempotent"] = 2] = "Idempotent";
+})(MethodIdempotency || (MethodIdempotency = {}));
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/context-values.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/**
+ * createContextValues creates a new ContextValues.
+ */
+function createContextValues() {
+    return {
+        get(key) {
+            return key.id in this ? this[key.id] : key.defaultValue;
+        },
+        set(key, value) {
+            this[key.id] = value;
+            return this;
+        },
+        delete(key) {
+            delete this[key.id];
+            return this;
+        },
+    };
+}
+/**
+ * createContextKey creates a new ContextKey.
+ */
+function createContextKey(defaultValue, options) {
+    return { id: Symbol(options === null || options === void 0 ? void 0 : options.description), defaultValue };
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/http-headers.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+/**
+ * Encode a single binary header value according to the Connect
+ * and gRPC specifications.
+ *
+ * This function accepts raw binary data from a buffer, a string
+ * with UTF-8 text, or a protobuf message. It encodes the input
+ * with unpadded base64 and returns a string that can be used for
+ * a header whose name ends with `-bin`.
+ */
+function encodeBinaryHeader(value) {
+    let bytes;
+    if (typeof value == "object" && "getType" in value) {
+        bytes = value.toBinary();
+    }
+    else if (typeof value == "string") {
+        bytes = new TextEncoder().encode(value);
+    }
+    else {
+        bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+    }
+    return protoBase64.enc(bytes).replace(/=+$/, "");
+}
+function decodeBinaryHeader(value, type, options) {
+    try {
+        const bytes = protoBase64.dec(value);
+        if (type) {
+            return type.fromBinary(bytes, options);
+        }
+        return bytes;
+    }
+    catch (e) {
+        throw ConnectError.from(e, Code.DataLoss);
+    }
+}
+/**
+ * Merge two or more Headers objects by appending all fields from
+ * all inputs to a new Headers object.
+ */
+function http_headers_appendHeaders(...headers) {
+    const h = new Headers();
+    for (const e of headers) {
+        e.forEach((value, key) => {
+            h.append(key, value);
+        });
+    }
+    return h;
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/code.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/**
+ * Connect represents categories of errors as codes, and each code maps to a
+ * specific HTTP status code. The codes and their semantics were chosen to
+ * match gRPC. Only the codes below are valid — there are no user-defined
+ * codes.
+ *
+ * See the specification at https://connectrpc.com/docs/protocol#error-codes
+ * for details.
+ */
+var code_Code;
+(function (Code) {
+    /**
+     * Canceled, usually be the user
+     */
+    Code[Code["Canceled"] = 1] = "Canceled";
+    /**
+     * Unknown error
+     */
+    Code[Code["Unknown"] = 2] = "Unknown";
+    /**
+     * Argument invalid regardless of system state
+     */
+    Code[Code["InvalidArgument"] = 3] = "InvalidArgument";
+    /**
+     * Operation expired, may or may not have completed.
+     */
+    Code[Code["DeadlineExceeded"] = 4] = "DeadlineExceeded";
+    /**
+     * Entity not found.
+     */
+    Code[Code["NotFound"] = 5] = "NotFound";
+    /**
+     * Entity already exists.
+     */
+    Code[Code["AlreadyExists"] = 6] = "AlreadyExists";
+    /**
+     * Operation not authorized.
+     */
+    Code[Code["PermissionDenied"] = 7] = "PermissionDenied";
+    /**
+     * Quota exhausted.
+     */
+    Code[Code["ResourceExhausted"] = 8] = "ResourceExhausted";
+    /**
+     * Argument invalid in current system state.
+     */
+    Code[Code["FailedPrecondition"] = 9] = "FailedPrecondition";
+    /**
+     * Operation aborted.
+     */
+    Code[Code["Aborted"] = 10] = "Aborted";
+    /**
+     * Out of bounds, use instead of FailedPrecondition.
+     */
+    Code[Code["OutOfRange"] = 11] = "OutOfRange";
+    /**
+     * Operation not implemented or disabled.
+     */
+    Code[Code["Unimplemented"] = 12] = "Unimplemented";
+    /**
+     * Internal error, reserved for "serious errors".
+     */
+    Code[Code["Internal"] = 13] = "Internal";
+    /**
+     * Unavailable, client should back off and retry.
+     */
+    Code[Code["Unavailable"] = 14] = "Unavailable";
+    /**
+     * Unrecoverable data loss or corruption.
+     */
+    Code[Code["DataLoss"] = 15] = "DataLoss";
+    /**
+     * Request isn't authenticated.
+     */
+    Code[Code["Unauthenticated"] = 16] = "Unauthenticated";
+})(code_Code || (code_Code = {}));
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/code-string.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * codeToString returns the string representation of a Code.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function code_string_codeToString(value) {
+    const name = code_Code[value];
+    if (typeof name != "string") {
+        return value.toString();
+    }
+    return (name[0].toLowerCase() +
+        name.substring(1).replace(/[A-Z]/g, (c) => "_" + c.toLowerCase()));
+}
+let stringToCode;
+/**
+ * codeFromString parses the string representation of a Code in snake_case.
+ * For example, the string "permission_denied" parses into Code.PermissionDenied.
+ *
+ * If the given string cannot be parsed, the function returns undefined.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function codeFromString(value) {
+    if (!stringToCode) {
+        stringToCode = {};
+        for (const value of Object.values(code_Code)) {
+            if (typeof value == "string") {
+                continue;
+            }
+            stringToCode[code_string_codeToString(value)] = value;
+        }
+    }
+    return stringToCode[value];
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/connect-error.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+/**
+ * ConnectError captures four pieces of information: a Code, an error
+ * message, an optional cause of the error, and an optional collection of
+ * arbitrary Protobuf messages called  "details".
+ *
+ * Because developer tools typically show just the error message, we prefix
+ * it with the status code, so that the most important information is always
+ * visible immediately.
+ *
+ * Error details are wrapped with google.protobuf.Any on the wire, so that
+ * a server or middleware can attach arbitrary data to an error. Use the
+ * method findDetails() to retrieve the details.
+ */
+class connect_error_ConnectError extends Error {
+    /**
+     * Create a new ConnectError.
+     * If no code is provided, code "unknown" is used.
+     * Outgoing details are only relevant for the server side - a service may
+     * raise an error with details, and it is up to the protocol implementation
+     * to encode and send the details along with error.
+     */
+    constructor(message, code = code_Code.Unknown, metadata, outgoingDetails, cause) {
+        super(createMessage(message, code));
+        this.name = "ConnectError";
+        // see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-2-2.html#example
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.rawMessage = message;
+        this.code = code;
+        this.metadata = new Headers(metadata !== null && metadata !== void 0 ? metadata : {});
+        this.details = outgoingDetails !== null && outgoingDetails !== void 0 ? outgoingDetails : [];
+        this.cause = cause;
+    }
+    /**
+     * Convert any value - typically a caught error into a ConnectError,
+     * following these rules:
+     * - If the value is already a ConnectError, return it as is.
+     * - If the value is an AbortError from the fetch API, return the message
+     *   of the AbortError with code Canceled.
+     * - For other Errors, return the error message with code Unknown by default.
+     * - For other values, return the values String representation as a message,
+     *   with the code Unknown by default.
+     * The original value will be used for the "cause" property for the new
+     * ConnectError.
+     */
+    static from(reason, code = code_Code.Unknown) {
+        if (reason instanceof connect_error_ConnectError) {
+            return reason;
+        }
+        if (reason instanceof Error) {
+            if (reason.name == "AbortError") {
+                // Fetch requests can only be canceled with an AbortController.
+                // We detect that condition by looking at the name of the raised
+                // error object, and translate to the appropriate status code.
+                return new connect_error_ConnectError(reason.message, code_Code.Canceled);
+            }
+            return new connect_error_ConnectError(reason.message, code, undefined, undefined, reason);
+        }
+        return new connect_error_ConnectError(String(reason), code, undefined, undefined, reason);
+    }
+    static [Symbol.hasInstance](v) {
+        if (!(v instanceof Error)) {
+            return false;
+        }
+        if (Object.getPrototypeOf(v) === connect_error_ConnectError.prototype) {
+            return true;
+        }
+        return (v.name === "ConnectError" &&
+            "code" in v &&
+            typeof v.code === "number" &&
+            "metadata" in v &&
+            "details" in v &&
+            Array.isArray(v.details) &&
+            "rawMessage" in v &&
+            typeof v.rawMessage == "string" &&
+            "cause" in v);
+    }
+    findDetails(typeOrRegistry) {
+        const registry = "typeName" in typeOrRegistry
+            ? {
+                findMessage: (typeName) => typeName === typeOrRegistry.typeName ? typeOrRegistry : undefined,
+            }
+            : typeOrRegistry;
+        const details = [];
+        for (const data of this.details) {
+            if ("getType" in data) {
+                if (registry.findMessage(data.getType().typeName)) {
+                    details.push(data);
+                }
+                continue;
+            }
+            const type = registry.findMessage(data.type);
+            if (type) {
+                try {
+                    details.push(type.fromBinary(data.value));
+                }
+                catch (_) {
+                    // We silently give up if we are unable to parse the detail, because
+                    // that appears to be the least worst behavior.
+                    // It is very unlikely that a user surrounds a catch body handling the
+                    // error with another try-catch statement, and we do not want to
+                    // recommend doing so.
+                }
+            }
+        }
+        return details;
+    }
+}
+/**
+ * Create an error message, prefixing the given code.
+ */
+function createMessage(message, code) {
+    return message.length
+        ? `[${code_string_codeToString(code)}] ${message}`
+        : `[${code_string_codeToString(code)}]`;
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/serialization.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+/**
+ * Sets default JSON serialization options for connect-es.
+ *
+ * With standard protobuf JSON serialization, unknown JSON fields are
+ * rejected by default. In connect-es, unknown JSON fields are ignored
+ * by default.
+ */
+function getJsonOptions(options) {
+    var _a;
+    const o = Object.assign({}, options);
+    (_a = o.ignoreUnknownFields) !== null && _a !== void 0 ? _a : (o.ignoreUnknownFields = true);
+    return o;
+}
+/**
+ * Create an object that provides convenient access to request and response
+ * message serialization for a given method.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function createMethodSerializationLookup(method, binaryOptions, jsonOptions, limitOptions) {
+    const inputBinary = limitSerialization(createBinarySerialization(method.I, binaryOptions), limitOptions);
+    const inputJson = limitSerialization(createJsonSerialization(method.I, jsonOptions), limitOptions);
+    const outputBinary = limitSerialization(createBinarySerialization(method.O, binaryOptions), limitOptions);
+    const outputJson = limitSerialization(createJsonSerialization(method.O, jsonOptions), limitOptions);
+    return {
+        getI(useBinaryFormat) {
+            return useBinaryFormat ? inputBinary : inputJson;
+        },
+        getO(useBinaryFormat) {
+            return useBinaryFormat ? outputBinary : outputJson;
+        },
+    };
+}
+/**
+ * Returns functions to normalize and serialize the input message
+ * of an RPC, and to parse the output message of an RPC.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function createClientMethodSerializers(method, useBinaryFormat, jsonOptions, binaryOptions) {
+    const input = useBinaryFormat
+        ? createBinarySerialization(method.I, binaryOptions)
+        : createJsonSerialization(method.I, jsonOptions);
+    const output = useBinaryFormat
+        ? createBinarySerialization(method.O, binaryOptions)
+        : createJsonSerialization(method.O, jsonOptions);
+    return { parse: output.parse, serialize: input.serialize };
+}
+/**
+ * Apply I/O limits to a Serialization object, returning a new object.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function limitSerialization(serialization, limitOptions) {
+    return {
+        serialize(data) {
+            const bytes = serialization.serialize(data);
+            assertWriteMaxBytes(limitOptions.writeMaxBytes, bytes.byteLength);
+            return bytes;
+        },
+        parse(data) {
+            assertReadMaxBytes(limitOptions.readMaxBytes, data.byteLength, true);
+            return serialization.parse(data);
+        },
+    };
+}
+/**
+ * Creates a Serialization object for serializing the given protobuf message
+ * with the protobuf binary format.
+ */
+function createBinarySerialization(messageType, options) {
+    return {
+        parse(data) {
+            try {
+                return messageType.fromBinary(data, options);
+            }
+            catch (e) {
+                const m = e instanceof Error ? e.message : String(e);
+                throw new connect_error_ConnectError(`parse binary: ${m}`, code_Code.InvalidArgument);
+            }
+        },
+        serialize(data) {
+            try {
+                return data.toBinary(options);
+            }
+            catch (e) {
+                const m = e instanceof Error ? e.message : String(e);
+                throw new connect_error_ConnectError(`serialize binary: ${m}`, code_Code.Internal);
+            }
+        },
+    };
+}
+/**
+ * Creates a Serialization object for serializing the given protobuf message
+ * with the protobuf canonical JSON encoding.
+ *
+ * By default, unknown fields are ignored.
+ */
+function createJsonSerialization(messageType, options) {
+    var _a, _b;
+    const textEncoder = (_a = options === null || options === void 0 ? void 0 : options.textEncoder) !== null && _a !== void 0 ? _a : new TextEncoder();
+    const textDecoder = (_b = options === null || options === void 0 ? void 0 : options.textDecoder) !== null && _b !== void 0 ? _b : new TextDecoder();
+    const o = getJsonOptions(options);
+    return {
+        parse(data) {
+            try {
+                const json = textDecoder.decode(data);
+                return messageType.fromJsonString(json, o);
+            }
+            catch (e) {
+                throw connect_error_ConnectError.from(e, code_Code.InvalidArgument);
+            }
+        },
+        serialize(data) {
+            try {
+                const json = data.toJsonString(o);
+                return textEncoder.encode(json);
+            }
+            catch (e) {
+                throw connect_error_ConnectError.from(e, code_Code.Internal);
+            }
+        },
+    };
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/interceptor.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/**
+ * applyInterceptors takes the given UnaryFn or ServerStreamingFn, and wraps
+ * it with each of the given interceptors, returning a new UnaryFn or
+ * ServerStreamingFn.
+ */
+function applyInterceptors(next, interceptors) {
+    var _a;
+    return ((_a = interceptors === null || interceptors === void 0 ? void 0 : interceptors.concat().reverse().reduce(
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    (n, i) => i(n), next)) !== null && _a !== void 0 ? _a : next);
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/signals.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+/**
+ * Create an AbortController that is automatically aborted if one of the given
+ * signals is aborted.
+ *
+ * For convenience, the linked AbortSignals can be undefined.
+ *
+ * If the controller or any of the signals is aborted, all event listeners are
+ * removed.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function createLinkedAbortController(...signals) {
+    const controller = new AbortController();
+    const sa = signals
+        .filter((s) => s !== undefined)
+        .concat(controller.signal);
+    for (const signal of sa) {
+        if (signal.aborted) {
+            onAbort.apply(signal);
+            break;
+        }
+        signal.addEventListener("abort", onAbort);
+    }
+    function onAbort() {
+        if (!controller.signal.aborted) {
+            controller.abort(getAbortSignalReason(this));
+        }
+        for (const signal of sa) {
+            signal.removeEventListener("abort", onAbort);
+        }
+    }
+    return controller;
+}
+/**
+ * Create a deadline signal. The returned object contains an AbortSignal, but
+ * also a cleanup function to stop the timer, which must be called once the
+ * calling code is no longer interested in the signal.
+ *
+ * Ideally, we would simply use AbortSignal.timeout(), but it is not widely
+ * available yet.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function createDeadlineSignal(timeoutMs) {
+    const controller = new AbortController();
+    const listener = () => {
+        controller.abort(new connect_error_ConnectError("the operation timed out", code_Code.DeadlineExceeded));
+    };
+    let timeoutId;
+    if (timeoutMs !== undefined) {
+        if (timeoutMs <= 0)
+            listener();
+        else
+            timeoutId = setTimeout(listener, timeoutMs);
+    }
+    return {
+        signal: controller.signal,
+        cleanup: () => clearTimeout(timeoutId),
+    };
+}
+/**
+ * Returns the reason why an AbortSignal was aborted. Returns undefined if the
+ * signal has not been aborted.
+ *
+ * The property AbortSignal.reason is not widely available. This function
+ * returns an AbortError if the signal is aborted, but reason is undefined.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function getAbortSignalReason(signal) {
+    if (!signal.aborted) {
+        return undefined;
+    }
+    if (signal.reason !== undefined) {
+        return signal.reason;
+    }
+    // AbortSignal.reason is available in Node.js v16, v18, and later,
+    // and in all browsers since early 2022.
+    const e = new Error("This operation was aborted");
+    e.name = "AbortError";
+    return e;
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/normalize.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ *  Takes a partial protobuf messages of the
+ *  specified message type as input, and returns full instances.
+ */
+function normalize(type, message) {
+    return message instanceof type
+        ? message
+        : new type(message);
+}
+/**
+ * Takes an AsyncIterable of partial protobuf messages of the
+ * specified message type as input, and yields full instances.
+ */
+function normalizeIterable(messageType, input) {
+    function transform(result) {
+        if (result.done === true) {
+            return result;
+        }
+        return {
+            done: result.done,
+            value: normalize(messageType, result.value),
+        };
+    }
+    return {
+        [Symbol.asyncIterator]() {
+            const it = input[Symbol.asyncIterator]();
+            const res = {
+                next: () => it.next().then(transform),
+            };
+            if (it.throw !== undefined) {
+                res.throw = (e) => it.throw(e).then(transform); // eslint-disable-line @typescript-eslint/no-non-null-assertion
+            }
+            if (it.return !== undefined) {
+                res.return = (v) => it.return(v).then(transform); // eslint-disable-line @typescript-eslint/no-non-null-assertion
+            }
+            return res;
+        },
+    };
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/run-call.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+
+/**
+ * Runs a unary method with the given interceptors. Note that this function
+ * is only used when implementing a Transport.
+ */
+function runUnaryCall(opt) {
+    const next = applyInterceptors(opt.next, opt.interceptors);
+    const [signal, abort, done] = setupSignal(opt);
+    const req = Object.assign(Object.assign({}, opt.req), { message: normalize(opt.req.method.I, opt.req.message), signal });
+    return next(req).then((res) => {
+        done();
+        return res;
+    }, abort);
+}
+/**
+ * Runs a server-streaming method with the given interceptors. Note that this
+ * function is only used when implementing a Transport.
+ */
+function runStreamingCall(opt) {
+    const next = applyInterceptors(opt.next, opt.interceptors);
+    const [signal, abort, done] = setupSignal(opt);
+    const req = Object.assign(Object.assign({}, opt.req), { message: normalizeIterable(opt.req.method.I, opt.req.message), signal });
+    let doneCalled = false;
+    // Call return on the request iterable to indicate
+    // that we will no longer consume it and it should
+    // cleanup any allocated resources.
+    signal.addEventListener("abort", function () {
+        var _a, _b;
+        const it = opt.req.message[Symbol.asyncIterator]();
+        // If the signal is aborted due to an error, we want to throw
+        // the error to the request iterator.
+        if (!doneCalled) {
+            (_a = it.throw) === null || _a === void 0 ? void 0 : _a.call(it, this.reason).catch(() => {
+                // throw returns a promise, which we don't care about.
+                //
+                // Uncaught promises are thrown at sometime/somewhere by the event loop,
+                // this is to ensure error is caught and ignored.
+            });
+        }
+        (_b = it.return) === null || _b === void 0 ? void 0 : _b.call(it).catch(() => {
+            // return returns a promise, which we don't care about.
+            //
+            // Uncaught promises are thrown at sometime/somewhere by the event loop,
+            // this is to ensure error is caught and ignored.
+        });
+    });
+    return next(req).then((res) => {
+        return Object.assign(Object.assign({}, res), { message: {
+                [Symbol.asyncIterator]() {
+                    const it = res.message[Symbol.asyncIterator]();
+                    return {
+                        next() {
+                            return it.next().then((r) => {
+                                if (r.done == true) {
+                                    doneCalled = true;
+                                    done();
+                                }
+                                return r;
+                            }, abort);
+                        },
+                        // We deliberately omit throw/return.
+                    };
+                },
+            } });
+    }, abort);
+}
+/**
+ * Create an AbortSignal for Transport implementations. The signal is available
+ * in UnaryRequest and StreamingRequest, and is triggered when the call is
+ * aborted (via a timeout or explicit cancellation), errored (e.g. when reading
+ * an error from the server from the wire), or finished successfully.
+ *
+ * Transport implementations can pass the signal to HTTP clients to ensure that
+ * there are no unused connections leak.
+ *
+ * Returns a tuple:
+ * [0]: The signal, which is also aborted if the optional deadline is reached.
+ * [1]: Function to call if the Transport encountered an error.
+ * [2]: Function to call if the Transport finished without an error.
+ */
+function setupSignal(opt) {
+    const { signal, cleanup } = createDeadlineSignal(opt.timeoutMs);
+    const controller = createLinkedAbortController(opt.signal, signal);
+    return [
+        controller.signal,
+        function abort(reason) {
+            // We peek at the deadline signal because fetch() will throw an error on
+            // abort that discards the signal reason.
+            const e = connect_error_ConnectError.from(signal.aborted ? getAbortSignalReason(signal) : reason);
+            controller.abort(e);
+            cleanup();
+            return Promise.reject(e);
+        },
+        function done() {
+            cleanup();
+            controller.abort();
+        },
+    ];
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/create-method-url.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/**
+ * Create a URL for the given RPC. This simply adds the qualified
+ * service name, a slash, and the method name to the path of the given
+ * baseUrl.
+ *
+ * For example, the baseUri https://example.com and method "Say" from
+ * the service example.ElizaService results in:
+ * https://example.com/example.ElizaService/Say
+ *
+ * This format is used by the protocols Connect, gRPC and Twirp.
+ *
+ * Note that this function also accepts a protocol-relative baseUrl.
+ * If given an empty string or "/" as a baseUrl, it returns just the
+ * path.
+ */
+function createMethodUrl(baseUrl, service, method) {
+    const s = typeof service == "string" ? service : service.typeName;
+    const m = typeof method == "string" ? method : method.name;
+    return baseUrl.toString().replace(/\/?$/, `/${s}/${m}`);
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/envelope.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+/**
+ * Create a WHATWG ReadableStream of enveloped messages from a ReadableStream
+ * of bytes.
+ *
+ * Ideally, this would simply be a TransformStream, but ReadableStream.pipeThrough
+ * does not have the necessary availability at this time.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function createEnvelopeReadableStream(stream) {
+    let reader;
+    let buffer = new Uint8Array(0);
+    function append(chunk) {
+        const n = new Uint8Array(buffer.length + chunk.length);
+        n.set(buffer);
+        n.set(chunk, buffer.length);
+        buffer = n;
+    }
+    return new ReadableStream({
+        start() {
+            reader = stream.getReader();
+        },
+        async pull(controller) {
+            let header = undefined;
+            for (;;) {
+                if (header === undefined && buffer.byteLength >= 5) {
+                    let length = 0;
+                    for (let i = 1; i < 5; i++) {
+                        length = (length << 8) + buffer[i];
+                    }
+                    header = { flags: buffer[0], length };
+                }
+                if (header !== undefined && buffer.byteLength >= header.length + 5) {
+                    break;
+                }
+                const result = await reader.read();
+                if (result.done) {
+                    break;
+                }
+                append(result.value);
+            }
+            if (header === undefined) {
+                if (buffer.byteLength == 0) {
+                    controller.close();
+                    return;
+                }
+                controller.error(new connect_error_ConnectError("premature end of stream", code_Code.DataLoss));
+                return;
+            }
+            const data = buffer.subarray(5, 5 + header.length);
+            buffer = buffer.subarray(5 + header.length);
+            controller.enqueue({
+                flags: header.flags,
+                data,
+            });
+        },
+    });
+}
+/**
+ * Compress an EnvelopedMessage.
+ *
+ * Raises Internal if an enveloped message is already compressed.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+async function envelope_envelopeCompress(envelope, compression, compressMinBytes) {
+    let { flags, data } = envelope;
+    if ((flags & compressedFlag) === compressedFlag) {
+        throw new ConnectError("invalid envelope, already compressed", Code.Internal);
+    }
+    if (compression && data.byteLength >= compressMinBytes) {
+        data = await compression.compress(data);
+        flags = flags | compressedFlag;
+    }
+    return { data, flags };
+}
+/**
+ * Decompress an EnvelopedMessage.
+ *
+ * Raises InvalidArgument if an envelope is compressed, but compression is null.
+ *
+ * Relies on the provided Compression to raise ResourceExhausted if the
+ * *decompressed* message size is larger than readMaxBytes. If the envelope is
+ * not compressed, readMaxBytes is not honored.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+async function envelope_envelopeDecompress(envelope, compression, readMaxBytes) {
+    let { flags, data } = envelope;
+    if ((flags & compressedFlag) === compressedFlag) {
+        if (!compression) {
+            throw new ConnectError("received compressed envelope, but do not know how to decompress", Code.InvalidArgument);
+        }
+        data = await compression.decompress(data, readMaxBytes);
+        flags = flags ^ compressedFlag;
+    }
+    return { data, flags };
+}
+/**
+ * Encode a single enveloped message.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function envelope_encodeEnvelope(flags, data) {
+    const bytes = new Uint8Array(data.length + 5);
+    bytes.set(data, 5);
+    const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    v.setUint8(0, flags); // first byte is flags
+    v.setUint32(1, data.length); // 4 bytes message length
+    return bytes;
+}
+/**
+ * Encode a set of enveloped messages.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function encodeEnvelopes(...envelopes) {
+    const len = envelopes.reduce((previousValue, currentValue) => previousValue + currentValue.data.length + 5, 0);
+    const bytes = new Uint8Array(len);
+    const v = new DataView(bytes.buffer);
+    let offset = 0;
+    for (const e of envelopes) {
+        v.setUint8(offset, e.flags); // first byte is flags
+        v.setUint32(offset + 1, e.data.length); // 4 bytes message length
+        bytes.set(e.data, offset + 5);
+        offset += e.data.length + 5;
+    }
+    return bytes;
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/headers.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/**
+ * @private Internal code, does not follow semantic versioning.
+ */
+const headerContentType = "Content-Type";
+const headerUnaryContentLength = "Content-Length";
+const headers_headerUnaryEncoding = "Content-Encoding";
+const headers_headerStreamEncoding = "Connect-Content-Encoding";
+const headers_headerUnaryAcceptEncoding = "Accept-Encoding";
+const headers_headerStreamAcceptEncoding = "Connect-Accept-Encoding";
+const headerTimeout = "Connect-Timeout-Ms";
+const headers_headerProtocolVersion = "Connect-Protocol-Version";
+const headerUserAgent = "User-Agent";
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/version.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+
+/**
+ * The only know value for the header Connect-Protocol-Version.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+const protocolVersion = "1";
+/**
+ * Requires the Connect-Protocol-Version header to be present with the expected
+ * value. Raises a ConnectError with Code.InvalidArgument otherwise.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function requireProtocolVersionHeader(requestHeader) {
+    const v = requestHeader.get(headerProtocolVersion);
+    if (v === null) {
+        throw new ConnectError(`missing required header: set ${headerProtocolVersion} to "${protocolVersion}"`, Code.InvalidArgument);
+    }
+    else if (v !== protocolVersion) {
+        throw new ConnectError(`${headerProtocolVersion} must be "${protocolVersion}": got "${v}"`, Code.InvalidArgument);
+    }
+}
+/**
+ * Requires the connect query parameter to be present with the expected value.
+ * Raises a ConnectError with Code.InvalidArgument otherwise.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function requireProtocolVersionParam(queryParams) {
+    const v = queryParams.get(paramConnectVersion);
+    if (v === null) {
+        throw new ConnectError(`missing required parameter: set ${paramConnectVersion} to "v${protocolVersion}"`, Code.InvalidArgument);
+    }
+    else if (v !== `v${protocolVersion}`) {
+        throw new ConnectError(`${paramConnectVersion} must be "v${protocolVersion}": got "${v}"`, Code.InvalidArgument);
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/content-type.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/**
+ * Regular Expression that matches any valid Connect Content-Type header value.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+const contentTypeRegExp = /^application\/(connect\+)?(?:(json)(?:; ?charset=utf-?8)?|(proto))$/i;
+/**
+ * Regular Expression that matches a Connect unary Content-Type header value.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+const contentTypeUnaryRegExp = /^application\/(?:json(?:; ?charset=utf-?8)?|proto)$/i;
+/**
+ * Regular Expression that matches a Connect streaming Content-Type header value.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+const contentTypeStreamRegExp = /^application\/connect\+?(?:json(?:; ?charset=utf-?8)?|proto)$/i;
+const contentTypeUnaryProto = "application/proto";
+const contentTypeUnaryJson = "application/json";
+const contentTypeStreamProto = "application/connect+proto";
+const contentTypeStreamJson = "application/connect+json";
+const encodingProto = "proto";
+const encodingJson = "json";
+/**
+ * Parse a Connect Content-Type header.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function parseContentType(contentType) {
+    const match = contentType === null || contentType === void 0 ? void 0 : contentType.match(contentTypeRegExp);
+    if (!match) {
+        return undefined;
+    }
+    const stream = !!match[1];
+    const binary = !!match[3];
+    return { stream, binary };
+}
+/**
+ * Parse a Connect Get encoding query parameter.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function parseEncodingQuery(encoding) {
+    switch (encoding) {
+        case encodingProto:
+            return { stream: false, binary: true };
+        case encodingJson:
+            return { stream: false, binary: false };
+        default:
+            return undefined;
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/request-header.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+
+/**
+ * Creates headers for a Connect request.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function requestHeader(methodKind, useBinaryFormat, timeoutMs, userProvidedHeaders, setUserAgent) {
+    const result = new Headers(userProvidedHeaders !== null && userProvidedHeaders !== void 0 ? userProvidedHeaders : {});
+    if (timeoutMs !== undefined) {
+        result.set(headerTimeout, `${timeoutMs}`);
+    }
+    result.set(headerContentType, methodKind == service_type_MethodKind.Unary
+        ? useBinaryFormat
+            ? contentTypeUnaryProto
+            : contentTypeUnaryJson
+        : useBinaryFormat
+            ? contentTypeStreamProto
+            : contentTypeStreamJson);
+    result.set(headers_headerProtocolVersion, protocolVersion);
+    if (setUserAgent) {
+        result.set(headerUserAgent, "connect-es/1.4.0");
+    }
+    return result;
+}
+/**
+ * Creates headers for a Connect request with compression.
+ *
+ * Note that we always set the Content-Encoding header for unary methods.
+ * It is up to the caller to decide whether to apply compression - and remove
+ * the header if compression is not used, for example because the payload is
+ * too small to make compression effective.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function requestHeaderWithCompression(methodKind, useBinaryFormat, timeoutMs, userProvidedHeaders, acceptCompression, sendCompression, setUserAgent) {
+    const result = requestHeader(methodKind, useBinaryFormat, timeoutMs, userProvidedHeaders, setUserAgent);
+    if (sendCompression != null) {
+        const name = methodKind == MethodKind.Unary
+            ? headerUnaryEncoding
+            : headerStreamEncoding;
+        result.set(name, sendCompression.name);
+    }
+    if (acceptCompression.length > 0) {
+        const name = methodKind == MethodKind.Unary
+            ? headerUnaryAcceptEncoding
+            : headerStreamAcceptEncoding;
+        result.set(name, acceptCompression.map((c) => c.name).join(","));
+    }
+    return result;
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/proto-base64.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-unnecessary-condition, prefer-const */
+// lookup table from base64 character to byte
+let encTable = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".split("");
+// lookup table from base64 character *code* to byte because lookup by number is fast
+let decTable = [];
+for (let i = 0; i < encTable.length; i++)
+    decTable[encTable[i].charCodeAt(0)] = i;
+// support base64url variants
+decTable["-".charCodeAt(0)] = encTable.indexOf("+");
+decTable["_".charCodeAt(0)] = encTable.indexOf("/");
+const proto_base64_protoBase64 = {
+    /**
+     * Decodes a base64 string to a byte array.
+     *
+     * - ignores white-space, including line breaks and tabs
+     * - allows inner padding (can decode concatenated base64 strings)
+     * - does not require padding
+     * - understands base64url encoding:
+     *   "-" instead of "+",
+     *   "_" instead of "/",
+     *   no padding
+     */
+    dec(base64Str) {
+        // estimate byte size, not accounting for inner padding and whitespace
+        let es = (base64Str.length * 3) / 4;
+        if (base64Str[base64Str.length - 2] == "=")
+            es -= 2;
+        else if (base64Str[base64Str.length - 1] == "=")
+            es -= 1;
+        let bytes = new Uint8Array(es), bytePos = 0, // position in byte array
+        groupPos = 0, // position in base64 group
+        b, // current byte
+        p = 0; // previous byte
+        for (let i = 0; i < base64Str.length; i++) {
+            b = decTable[base64Str.charCodeAt(i)];
+            if (b === undefined) {
+                switch (base64Str[i]) {
+                    // @ts-ignore TS7029: Fallthrough case in switch
+                    case "=":
+                        groupPos = 0; // reset state when padding found
+                    // @ts-ignore TS7029: Fallthrough case in switch
+                    case "\n":
+                    case "\r":
+                    case "\t":
+                    case " ":
+                        continue; // skip white-space, and padding
+                    default:
+                        throw Error("invalid base64 string.");
+                }
+            }
+            switch (groupPos) {
+                case 0:
+                    p = b;
+                    groupPos = 1;
+                    break;
+                case 1:
+                    bytes[bytePos++] = (p << 2) | ((b & 48) >> 4);
+                    p = b;
+                    groupPos = 2;
+                    break;
+                case 2:
+                    bytes[bytePos++] = ((p & 15) << 4) | ((b & 60) >> 2);
+                    p = b;
+                    groupPos = 3;
+                    break;
+                case 3:
+                    bytes[bytePos++] = ((p & 3) << 6) | b;
+                    groupPos = 0;
+                    break;
+            }
+        }
+        if (groupPos == 1)
+            throw Error("invalid base64 string.");
+        return bytes.subarray(0, bytePos);
+    },
+    /**
+     * Encode a byte array to a base64 string.
+     */
+    enc(bytes) {
+        let base64 = "", groupPos = 0, // position in base64 group
+        b, // current byte
+        p = 0; // carry over from previous byte
+        for (let i = 0; i < bytes.length; i++) {
+            b = bytes[i];
+            switch (groupPos) {
+                case 0:
+                    base64 += encTable[b >> 2];
+                    p = (b & 3) << 4;
+                    groupPos = 1;
+                    break;
+                case 1:
+                    base64 += encTable[p | (b >> 4)];
+                    p = (b & 15) << 2;
+                    groupPos = 2;
+                    break;
+                case 2:
+                    base64 += encTable[p | (b >> 6)];
+                    base64 += encTable[b & 63];
+                    groupPos = 0;
+                    break;
+            }
+        }
+        // add output padding
+        if (groupPos) {
+            base64 += encTable[p];
+            base64 += "=";
+            if (groupPos == 1)
+                base64 += "=";
+        }
+        return base64;
+    },
+};
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/get-request.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+const contentTypePrefix = "application/";
+function encodeMessageForUrl(message, useBase64) {
+    if (useBase64) {
+        // TODO(jchadwick-buf): Three regex replaces seems excessive.
+        // Can we make protoBase64.enc more flexible?
+        return proto_base64_protoBase64.enc(message)
+            .replace(/\+/g, "-")
+            .replace(/\//g, "_")
+            .replace(/=+$/, "");
+    }
+    else {
+        return encodeURIComponent(new TextDecoder().decode(message));
+    }
+}
+/**
+ * @private Internal code, does not follow semantic versioning.
+ */
+function transformConnectPostToGetRequest(request, message, useBase64) {
+    let query = `?connect=v${protocolVersion}`;
+    const contentType = request.header.get(headerContentType);
+    if ((contentType === null || contentType === void 0 ? void 0 : contentType.indexOf(contentTypePrefix)) === 0) {
+        query +=
+            "&encoding=" +
+                encodeURIComponent(contentType.slice(contentTypePrefix.length));
+    }
+    const compression = request.header.get(headers_headerUnaryEncoding);
+    if (compression !== null && compression !== "identity") {
+        query += "&compression=" + encodeURIComponent(compression);
+        // Force base64 for compressed payloads.
+        useBase64 = true;
+    }
+    if (useBase64) {
+        query += "&base64=1";
+    }
+    query += "&message=" + encodeMessageForUrl(message, useBase64);
+    const url = request.url + query;
+    // Omit headers that are not used for unary GET requests.
+    const header = new Headers(request.header);
+    [
+        headers_headerProtocolVersion,
+        headerContentType,
+        headerUnaryContentLength,
+        headers_headerUnaryEncoding,
+        headers_headerUnaryAcceptEncoding,
+    ].forEach((h) => header.delete(h));
+    return Object.assign(Object.assign({}, request), { init: Object.assign(Object.assign({}, request.init), { method: "GET" }), url,
+        header });
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/http-status.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * Determine the Connect error code for the given HTTP status code.
+ * See https://connectrpc.com/docs/protocol#error-codes
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function codeFromHttpStatus(httpStatus) {
+    switch (httpStatus) {
+        case 400: // Bad Request
+            return code_Code.InvalidArgument;
+        case 401: // Unauthorized
+            return code_Code.Unauthenticated;
+        case 403: // Forbidden
+            return code_Code.PermissionDenied;
+        case 404: // Not Found
+            return code_Code.Unimplemented;
+        case 408: // Request Timeout
+            return code_Code.DeadlineExceeded;
+        case 409: // Conflict
+            return code_Code.Aborted;
+        case 412: // Precondition Failed
+            return code_Code.FailedPrecondition;
+        case 413: // Payload Too Large
+            return code_Code.ResourceExhausted;
+        case 415: // Unsupported Media Type
+            return code_Code.Internal;
+        case 429: // Too Many Requests
+            return code_Code.Unavailable;
+        case 431: // Request Header Fields Too Large
+            return code_Code.ResourceExhausted;
+        case 502: // Bad Gateway
+            return code_Code.Unavailable;
+        case 503: // Service Unavailable
+            return code_Code.Unavailable;
+        case 504: // Gateway Timeout
+            return code_Code.Unavailable;
+        default:
+            return code_Code.Unknown;
+    }
+}
+/**
+ * Returns a HTTP status code for the given Connect code.
+ * See https://connectrpc.com/docs/protocol#error-codes
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function codeToHttpStatus(code) {
+    switch (code) {
+        case Code.Canceled:
+            return 408; // Request Timeout
+        case Code.Unknown:
+            return 500; // Internal Server Error
+        case Code.InvalidArgument:
+            return 400; // Bad Request
+        case Code.DeadlineExceeded:
+            return 408; // Request Timeout
+        case Code.NotFound:
+            return 404; // Not Found
+        case Code.AlreadyExists:
+            return 409; // Conflict
+        case Code.PermissionDenied:
+            return 403; // Forbidden
+        case Code.ResourceExhausted:
+            return 429; // Too Many Requests
+        case Code.FailedPrecondition:
+            return 412; // Precondition Failed
+        case Code.Aborted:
+            return 409; // Conflict
+        case Code.OutOfRange:
+            return 400; // Bad Request
+        case Code.Unimplemented:
+            return 404; // Not Found
+        case Code.Internal:
+            return 500; // Internal Server Error
+        case Code.Unavailable:
+            return 503; // Service Unavailable
+        case Code.DataLoss:
+            return 500; // Internal Server Error
+        case Code.Unauthenticated:
+            return 401; // Unauthorized
+        default:
+            return 500; // same as CodeUnknown
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/validate-response.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+
+
+
+/**
+ * Validates response status and header for the Connect protocol.
+ * Throws a ConnectError if the header indicates an error, or if
+ * the content type is unexpected, with the following exception:
+ * For unary RPCs with an HTTP error status, this returns an error
+ * derived from the HTTP status instead of throwing it, giving an
+ * implementation a chance to parse a Connect error from the wire.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function validateResponse(methodKind, status, headers) {
+    const mimeType = headers.get("Content-Type");
+    const parsedType = parseContentType(mimeType);
+    if (status !== 200) {
+        const errorFromStatus = new connect_error_ConnectError(`HTTP ${status}`, codeFromHttpStatus(status), headers);
+        // If parsedType is defined and it is not binary, then this is a unary JSON response
+        if (methodKind == service_type_MethodKind.Unary && parsedType && !parsedType.binary) {
+            return { isUnaryError: true, unaryError: errorFromStatus };
+        }
+        throw errorFromStatus;
+    }
+    return { isUnaryError: false };
+}
+/**
+ * Validates response status and header for the Connect protocol.
+ * This function is identical to validateResponse(), but also verifies
+ * that a given encoding header is acceptable.
+ *
+ * @private
+ */
+function validateResponseWithCompression(methodKind, acceptCompression, status, headers) {
+    let compression;
+    const encoding = headers.get(methodKind == MethodKind.Unary ? headerUnaryEncoding : headerStreamEncoding);
+    if (encoding != null && encoding.toLowerCase() !== "identity") {
+        compression = acceptCompression.find((c) => c.name === encoding);
+        if (!compression) {
+            throw new ConnectError(`unsupported response encoding "${encoding}"`, Code.InvalidArgument, headers);
+        }
+    }
+    return Object.assign({ compression }, validateResponse(methodKind, status, headers));
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/error-json.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+var __rest = (undefined && undefined.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
+
+
+
+
+/**
+ * Parse a Connect error from a JSON value.
+ * Will return a ConnectError, and throw the provided fallback if parsing failed.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function errorFromJson(jsonValue, metadata, fallback) {
+    if (metadata) {
+        new Headers(metadata).forEach((value, key) => fallback.metadata.append(key, value));
+    }
+    if (typeof jsonValue !== "object" ||
+        jsonValue == null ||
+        Array.isArray(jsonValue) ||
+        !("code" in jsonValue) ||
+        typeof jsonValue.code !== "string") {
+        throw fallback;
+    }
+    const code = codeFromString(jsonValue.code);
+    if (code === undefined) {
+        throw fallback;
+    }
+    const message = jsonValue.message;
+    if (message != null && typeof message !== "string") {
+        throw fallback;
+    }
+    const error = new connect_error_ConnectError(message !== null && message !== void 0 ? message : "", code, metadata);
+    if ("details" in jsonValue && Array.isArray(jsonValue.details)) {
+        for (const detail of jsonValue.details) {
+            if (detail === null ||
+                typeof detail != "object" ||
+                Array.isArray(detail) ||
+                typeof detail.type != "string" ||
+                typeof detail.value != "string" ||
+                ("debug" in detail && typeof detail.debug != "object")) {
+                throw fallback;
+            }
+            try {
+                error.details.push({
+                    type: detail.type,
+                    value: proto_base64_protoBase64.dec(detail.value),
+                    debug: detail.debug,
+                });
+            }
+            catch (e) {
+                throw fallback;
+            }
+        }
+    }
+    return error;
+}
+/**
+ * Parse a Connect error from a serialized JSON value.
+ * Will return a ConnectError, and throw the provided fallback if parsing failed.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function errorFromJsonBytes(bytes, metadata, fallback) {
+    let jsonValue;
+    try {
+        jsonValue = JSON.parse(new TextDecoder().decode(bytes));
+    }
+    catch (e) {
+        throw fallback;
+    }
+    return errorFromJson(jsonValue, metadata, fallback);
+}
+/**
+ * Serialize the given error to JSON.
+ *
+ * The JSON serialization options are required to produce the optional
+ * human-readable representation in the "debug" key if the detail uses
+ * google.protobuf.Any. If serialization of the "debug" value fails, it
+ * is silently disregarded.
+ *
+ * See https://connectrpc.com/docs/protocol#error-end-stream
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function error_json_errorToJson(error, jsonWriteOptions) {
+    const o = {
+        code: codeToString(error.code),
+    };
+    if (error.rawMessage.length > 0) {
+        o.message = error.rawMessage;
+    }
+    if (error.details.length > 0) {
+        o.details = error.details
+            .map((value) => {
+            if ("getType" in value) {
+                const i = {
+                    type: value.getType().typeName,
+                    value: value.toBinary(),
+                };
+                try {
+                    i.debug = value.toJson(jsonWriteOptions);
+                }
+                catch (e) {
+                    // We deliberately ignore errors that may occur when serializing
+                    // a message to JSON (the message contains an Any).
+                    // The rationale is that we are only trying to provide optional
+                    // debug information.
+                }
+                return i;
+            }
+            return value;
+        })
+            .map((_a) => {
+            var { value } = _a, rest = __rest(_a, ["value"]);
+            return (Object.assign(Object.assign({}, rest), { value: protoBase64.enc(value) }));
+        });
+    }
+    return o;
+}
+/**
+ * Serialize the given error to JSON. This calls errorToJson(), but stringifies
+ * the result, and converts it into a UInt8Array.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function errorToJsonBytes(error, jsonWriteOptions) {
+    const textEncoder = new TextEncoder();
+    try {
+        const jsonObject = error_json_errorToJson(error, jsonWriteOptions);
+        const jsonString = JSON.stringify(jsonObject);
+        return textEncoder.encode(jsonString);
+    }
+    catch (e) {
+        const m = e instanceof Error ? e.message : String(e);
+        throw new ConnectError(`failed to serialize Connect Error: ${m}`, Code.Internal);
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/trailer-mux.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/**
+ * In unary RPCs, Connect transports trailing metadata as response header
+ * fields, prefixed with "trailer-".
+ *
+ * This function demuxes headers and trailers into two separate Headers
+ * objects.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function trailerDemux(header) {
+    const h = new Headers(), t = new Headers();
+    header.forEach((value, key) => {
+        if (key.toLowerCase().startsWith("trailer-")) {
+            t.set(key.substring(8), value);
+        }
+        else {
+            h.set(key, value);
+        }
+    });
+    return [h, t];
+}
+/**
+ * In unary RPCs, Connect transports trailing metadata as response header
+ * fields, prefixed with "trailer-".
+ *
+ * This function muxes a header and a trailer into a single Headers object.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function trailerMux(header, trailer) {
+    const h = new Headers(header);
+    trailer.forEach((value, key) => {
+        h.set(`trailer-${key}`, value);
+    });
+    return h;
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/end-stream.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+
+/**
+ * endStreamFlag indicates that the data in a EnvelopedMessage
+ * is a EndStreamResponse of the Connect protocol.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+const endStreamFlag = 0b00000010;
+/**
+ * Parse an EndStreamResponse of the Connect protocol.
+ * Throws a ConnectError on malformed input.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function endStreamFromJson(data) {
+    const parseErr = new connect_error_ConnectError("invalid end stream", code_Code.InvalidArgument);
+    let jsonValue;
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        jsonValue = JSON.parse(typeof data == "string" ? data : new TextDecoder().decode(data));
+    }
+    catch (e) {
+        throw parseErr;
+    }
+    if (typeof jsonValue != "object" ||
+        jsonValue == null ||
+        Array.isArray(jsonValue)) {
+        throw parseErr;
+    }
+    const metadata = new Headers();
+    if ("metadata" in jsonValue) {
+        if (typeof jsonValue.metadata != "object" ||
+            jsonValue.metadata == null ||
+            Array.isArray(jsonValue.metadata)) {
+            throw parseErr;
+        }
+        for (const [key, values] of Object.entries(jsonValue.metadata)) {
+            if (!Array.isArray(values) ||
+                values.some((value) => typeof value != "string")) {
+                throw parseErr;
+            }
+            for (const value of values) {
+                metadata.append(key, value);
+            }
+        }
+    }
+    const error = "error" in jsonValue
+        ? errorFromJson(jsonValue.error, metadata, parseErr)
+        : undefined;
+    return { metadata, error };
+}
+/**
+ * Serialize the given EndStreamResponse to JSON.
+ *
+ * The JSON serialization options are required to produce the optional
+ * human-readable representation of error details if the detail uses
+ * google.protobuf.Any.
+ *
+ * See https://connectrpc.com/docs/protocol#error-end-stream
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function endStreamToJson(metadata, error, jsonWriteOptions) {
+    const es = {};
+    if (error !== undefined) {
+        es.error = errorToJson(error, jsonWriteOptions);
+        metadata = appendHeaders(metadata, error.metadata);
+    }
+    let hasMetadata = false;
+    const md = {};
+    metadata.forEach((value, key) => {
+        hasMetadata = true;
+        md[key] = [value];
+    });
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (hasMetadata) {
+        es.metadata = md;
+    }
+    return es;
+}
+/**
+ * Create a Serialization object that serializes a Connect EndStreamResponse.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function createEndStreamSerialization(options) {
+    const textEncoder = new TextEncoder();
+    return {
+        serialize(data) {
+            try {
+                const jsonObject = endStreamToJson(data.metadata, data.error, options);
+                const jsonString = JSON.stringify(jsonObject);
+                return textEncoder.encode(jsonString);
+            }
+            catch (e) {
+                const m = e instanceof Error ? e.message : String(e);
+                throw new ConnectError(`failed to serialize EndStreamResponse: ${m}`, Code.Internal);
+            }
+        },
+        parse(data) {
+            try {
+                return endStreamFromJson(data);
+            }
+            catch (e) {
+                const m = e instanceof Error ? e.message : String(e);
+                throw new ConnectError(`failed to parse EndStreamResponse: ${m}`, Code.InvalidArgument);
+            }
+        },
+    };
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect-web/dist/esm/assert-fetch-api.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/**
+ * Asserts that the fetch API is available.
+ */
+function assertFetchApi() {
+    try {
+        new Headers();
+    }
+    catch (_) {
+        throw new Error("connect-web requires the fetch API. Are you running on an old version of Node.js? Node.js is not supported in Connect for Web - please stay tuned for Connect for Node.");
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect-web/dist/esm/connect-transport.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+var __await = (undefined && undefined.__await) || function (v) { return this instanceof __await ? (this.v = v, this) : new __await(v); }
+var __asyncGenerator = (undefined && undefined.__asyncGenerator) || function (thisArg, _arguments, generator) {
+    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+    var g = generator.apply(thisArg, _arguments || []), i, q = [];
+    return i = {}, verb("next"), verb("throw"), verb("return", awaitReturn), i[Symbol.asyncIterator] = function () { return this; }, i;
+    function awaitReturn(f) { return function (v) { return Promise.resolve(v).then(f, reject); }; }
+    function verb(n, f) { if (g[n]) { i[n] = function (v) { return new Promise(function (a, b) { q.push([n, v, a, b]) > 1 || resume(n, v); }); }; if (f) i[n] = f(i[n]); } }
+    function resume(n, v) { try { step(g[n](v)); } catch (e) { settle(q[0][3], e); } }
+    function step(r) { r.value instanceof __await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q[0][2], r); }
+    function fulfill(value) { resume("next", value); }
+    function reject(value) { resume("throw", value); }
+    function settle(f, v) { if (f(v), q.shift(), q.length) resume(q[0][0], q[0][1]); }
+};
+
+
+
+
+
+/**
+ * Create a Transport for the Connect protocol, which makes unary and
+ * server-streaming methods available to web browsers. It uses the fetch
+ * API to make HTTP requests.
+ */
+function createConnectTransport(options) {
+    var _a;
+    assertFetchApi();
+    const useBinaryFormat = (_a = options.useBinaryFormat) !== null && _a !== void 0 ? _a : false;
+    return {
+        async unary(service, method, signal, timeoutMs, header, message, contextValues) {
+            var _a;
+            const { serialize, parse } = createClientMethodSerializers(method, useBinaryFormat, options.jsonOptions, options.binaryOptions);
+            timeoutMs =
+                timeoutMs === undefined
+                    ? options.defaultTimeoutMs
+                    : timeoutMs <= 0
+                        ? undefined
+                        : timeoutMs;
+            return await runUnaryCall({
+                interceptors: options.interceptors,
+                signal,
+                timeoutMs,
+                req: {
+                    stream: false,
+                    service,
+                    method,
+                    url: createMethodUrl(options.baseUrl, service, method),
+                    init: {
+                        method: "POST",
+                        credentials: (_a = options.credentials) !== null && _a !== void 0 ? _a : "same-origin",
+                        redirect: "error",
+                        mode: "cors",
+                    },
+                    header: requestHeader(method.kind, useBinaryFormat, timeoutMs, header, false),
+                    contextValues: contextValues !== null && contextValues !== void 0 ? contextValues : createContextValues(),
+                    message,
+                },
+                next: async (req) => {
+                    var _a;
+                    const useGet = options.useHttpGet === true &&
+                        method.idempotency === MethodIdempotency.NoSideEffects;
+                    let body = null;
+                    if (useGet) {
+                        req = transformConnectPostToGetRequest(req, serialize(req.message), useBinaryFormat);
+                    }
+                    else {
+                        body = serialize(req.message);
+                    }
+                    const fetch = (_a = options.fetch) !== null && _a !== void 0 ? _a : globalThis.fetch;
+                    const response = await fetch(req.url, Object.assign(Object.assign({}, req.init), { headers: req.header, signal: req.signal, body }));
+                    const { isUnaryError, unaryError } = validateResponse(method.kind, response.status, response.headers);
+                    if (isUnaryError) {
+                        throw errorFromJson((await response.json()), http_headers_appendHeaders(...trailerDemux(response.headers)), unaryError);
+                    }
+                    const [demuxedHeader, demuxedTrailer] = trailerDemux(response.headers);
+                    return {
+                        stream: false,
+                        service,
+                        method,
+                        header: demuxedHeader,
+                        message: useBinaryFormat
+                            ? parse(new Uint8Array(await response.arrayBuffer()))
+                            : method.O.fromJson((await response.json()), getJsonOptions(options.jsonOptions)),
+                        trailer: demuxedTrailer,
+                    };
+                },
+            });
+        },
+        async stream(service, method, signal, timeoutMs, header, input, contextValues) {
+            var _a;
+            const { serialize, parse } = createClientMethodSerializers(method, useBinaryFormat, options.jsonOptions, options.binaryOptions);
+            function parseResponseBody(body, trailerTarget, header) {
+                return __asyncGenerator(this, arguments, function* parseResponseBody_1() {
+                    const reader = createEnvelopeReadableStream(body).getReader();
+                    let endStreamReceived = false;
+                    for (;;) {
+                        const result = yield __await(reader.read());
+                        if (result.done) {
+                            break;
+                        }
+                        const { flags, data } = result.value;
+                        if ((flags & endStreamFlag) === endStreamFlag) {
+                            endStreamReceived = true;
+                            const endStream = endStreamFromJson(data);
+                            if (endStream.error) {
+                                const error = endStream.error;
+                                header.forEach((value, key) => {
+                                    error.metadata.append(key, value);
+                                });
+                                throw error;
+                            }
+                            endStream.metadata.forEach((value, key) => trailerTarget.set(key, value));
+                            continue;
+                        }
+                        yield yield __await(parse(data));
+                    }
+                    if (!endStreamReceived) {
+                        throw "missing EndStreamResponse";
+                    }
+                });
+            }
+            async function createRequestBody(input) {
+                if (method.kind != service_type_MethodKind.ServerStreaming) {
+                    throw "The fetch API does not support streaming request bodies";
+                }
+                const r = await input[Symbol.asyncIterator]().next();
+                if (r.done == true) {
+                    throw "missing request message";
+                }
+                return envelope_encodeEnvelope(0, serialize(r.value));
+            }
+            timeoutMs =
+                timeoutMs === undefined
+                    ? options.defaultTimeoutMs
+                    : timeoutMs <= 0
+                        ? undefined
+                        : timeoutMs;
+            return await runStreamingCall({
+                interceptors: options.interceptors,
+                timeoutMs,
+                signal,
+                req: {
+                    stream: true,
+                    service,
+                    method,
+                    url: createMethodUrl(options.baseUrl, service, method),
+                    init: {
+                        method: "POST",
+                        credentials: (_a = options.credentials) !== null && _a !== void 0 ? _a : "same-origin",
+                        redirect: "error",
+                        mode: "cors",
+                    },
+                    header: requestHeader(method.kind, useBinaryFormat, timeoutMs, header, false),
+                    contextValues: contextValues !== null && contextValues !== void 0 ? contextValues : createContextValues(),
+                    message: input,
+                },
+                next: async (req) => {
+                    var _a;
+                    const fetch = (_a = options.fetch) !== null && _a !== void 0 ? _a : globalThis.fetch;
+                    const fRes = await fetch(req.url, Object.assign(Object.assign({}, req.init), { headers: req.header, signal: req.signal, body: await createRequestBody(req.message) }));
+                    validateResponse(method.kind, fRes.status, fRes.headers);
+                    if (fRes.body === null) {
+                        throw "missing response body";
+                    }
+                    const trailer = new Headers();
+                    const res = Object.assign(Object.assign({}, req), { header: fRes.headers, trailer, message: parseResponseBody(fRes.body, trailer, fRes.headers) });
+                    return res;
+                },
+            });
+        },
+    };
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/any-client.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/**
+ * Create any client for the given service.
+ *
+ * The given createMethod function is called for each method definition
+ * of the service. The function it returns is added to the client object
+ * as a method.
+ */
+function makeAnyClient(service, createMethod) {
+    const client = {};
+    for (const [localName, methodInfo] of Object.entries(service.methods)) {
+        const method = createMethod(Object.assign(Object.assign({}, methodInfo), { localName,
+            service }));
+        if (method != null) {
+            client[localName] = method;
+        }
+    }
+    return client;
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/async-iterable.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+var __asyncValues = (undefined && undefined.__asyncValues) || function (o) {
+    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+    var m = o[Symbol.asyncIterator], i;
+    return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
+    function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
+    function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
+};
+var async_iterable_await = (undefined && undefined.__await) || function (v) { return this instanceof async_iterable_await ? (this.v = v, this) : new async_iterable_await(v); }
+var async_iterable_asyncGenerator = (undefined && undefined.__asyncGenerator) || function (thisArg, _arguments, generator) {
+    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+    var g = generator.apply(thisArg, _arguments || []), i, q = [];
+    return i = {}, verb("next"), verb("throw"), verb("return", awaitReturn), i[Symbol.asyncIterator] = function () { return this; }, i;
+    function awaitReturn(f) { return function (v) { return Promise.resolve(v).then(f, reject); }; }
+    function verb(n, f) { if (g[n]) { i[n] = function (v) { return new Promise(function (a, b) { q.push([n, v, a, b]) > 1 || resume(n, v); }); }; if (f) i[n] = f(i[n]); } }
+    function resume(n, v) { try { step(g[n](v)); } catch (e) { settle(q[0][3], e); } }
+    function step(r) { r.value instanceof async_iterable_await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q[0][2], r); }
+    function fulfill(value) { resume("next", value); }
+    function reject(value) { resume("throw", value); }
+    function settle(f, v) { if (f(v), q.shift(), q.length) resume(q[0][0], q[0][1]); }
+};
+var __asyncDelegator = (undefined && undefined.__asyncDelegator) || function (o) {
+    var i, p;
+    return i = {}, verb("next"), verb("throw", function (e) { throw e; }), verb("return"), i[Symbol.iterator] = function () { return this; }, i;
+    function verb(n, f) { i[n] = o[n] ? function (v) { return (p = !p) ? { value: async_iterable_await(o[n](v)), done: false } : f ? f(v) : v; } : f; }
+};
+
+
+
+
+function pipeTo(source, ...rest) {
+    const [transforms, sink, opt] = pickTransformsAndSink(rest);
+    let iterable = source;
+    let abortable;
+    if ((opt === null || opt === void 0 ? void 0 : opt.propagateDownStreamError) === true) {
+        iterable = abortable = makeIterableAbortable(iterable);
+    }
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    iterable = pipe(iterable, ...transforms, { propagateDownStreamError: false });
+    return sink(iterable).catch((reason) => {
+        if (abortable) {
+            return abortable.abort(reason).then(() => Promise.reject(reason));
+        }
+        return Promise.reject(reason);
+    });
+}
+// pick transforms, the sink, and options from the pipeTo() rest parameter
+function pickTransformsAndSink(rest) {
+    let opt;
+    if (typeof rest[rest.length - 1] != "function") {
+        opt = rest.pop();
+    }
+    const sink = rest.pop();
+    return [rest, sink, opt];
+}
+/**
+ * Creates an AsyncIterableSink that concatenates all elements from the input.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function sinkAll() {
+    return async function (iterable) {
+        var _a, e_1, _b, _c;
+        const all = [];
+        try {
+            for (var _d = true, iterable_1 = __asyncValues(iterable), iterable_1_1; iterable_1_1 = await iterable_1.next(), _a = iterable_1_1.done, !_a; _d = true) {
+                _c = iterable_1_1.value;
+                _d = false;
+                const chunk = _c;
+                all.push(chunk);
+            }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (!_d && !_a && (_b = iterable_1.return)) await _b.call(iterable_1);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
+        return all;
+    };
+}
+/**
+ * Creates an AsyncIterableSink that concatenates all chunks from the input into
+ * a single Uint8Array.
+ *
+ * The iterable raises an error if the more than readMaxBytes are read.
+ *
+ * An optional length hint can be provided to optimize allocation and validation.
+ * If more or less bytes are present in the source that the length hint indicates,
+ * and error is raised.
+ * If the length hint is larger than readMaxBytes, an error is raised.
+ * If the length hint is not a positive integer, it is ignored.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function sinkAllBytes(readMaxBytes, lengthHint) {
+    return async function (iterable) {
+        return await readAllBytes(iterable, readMaxBytes, lengthHint);
+    };
+}
+function pipe(source, ...rest) {
+    var _a;
+    return async_iterable_asyncGenerator(this, arguments, function* pipe_1() {
+        const [transforms, opt] = pickTransforms(rest);
+        let abortable;
+        const sourceIt = source[Symbol.asyncIterator]();
+        const cachedSource = {
+            [Symbol.asyncIterator]() {
+                return sourceIt;
+            },
+        };
+        let iterable = cachedSource;
+        if ((opt === null || opt === void 0 ? void 0 : opt.propagateDownStreamError) === true) {
+            iterable = abortable = makeIterableAbortable(iterable);
+        }
+        for (const t of transforms) {
+            iterable = t(iterable);
+        }
+        const it = iterable[Symbol.asyncIterator]();
+        try {
+            for (;;) {
+                const r = yield async_iterable_await(it.next());
+                if (r.done === true) {
+                    break;
+                }
+                if (!abortable) {
+                    yield yield async_iterable_await(r.value);
+                    continue;
+                }
+                try {
+                    yield yield async_iterable_await(r.value);
+                }
+                catch (e) {
+                    yield async_iterable_await(abortable.abort(e)); // propagate downstream error to the source
+                    throw e;
+                }
+            }
+        }
+        finally {
+            if ((opt === null || opt === void 0 ? void 0 : opt.propagateDownStreamError) === true) {
+                // Call return on the source iterable to indicate
+                // that we will no longer consume it and it should
+                // cleanup any allocated resources.
+                (_a = sourceIt.return) === null || _a === void 0 ? void 0 : _a.call(sourceIt).catch(() => {
+                    // return returns a promise, which we don't care about.
+                    //
+                    // Uncaught promises are thrown at sometime/somewhere by the event loop,
+                    // this is to ensure error is caught and ignored.
+                });
+            }
+        }
+    });
+}
+function pickTransforms(rest) {
+    let opt;
+    if (typeof rest[rest.length - 1] != "function") {
+        opt = rest.pop();
+    }
+    return [rest, opt];
+}
+/**
+ * Creates an AsyncIterableTransform that catches any error from the input, and
+ * passes it to the given catchError function.
+ *
+ * The catchError function may return a final value.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function transformCatch(catchError) {
+    return function (iterable) {
+        return async_iterable_asyncGenerator(this, arguments, function* () {
+            // we deliberate avoid a for-await loop because we only want to catch upstream
+            // errors, not downstream errors (yield).
+            const it = iterable[Symbol.asyncIterator]();
+            for (;;) {
+                let r;
+                try {
+                    r = yield async_iterable_await(it.next());
+                }
+                catch (e) {
+                    const caught = yield async_iterable_await(catchError(e));
+                    if (caught !== undefined) {
+                        yield yield async_iterable_await(caught);
+                    }
+                    break;
+                }
+                if (r.done === true) {
+                    break;
+                }
+                yield yield async_iterable_await(r.value);
+            }
+        });
+    };
+}
+/**
+ * Creates an AsyncIterableTransform that catches any error from the input, and
+ * passes it to the given function. Unlike transformCatch(), the given function
+ * is also called when no error is raised.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function transformCatchFinally(catchFinally) {
+    return function (iterable) {
+        return async_iterable_asyncGenerator(this, arguments, function* () {
+            // we deliberate avoid a for-await loop because we only want to catch upstream
+            // errors, not downstream errors (yield).
+            let err;
+            const it = iterable[Symbol.asyncIterator]();
+            for (;;) {
+                let r;
+                try {
+                    r = yield async_iterable_await(it.next());
+                }
+                catch (e) {
+                    err = e;
+                    break;
+                }
+                if (r.done === true) {
+                    break;
+                }
+                yield yield async_iterable_await(r.value);
+            }
+            const caught = yield async_iterable_await(catchFinally(err));
+            if (caught !== undefined) {
+                yield yield async_iterable_await(caught);
+            }
+        });
+    };
+}
+/**
+ * Creates an AsyncIterableTransform that appends a value.
+ *
+ * The element to append is provided by a function. If the function returns
+ * undefined, no element is appended.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function transformAppend(provide) {
+    return function (iterable) {
+        return async_iterable_asyncGenerator(this, arguments, function* () {
+            var _a, e_2, _b, _c;
+            try {
+                for (var _d = true, iterable_2 = __asyncValues(iterable), iterable_2_1; iterable_2_1 = yield async_iterable_await(iterable_2.next()), _a = iterable_2_1.done, !_a; _d = true) {
+                    _c = iterable_2_1.value;
+                    _d = false;
+                    const chunk = _c;
+                    yield yield async_iterable_await(chunk);
+                }
+            }
+            catch (e_2_1) { e_2 = { error: e_2_1 }; }
+            finally {
+                try {
+                    if (!_d && !_a && (_b = iterable_2.return)) yield async_iterable_await(_b.call(iterable_2));
+                }
+                finally { if (e_2) throw e_2.error; }
+            }
+            const append = yield async_iterable_await(provide());
+            if (append !== undefined) {
+                yield yield async_iterable_await(append);
+            }
+        });
+    };
+}
+/**
+ * Creates an AsyncIterableTransform that prepends an element.
+ *
+ * The element to prepend is provided by a function. If the function returns
+ * undefined, no element is appended.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function transformPrepend(provide) {
+    return function (iterable) {
+        return async_iterable_asyncGenerator(this, arguments, function* () {
+            var _a, e_3, _b, _c;
+            const prepend = yield async_iterable_await(provide());
+            if (prepend !== undefined) {
+                yield yield async_iterable_await(prepend);
+            }
+            try {
+                for (var _d = true, iterable_3 = __asyncValues(iterable), iterable_3_1; iterable_3_1 = yield async_iterable_await(iterable_3.next()), _a = iterable_3_1.done, !_a; _d = true) {
+                    _c = iterable_3_1.value;
+                    _d = false;
+                    const chunk = _c;
+                    yield yield async_iterable_await(chunk);
+                }
+            }
+            catch (e_3_1) { e_3 = { error: e_3_1 }; }
+            finally {
+                try {
+                    if (!_d && !_a && (_b = iterable_3.return)) yield async_iterable_await(_b.call(iterable_3));
+                }
+                finally { if (e_3) throw e_3.error; }
+            }
+        });
+    };
+}
+/**
+ * Creates an AsyncIterableTransform that reads all bytes from the input, and
+ * concatenates them to a single Uint8Array.
+ *
+ * The iterable raises an error if the more than readMaxBytes are read.
+ *
+ * An optional length hint can be provided to optimize allocation and validation.
+ * If more or less bytes are present in the source that the length hint indicates,
+ * and error is raised.
+ * If the length hint is larger than readMaxBytes, an error is raised.
+ * If the length hint is not a positive integer, it is ignored.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function transformReadAllBytes(readMaxBytes, lengthHint) {
+    return function (iterable) {
+        return async_iterable_asyncGenerator(this, arguments, function* () {
+            yield yield async_iterable_await(yield async_iterable_await(readAllBytes(iterable, readMaxBytes, lengthHint)));
+        });
+    };
+}
+function transformSerializeEnvelope(serialization, endStreamFlag, endSerialization) {
+    if (endStreamFlag === undefined || endSerialization === undefined) {
+        return function (iterable) {
+            return async_iterable_asyncGenerator(this, arguments, function* () {
+                var _a, e_4, _b, _c;
+                try {
+                    for (var _d = true, iterable_4 = __asyncValues(iterable), iterable_4_1; iterable_4_1 = yield async_iterable_await(iterable_4.next()), _a = iterable_4_1.done, !_a; _d = true) {
+                        _c = iterable_4_1.value;
+                        _d = false;
+                        const chunk = _c;
+                        const data = serialization.serialize(chunk);
+                        yield yield async_iterable_await({ flags: 0, data });
+                    }
+                }
+                catch (e_4_1) { e_4 = { error: e_4_1 }; }
+                finally {
+                    try {
+                        if (!_d && !_a && (_b = iterable_4.return)) yield async_iterable_await(_b.call(iterable_4));
+                    }
+                    finally { if (e_4) throw e_4.error; }
+                }
+            });
+        };
+    }
+    return function (iterable) {
+        return async_iterable_asyncGenerator(this, arguments, function* () {
+            var _a, e_5, _b, _c;
+            try {
+                for (var _d = true, iterable_5 = __asyncValues(iterable), iterable_5_1; iterable_5_1 = yield async_iterable_await(iterable_5.next()), _a = iterable_5_1.done, !_a; _d = true) {
+                    _c = iterable_5_1.value;
+                    _d = false;
+                    const chunk = _c;
+                    let data;
+                    let flags = 0;
+                    if (chunk.end) {
+                        flags = flags | endStreamFlag;
+                        data = endSerialization.serialize(chunk.value);
+                    }
+                    else {
+                        data = serialization.serialize(chunk.value);
+                    }
+                    yield yield async_iterable_await({ flags, data });
+                }
+            }
+            catch (e_5_1) { e_5 = { error: e_5_1 }; }
+            finally {
+                try {
+                    if (!_d && !_a && (_b = iterable_5.return)) yield async_iterable_await(_b.call(iterable_5));
+                }
+                finally { if (e_5) throw e_5.error; }
+            }
+        });
+    };
+}
+function transformParseEnvelope(serialization, endStreamFlag, endSerialization) {
+    // code path always yields ParsedEnvelopedMessage<T, E>
+    if (endSerialization && endStreamFlag !== undefined) {
+        return function (iterable) {
+            return async_iterable_asyncGenerator(this, arguments, function* () {
+                var _a, e_6, _b, _c;
+                try {
+                    for (var _d = true, iterable_6 = __asyncValues(iterable), iterable_6_1; iterable_6_1 = yield async_iterable_await(iterable_6.next()), _a = iterable_6_1.done, !_a; _d = true) {
+                        _c = iterable_6_1.value;
+                        _d = false;
+                        const { flags, data } = _c;
+                        if ((flags & endStreamFlag) === endStreamFlag) {
+                            yield yield async_iterable_await({ value: endSerialization.parse(data), end: true });
+                        }
+                        else {
+                            yield yield async_iterable_await({ value: serialization.parse(data), end: false });
+                        }
+                    }
+                }
+                catch (e_6_1) { e_6 = { error: e_6_1 }; }
+                finally {
+                    try {
+                        if (!_d && !_a && (_b = iterable_6.return)) yield async_iterable_await(_b.call(iterable_6));
+                    }
+                    finally { if (e_6) throw e_6.error; }
+                }
+            });
+        };
+    }
+    // code path always yields T
+    return function (iterable) {
+        return async_iterable_asyncGenerator(this, arguments, function* () {
+            var _a, e_7, _b, _c;
+            try {
+                for (var _d = true, iterable_7 = __asyncValues(iterable), iterable_7_1; iterable_7_1 = yield async_iterable_await(iterable_7.next()), _a = iterable_7_1.done, !_a; _d = true) {
+                    _c = iterable_7_1.value;
+                    _d = false;
+                    const { flags, data } = _c;
+                    if (endStreamFlag !== undefined &&
+                        (flags & endStreamFlag) === endStreamFlag) {
+                        if (endSerialization === null) {
+                            throw new ConnectError("unexpected end flag", Code.InvalidArgument);
+                        }
+                        // skips end-of-stream envelope
+                        continue;
+                    }
+                    yield yield async_iterable_await(serialization.parse(data));
+                }
+            }
+            catch (e_7_1) { e_7 = { error: e_7_1 }; }
+            finally {
+                try {
+                    if (!_d && !_a && (_b = iterable_7.return)) yield async_iterable_await(_b.call(iterable_7));
+                }
+                finally { if (e_7) throw e_7.error; }
+            }
+        });
+    };
+}
+/**
+ * Creates an AsyncIterableTransform that takes enveloped messages as a source,
+ * and compresses them if they are larger than compressMinBytes.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function transformCompressEnvelope(compression, compressMinBytes) {
+    return function (iterable) {
+        return async_iterable_asyncGenerator(this, arguments, function* () {
+            var _a, e_8, _b, _c;
+            try {
+                for (var _d = true, iterable_8 = __asyncValues(iterable), iterable_8_1; iterable_8_1 = yield async_iterable_await(iterable_8.next()), _a = iterable_8_1.done, !_a; _d = true) {
+                    _c = iterable_8_1.value;
+                    _d = false;
+                    const env = _c;
+                    yield yield async_iterable_await(yield async_iterable_await(envelopeCompress(env, compression, compressMinBytes)));
+                }
+            }
+            catch (e_8_1) { e_8 = { error: e_8_1 }; }
+            finally {
+                try {
+                    if (!_d && !_a && (_b = iterable_8.return)) yield async_iterable_await(_b.call(iterable_8));
+                }
+                finally { if (e_8) throw e_8.error; }
+            }
+        });
+    };
+}
+/**
+ * Creates an AsyncIterableTransform that takes enveloped messages as a source,
+ * and decompresses them using the given compression.
+ *
+ * The iterable raises an error if the decompressed payload of an enveloped
+ * message is larger than readMaxBytes, or if no compression is provided.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function transformDecompressEnvelope(compression, readMaxBytes) {
+    return function (iterable) {
+        return async_iterable_asyncGenerator(this, arguments, function* () {
+            var _a, e_9, _b, _c;
+            try {
+                for (var _d = true, iterable_9 = __asyncValues(iterable), iterable_9_1; iterable_9_1 = yield async_iterable_await(iterable_9.next()), _a = iterable_9_1.done, !_a; _d = true) {
+                    _c = iterable_9_1.value;
+                    _d = false;
+                    const env = _c;
+                    yield yield async_iterable_await(yield async_iterable_await(envelopeDecompress(env, compression, readMaxBytes)));
+                }
+            }
+            catch (e_9_1) { e_9 = { error: e_9_1 }; }
+            finally {
+                try {
+                    if (!_d && !_a && (_b = iterable_9.return)) yield async_iterable_await(_b.call(iterable_9));
+                }
+                finally { if (e_9) throw e_9.error; }
+            }
+        });
+    };
+}
+/**
+ * Create an AsyncIterableTransform that takes enveloped messages as a source,
+ * and joins them into a stream of raw bytes.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function transformJoinEnvelopes() {
+    return function (iterable) {
+        return async_iterable_asyncGenerator(this, arguments, function* () {
+            var _a, e_10, _b, _c;
+            try {
+                for (var _d = true, iterable_10 = __asyncValues(iterable), iterable_10_1; iterable_10_1 = yield async_iterable_await(iterable_10.next()), _a = iterable_10_1.done, !_a; _d = true) {
+                    _c = iterable_10_1.value;
+                    _d = false;
+                    const { flags, data } = _c;
+                    yield yield async_iterable_await(encodeEnvelope(flags, data));
+                }
+            }
+            catch (e_10_1) { e_10 = { error: e_10_1 }; }
+            finally {
+                try {
+                    if (!_d && !_a && (_b = iterable_10.return)) yield async_iterable_await(_b.call(iterable_10));
+                }
+                finally { if (e_10) throw e_10.error; }
+            }
+        });
+    };
+}
+/**
+ * Create an AsyncIterableTransform that takes raw bytes as a source, and splits
+ * them into enveloped messages.
+ *
+ * The iterable raises an error
+ * - if the payload of an enveloped message is larger than readMaxBytes,
+ * - if the stream ended before an enveloped message fully arrived,
+ * - or if the stream ended with extraneous data.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function transformSplitEnvelope(readMaxBytes) {
+    // append chunk to buffer, returning updated buffer
+    function append(buffer, chunk) {
+        const n = new Uint8Array(buffer.byteLength + chunk.byteLength);
+        n.set(buffer);
+        n.set(chunk, buffer.length);
+        return n;
+    }
+    // tuple 0: envelope, or undefined if incomplete
+    // tuple 1: remainder of the buffer
+    function shiftEnvelope(buffer, header) {
+        if (buffer.byteLength < 5 + header.length) {
+            return [undefined, buffer];
+        }
+        return [
+            { flags: header.flags, data: buffer.subarray(5, 5 + header.length) },
+            buffer.subarray(5 + header.length),
+        ];
+    }
+    // undefined: header is incomplete
+    function peekHeader(buffer) {
+        if (buffer.byteLength < 5) {
+            return undefined;
+        }
+        const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+        const length = view.getUint32(1); // 4 bytes message length
+        const flags = view.getUint8(0); // first byte is flags
+        return { length, flags };
+    }
+    return function (iterable) {
+        return async_iterable_asyncGenerator(this, arguments, function* () {
+            var _a, e_11, _b, _c;
+            let buffer = new Uint8Array(0);
+            try {
+                for (var _d = true, iterable_11 = __asyncValues(iterable), iterable_11_1; iterable_11_1 = yield async_iterable_await(iterable_11.next()), _a = iterable_11_1.done, !_a; _d = true) {
+                    _c = iterable_11_1.value;
+                    _d = false;
+                    const chunk = _c;
+                    buffer = append(buffer, chunk);
+                    for (;;) {
+                        const header = peekHeader(buffer);
+                        if (!header) {
+                            break;
+                        }
+                        assertReadMaxBytes(readMaxBytes, header.length, true);
+                        let env;
+                        [env, buffer] = shiftEnvelope(buffer, header);
+                        if (!env) {
+                            break;
+                        }
+                        yield yield async_iterable_await(env);
+                    }
+                }
+            }
+            catch (e_11_1) { e_11 = { error: e_11_1 }; }
+            finally {
+                try {
+                    if (!_d && !_a && (_b = iterable_11.return)) yield async_iterable_await(_b.call(iterable_11));
+                }
+                finally { if (e_11) throw e_11.error; }
+            }
+            if (buffer.byteLength > 0) {
+                const header = peekHeader(buffer);
+                let message = "protocol error: incomplete envelope";
+                if (header) {
+                    message = `protocol error: promised ${header.length} bytes in enveloped message, got ${buffer.byteLength - 5} bytes`;
+                }
+                throw new ConnectError(message, Code.InvalidArgument);
+            }
+        });
+    };
+}
+/**
+ * Reads all bytes from the source, and concatenates them to a single Uint8Array.
+ *
+ * Raises an error if:
+ * - more than readMaxBytes are read
+ * - lengthHint is a positive integer, but larger than readMaxBytes
+ * - lengthHint is a positive integer, and the source contains more or less bytes
+ *   than promised
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+async function readAllBytes(iterable, readMaxBytes, lengthHint) {
+    var _a, e_12, _b, _c, _d, e_13, _e, _f;
+    const [ok, hint] = parseLengthHint(lengthHint);
+    if (ok) {
+        if (hint > readMaxBytes) {
+            assertReadMaxBytes(readMaxBytes, hint, true);
+        }
+        const buffer = new Uint8Array(hint);
+        let offset = 0;
+        try {
+            for (var _g = true, iterable_12 = __asyncValues(iterable), iterable_12_1; iterable_12_1 = await iterable_12.next(), _a = iterable_12_1.done, !_a; _g = true) {
+                _c = iterable_12_1.value;
+                _g = false;
+                const chunk = _c;
+                if (offset + chunk.byteLength > hint) {
+                    throw new ConnectError(`protocol error: promised ${hint} bytes, received ${offset + chunk.byteLength}`, Code.InvalidArgument);
+                }
+                buffer.set(chunk, offset);
+                offset += chunk.byteLength;
+            }
+        }
+        catch (e_12_1) { e_12 = { error: e_12_1 }; }
+        finally {
+            try {
+                if (!_g && !_a && (_b = iterable_12.return)) await _b.call(iterable_12);
+            }
+            finally { if (e_12) throw e_12.error; }
+        }
+        if (offset < hint) {
+            throw new ConnectError(`protocol error: promised ${hint} bytes, received ${offset}`, Code.InvalidArgument);
+        }
+        return buffer;
+    }
+    const chunks = [];
+    let count = 0;
+    try {
+        for (var _h = true, iterable_13 = __asyncValues(iterable), iterable_13_1; iterable_13_1 = await iterable_13.next(), _d = iterable_13_1.done, !_d; _h = true) {
+            _f = iterable_13_1.value;
+            _h = false;
+            const chunk = _f;
+            count += chunk.byteLength;
+            assertReadMaxBytes(readMaxBytes, count);
+            chunks.push(chunk);
+        }
+    }
+    catch (e_13_1) { e_13 = { error: e_13_1 }; }
+    finally {
+        try {
+            if (!_h && !_d && (_e = iterable_13.return)) await _e.call(iterable_13);
+        }
+        finally { if (e_13) throw e_13.error; }
+    }
+    const all = new Uint8Array(count);
+    let offset = 0;
+    for (let chunk = chunks.shift(); chunk; chunk = chunks.shift()) {
+        all.set(chunk, offset);
+        offset += chunk.byteLength;
+    }
+    return all;
+}
+// parse the lengthHint argument of readAllBytes()
+function parseLengthHint(lengthHint) {
+    if (lengthHint === undefined || lengthHint === null) {
+        return [false, 0];
+    }
+    const n = typeof lengthHint == "string" ? parseInt(lengthHint, 10) : lengthHint;
+    if (!Number.isSafeInteger(n) || n < 0) {
+        return [false, n];
+    }
+    return [true, n];
+}
+/**
+ * Wait for the first element of an iterable without modifying the iterable.
+ * This consumes the first element, but pushes it back on the stack.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+async function untilFirst(iterable) {
+    const it = iterable[Symbol.asyncIterator]();
+    let first = await it.next();
+    return {
+        [Symbol.asyncIterator]() {
+            const w = {
+                async next() {
+                    if (first !== null) {
+                        const n = first;
+                        first = null;
+                        return n;
+                    }
+                    return await it.next();
+                },
+            };
+            if (it.throw !== undefined) {
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- can't handle mutated object sensibly
+                w.throw = (e) => it.throw(e);
+            }
+            if (it.return !== undefined) {
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion,@typescript-eslint/no-explicit-any -- can't handle mutated object sensibly
+                w.return = (value) => it.return(value);
+            }
+            return w;
+        },
+    };
+}
+/**
+ * Wrap the given iterable and return an iterable with an abort() method.
+ *
+ * This function exists purely for convenience. Where one would typically have
+ * to access the iterator directly, advance through all elements, and call
+ * AsyncIterator.throw() to notify the upstream iterable, this function allows
+ * to use convenient for-await loops and still notify the upstream iterable:
+ *
+ * ```ts
+ * const abortable = makeIterableAbortable(iterable);
+ * for await (const ele of abortable) {
+ *   await abortable.abort("ERR");
+ * }
+ * ```
+ * There are a couple of limitations of this function:
+ * - the given async iterable must implement throw
+ * - the async iterable cannot be re-use
+ * - if source catches errors and yields values for them, they are ignored, and
+ *   the source may still dangle
+ *
+ * There are four possible ways an async function* can handle yield errors:
+ * 1. don't catch errors at all - Abortable.abort() will resolve "rethrown"
+ * 2. catch errors and rethrow - Abortable.abort() will resolve "rethrown"
+ * 3. catch errors and return - Abortable.abort() will resolve "completed"
+ * 4. catch errors and yield a value - Abortable.abort() will resolve "caught"
+ *
+ * Note that catching errors and yielding a value is problematic, and it should
+ * be documented that this may leave the source in a dangling state.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function makeIterableAbortable(iterable) {
+    const innerCandidate = iterable[Symbol.asyncIterator]();
+    if (innerCandidate.throw === undefined) {
+        throw new Error("AsyncIterable does not implement throw");
+    }
+    const inner = innerCandidate;
+    let aborted;
+    let resultPromise;
+    let it = {
+        next() {
+            resultPromise = inner.next().finally(() => {
+                resultPromise = undefined;
+            });
+            return resultPromise;
+        },
+        throw(e) {
+            return inner.throw(e);
+        },
+    };
+    if (innerCandidate.return !== undefined) {
+        it = Object.assign(Object.assign({}, it), { return(value) {
+                return inner.return(value);
+            } });
+    }
+    let used = false;
+    return {
+        abort(reason) {
+            if (aborted) {
+                return aborted.state;
+            }
+            const f = () => {
+                return inner.throw(reason).then((r) => (r.done === true ? "completed" : "caught"), () => "rethrown");
+            };
+            if (resultPromise) {
+                aborted = { reason, state: resultPromise.then(f, f) };
+                return aborted.state;
+            }
+            aborted = { reason, state: f() };
+            return aborted.state;
+        },
+        [Symbol.asyncIterator]() {
+            if (used) {
+                throw new Error("AsyncIterable cannot be re-used");
+            }
+            used = true;
+            return it;
+        },
+    };
+}
+/**
+ * Create a new WritableIterable.
+ */
+function createWritableIterable() {
+    // We start with two queues to capture the read and write attempts.
+    //
+    // The writes and reads each check of their counterpart is
+    // already available and either interact/add themselves to the queue.
+    const readQueue = [];
+    const writeQueue = [];
+    let err = undefined;
+    let nextResolve;
+    let nextReject;
+    let nextPromise = new Promise((resolve, reject) => {
+        nextResolve = resolve;
+        nextReject = reject;
+    });
+    let closed = false;
+    // drain the readQueue in case of error/writer is closed by sending a
+    // done result.
+    function drain() {
+        for (const next of readQueue.splice(0, readQueue.length)) {
+            next({ done: true, value: undefined });
+        }
+    }
+    return {
+        close() {
+            closed = true;
+            drain();
+        },
+        async write(payload) {
+            if (closed) {
+                throw err !== null && err !== void 0 ? err : new Error("cannot write, WritableIterable already closed");
+            }
+            const read = readQueue.shift();
+            if (read === undefined) {
+                // We didn't find a pending read so we add the payload to the write queue.
+                writeQueue.push(payload);
+            }
+            else {
+                // We found a pending read so we respond with the payload.
+                read({ done: false, value: payload });
+                if (readQueue.length > 0) {
+                    // If there are more in the read queue we can mark the write as complete.
+                    // as the error reporting is not guaranteed to be sequential and therefore cannot
+                    // to linked to a specific write.
+                    return;
+                }
+            }
+            // We await the next call for as many times as there are items in the queue + 1
+            //
+            // If there are no items in the write queue that means write happened and we just have
+            // to wait for one more call likewise if we are the nth write in the queue we
+            // have to wait for n writes to complete and one more.
+            const limit = writeQueue.length + 1;
+            for (let i = 0; i < limit; i++) {
+                await nextPromise;
+            }
+        },
+        [Symbol.asyncIterator]() {
+            return {
+                next() {
+                    // Resolve the nextPromise to indicate
+                    // pending writes that a read attempt has been made
+                    // after their write.
+                    //
+                    // We also need to reset the promise for future writes.
+                    nextResolve();
+                    nextPromise = new Promise((resolve, reject) => {
+                        nextResolve = resolve;
+                        nextReject = reject;
+                    });
+                    const write = writeQueue.shift();
+                    if (write !== undefined) {
+                        // We found a pending write so response with the payload.
+                        return Promise.resolve({ done: false, value: write });
+                    }
+                    if (closed) {
+                        return Promise.resolve({ done: true, value: undefined });
+                    }
+                    // We return a promise immediately that is either resolved/rejected
+                    // as writes happen.
+                    let readResolve;
+                    const readPromise = new Promise((resolve) => (readResolve = resolve));
+                    readQueue.push(readResolve); // eslint-disable-line @typescript-eslint/no-non-null-assertion
+                    return readPromise;
+                },
+                throw(throwErr) {
+                    err = throwErr;
+                    closed = true;
+                    writeQueue.splice(0, writeQueue.length);
+                    nextPromise.catch(() => {
+                        // To make sure that the nextPromise is always resolved.
+                    });
+                    // This will reject all pending writes.
+                    nextReject(err);
+                    drain();
+                    return Promise.resolve({ done: true, value: undefined });
+                },
+                return() {
+                    closed = true;
+                    writeQueue.splice(0, writeQueue.length);
+                    // Resolve once for the write awaiting confirmation.
+                    nextResolve();
+                    // Reject all future writes.
+                    nextPromise = Promise.reject(new Error("cannot write, consumer called return"));
+                    nextPromise.catch(() => {
+                        // To make sure that the nextPromise is always resolved.
+                    });
+                    drain();
+                    return Promise.resolve({ done: true, value: undefined });
+                },
+            };
+        },
+    };
+}
+/**
+ * Create an asynchronous iterable from an array.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+// eslint-disable-next-line @typescript-eslint/require-await
+function createAsyncIterable(items) {
+    return async_iterable_asyncGenerator(this, arguments, function* createAsyncIterable_1() {
+        yield async_iterable_await(yield* __asyncDelegator(__asyncValues(items)));
+    });
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/promise-client.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+var promise_client_asyncValues = (undefined && undefined.__asyncValues) || function (o) {
+    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+    var m = o[Symbol.asyncIterator], i;
+    return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
+    function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
+    function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
+};
+var promise_client_await = (undefined && undefined.__await) || function (v) { return this instanceof promise_client_await ? (this.v = v, this) : new promise_client_await(v); }
+var promise_client_asyncDelegator = (undefined && undefined.__asyncDelegator) || function (o) {
+    var i, p;
+    return i = {}, verb("next"), verb("throw", function (e) { throw e; }), verb("return"), i[Symbol.iterator] = function () { return this; }, i;
+    function verb(n, f) { i[n] = o[n] ? function (v) { return (p = !p) ? { value: promise_client_await(o[n](v)), done: false } : f ? f(v) : v; } : f; }
+};
+var promise_client_asyncGenerator = (undefined && undefined.__asyncGenerator) || function (thisArg, _arguments, generator) {
+    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+    var g = generator.apply(thisArg, _arguments || []), i, q = [];
+    return i = {}, verb("next"), verb("throw"), verb("return", awaitReturn), i[Symbol.asyncIterator] = function () { return this; }, i;
+    function awaitReturn(f) { return function (v) { return Promise.resolve(v).then(f, reject); }; }
+    function verb(n, f) { if (g[n]) { i[n] = function (v) { return new Promise(function (a, b) { q.push([n, v, a, b]) > 1 || resume(n, v); }); }; if (f) i[n] = f(i[n]); } }
+    function resume(n, v) { try { step(g[n](v)); } catch (e) { settle(q[0][3], e); } }
+    function step(r) { r.value instanceof promise_client_await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q[0][2], r); }
+    function fulfill(value) { resume("next", value); }
+    function reject(value) { resume("throw", value); }
+    function settle(f, v) { if (f(v), q.shift(), q.length) resume(q[0][0], q[0][1]); }
+};
+
+
+
+
+
+/**
+ * Create a PromiseClient for the given service, invoking RPCs through the
+ * given transport.
+ */
+function createPromiseClient(service, transport) {
+    return makeAnyClient(service, (method) => {
+        switch (method.kind) {
+            case service_type_MethodKind.Unary:
+                return createUnaryFn(transport, service, method);
+            case service_type_MethodKind.ServerStreaming:
+                return createServerStreamingFn(transport, service, method);
+            case service_type_MethodKind.ClientStreaming:
+                return createClientStreamingFn(transport, service, method);
+            case service_type_MethodKind.BiDiStreaming:
+                return createBiDiStreamingFn(transport, service, method);
+            default:
+                return null;
+        }
+    });
+}
+function createUnaryFn(transport, service, method) {
+    return async function (input, options) {
+        var _a, _b;
+        const response = await transport.unary(service, method, options === null || options === void 0 ? void 0 : options.signal, options === null || options === void 0 ? void 0 : options.timeoutMs, options === null || options === void 0 ? void 0 : options.headers, input, options === null || options === void 0 ? void 0 : options.contextValues);
+        (_a = options === null || options === void 0 ? void 0 : options.onHeader) === null || _a === void 0 ? void 0 : _a.call(options, response.header);
+        (_b = options === null || options === void 0 ? void 0 : options.onTrailer) === null || _b === void 0 ? void 0 : _b.call(options, response.trailer);
+        return response.message;
+    };
+}
+function createServerStreamingFn(transport, service, method) {
+    return function (input, options) {
+        return handleStreamResponse(transport.stream(service, method, options === null || options === void 0 ? void 0 : options.signal, options === null || options === void 0 ? void 0 : options.timeoutMs, options === null || options === void 0 ? void 0 : options.headers, createAsyncIterable([input]), options === null || options === void 0 ? void 0 : options.contextValues), options);
+    };
+}
+function createClientStreamingFn(transport, service, method) {
+    return async function (request, options) {
+        var _a, e_1, _b, _c;
+        var _d, _e;
+        const response = await transport.stream(service, method, options === null || options === void 0 ? void 0 : options.signal, options === null || options === void 0 ? void 0 : options.timeoutMs, options === null || options === void 0 ? void 0 : options.headers, request, options === null || options === void 0 ? void 0 : options.contextValues);
+        (_d = options === null || options === void 0 ? void 0 : options.onHeader) === null || _d === void 0 ? void 0 : _d.call(options, response.header);
+        let singleMessage;
+        try {
+            for (var _f = true, _g = promise_client_asyncValues(response.message), _h; _h = await _g.next(), _a = _h.done, !_a; _f = true) {
+                _c = _h.value;
+                _f = false;
+                const message = _c;
+                singleMessage = message;
+            }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (!_f && !_a && (_b = _g.return)) await _b.call(_g);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
+        if (!singleMessage) {
+            throw new connect_error_ConnectError("protocol error: missing response message", code_Code.Internal);
+        }
+        (_e = options === null || options === void 0 ? void 0 : options.onTrailer) === null || _e === void 0 ? void 0 : _e.call(options, response.trailer);
+        return singleMessage;
+    };
+}
+function createBiDiStreamingFn(transport, service, method) {
+    return function (request, options) {
+        return handleStreamResponse(transport.stream(service, method, options === null || options === void 0 ? void 0 : options.signal, options === null || options === void 0 ? void 0 : options.timeoutMs, options === null || options === void 0 ? void 0 : options.headers, request, options === null || options === void 0 ? void 0 : options.contextValues), options);
+    };
+}
+function handleStreamResponse(stream, options) {
+    const it = (function () {
+        var _a, _b;
+        return promise_client_asyncGenerator(this, arguments, function* () {
+            const response = yield promise_client_await(stream);
+            (_a = options === null || options === void 0 ? void 0 : options.onHeader) === null || _a === void 0 ? void 0 : _a.call(options, response.header);
+            yield promise_client_await(yield* promise_client_asyncDelegator(promise_client_asyncValues(response.message)));
+            (_b = options === null || options === void 0 ? void 0 : options.onTrailer) === null || _b === void 0 ? void 0 : _b.call(options, response.trailer);
+        });
+    })()[Symbol.asyncIterator]();
+    // Create a new iterable to omit throw/return.
+    return {
+        [Symbol.asyncIterator]: () => ({
+            next: () => it.next(),
+        }),
+    };
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/private/assert.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/**
+ * Assert that condition is truthy or throw error (with message)
+ */
+function assert(condition, msg) {
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions -- we want the implicit conversion to boolean
+    if (!condition) {
+        throw new Error(msg);
+    }
+}
+const FLOAT32_MAX = 3.4028234663852886e38, FLOAT32_MIN = -3.4028234663852886e38, UINT32_MAX = 0xffffffff, INT32_MAX = 0x7fffffff, INT32_MIN = -0x80000000;
+/**
+ * Assert a valid signed protobuf 32-bit integer.
+ */
+function assertInt32(arg) {
+    if (typeof arg !== "number")
+        throw new Error("invalid int 32: " + typeof arg);
+    if (!Number.isInteger(arg) || arg > INT32_MAX || arg < INT32_MIN)
+        throw new Error("invalid int 32: " + arg); // eslint-disable-line @typescript-eslint/restrict-plus-operands -- we want the implicit conversion to string
+}
+/**
+ * Assert a valid unsigned protobuf 32-bit integer.
+ */
+function assertUInt32(arg) {
+    if (typeof arg !== "number")
+        throw new Error("invalid uint 32: " + typeof arg);
+    if (!Number.isInteger(arg) || arg > UINT32_MAX || arg < 0)
+        throw new Error("invalid uint 32: " + arg); // eslint-disable-line @typescript-eslint/restrict-plus-operands -- we want the implicit conversion to string
+}
+/**
+ * Assert a valid protobuf float value.
+ */
+function assertFloat32(arg) {
+    if (typeof arg !== "number")
+        throw new Error("invalid float 32: " + typeof arg);
+    if (!Number.isFinite(arg))
+        return;
+    if (arg > FLOAT32_MAX || arg < FLOAT32_MIN)
+        throw new Error("invalid float 32: " + arg); // eslint-disable-line @typescript-eslint/restrict-plus-operands -- we want the implicit conversion to string
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/private/enum.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+const enumTypeSymbol = Symbol("@bufbuild/protobuf/enum-type");
+/**
+ * Get reflection information from a generated enum.
+ * If this function is called on something other than a generated
+ * enum, it raises an error.
+ */
+function getEnumType(enumObject) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-explicit-any
+    const t = enumObject[enumTypeSymbol];
+    assert(t, "missing enum type on enum object");
+    return t; // eslint-disable-line @typescript-eslint/no-unsafe-return
+}
+/**
+ * Sets reflection information on a generated enum.
+ */
+function setEnumType(enumObject, typeName, values, opt) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    enumObject[enumTypeSymbol] = makeEnumType(typeName, values.map((v) => ({
+        no: v.no,
+        name: v.name,
+        localName: enumObject[v.no],
+    })), opt);
+}
+/**
+ * Create a new EnumType with the given values.
+ */
+function makeEnumType(typeName, values, 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+_opt) {
+    const names = Object.create(null);
+    const numbers = Object.create(null);
+    const normalValues = [];
+    for (const value of values) {
+        // We do not surface options at this time
+        // const value: EnumValueInfo = {...v, options: v.options ?? emptyReadonlyObject};
+        const n = normalizeEnumValue(value);
+        normalValues.push(n);
+        names[value.name] = n;
+        numbers[value.no] = n;
+    }
+    return {
+        typeName,
+        values: normalValues,
+        // We do not surface options at this time
+        // options: opt?.options ?? Object.create(null),
+        findName(name) {
+            return names[name];
+        },
+        findNumber(no) {
+            return numbers[no];
+        },
+    };
+}
+/**
+ * Create a new enum object with the given values.
+ * Sets reflection information.
+ */
+function makeEnum(typeName, values, opt) {
+    const enumObject = {};
+    for (const value of values) {
+        const n = normalizeEnumValue(value);
+        enumObject[n.localName] = n.no;
+        enumObject[n.no] = n.localName;
+    }
+    setEnumType(enumObject, typeName, values, opt);
+    return enumObject;
+}
+function normalizeEnumValue(value) {
+    if ("localName" in value) {
+        return value;
+    }
+    return Object.assign(Object.assign({}, value), { localName: value.name });
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/message.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/**
+ * Message is the base class of every message, generated, or created at
+ * runtime.
+ *
+ * It is _not_ safe to extend this class. If you want to create a message at
+ * run time, use proto3.makeMessageType().
+ */
+class Message {
+    /**
+     * Compare with a message of the same type.
+     * Note that this function disregards extensions and unknown fields.
+     */
+    equals(other) {
+        return this.getType().runtime.util.equals(this.getType(), this, other);
+    }
+    /**
+     * Create a deep copy.
+     */
+    clone() {
+        return this.getType().runtime.util.clone(this);
+    }
+    /**
+     * Parse from binary data, merging fields.
+     *
+     * Repeated fields are appended. Map entries are added, overwriting
+     * existing keys.
+     *
+     * If a message field is already present, it will be merged with the
+     * new data.
+     */
+    fromBinary(bytes, options) {
+        const type = this.getType(), format = type.runtime.bin, opt = format.makeReadOptions(options);
+        format.readMessage(this, opt.readerFactory(bytes), bytes.byteLength, opt);
+        return this;
+    }
+    /**
+     * Parse a message from a JSON value.
+     */
+    fromJson(jsonValue, options) {
+        const type = this.getType(), format = type.runtime.json, opt = format.makeReadOptions(options);
+        format.readMessage(type, jsonValue, opt, this);
+        return this;
+    }
+    /**
+     * Parse a message from a JSON string.
+     */
+    fromJsonString(jsonString, options) {
+        let json;
+        try {
+            json = JSON.parse(jsonString);
+        }
+        catch (e) {
+            throw new Error(`cannot decode ${this.getType().typeName} from JSON: ${e instanceof Error ? e.message : String(e)}`);
+        }
+        return this.fromJson(json, options);
+    }
+    /**
+     * Serialize the message to binary data.
+     */
+    toBinary(options) {
+        const type = this.getType(), bin = type.runtime.bin, opt = bin.makeWriteOptions(options), writer = opt.writerFactory();
+        bin.writeMessage(this, writer, opt);
+        return writer.finish();
+    }
+    /**
+     * Serialize the message to a JSON value, a JavaScript value that can be
+     * passed to JSON.stringify().
+     */
+    toJson(options) {
+        const type = this.getType(), json = type.runtime.json, opt = json.makeWriteOptions(options);
+        return json.writeMessage(this, opt);
+    }
+    /**
+     * Serialize the message to a JSON string.
+     */
+    toJsonString(options) {
+        var _a;
+        const value = this.toJson(options);
+        return JSON.stringify(value, null, (_a = options === null || options === void 0 ? void 0 : options.prettySpaces) !== null && _a !== void 0 ? _a : 0);
+    }
+    /**
+     * Override for serialization behavior. This will be invoked when calling
+     * JSON.stringify on this message (i.e. JSON.stringify(msg)).
+     *
+     * Note that this will not serialize google.protobuf.Any with a packed
+     * message because the protobuf JSON format specifies that it needs to be
+     * unpacked, and this is only possible with a type registry to look up the
+     * message type.  As a result, attempting to serialize a message with this
+     * type will throw an Error.
+     *
+     * This method is protected because you should not need to invoke it
+     * directly -- instead use JSON.stringify or toJsonString for
+     * stringified JSON.  Alternatively, if actual JSON is desired, you should
+     * use toJson.
+     */
+    toJSON() {
+        return this.toJson({
+            emitDefaultValues: true,
+        });
+    }
+    /**
+     * Retrieve the MessageType of this message - a singleton that represents
+     * the protobuf message declaration and provides metadata for reflection-
+     * based operations.
+     */
+    getType() {
+        // Any class that extends Message _must_ provide a complete static
+        // implementation of MessageType.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-return
+        return Object.getPrototypeOf(this).constructor;
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/private/message-type.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * Create a new message type using the given runtime.
+ */
+function makeMessageType(runtime, typeName, fields, opt) {
+    var _a;
+    const localName = (_a = opt === null || opt === void 0 ? void 0 : opt.localName) !== null && _a !== void 0 ? _a : typeName.substring(typeName.lastIndexOf(".") + 1);
+    const type = {
+        [localName]: function (data) {
+            runtime.util.initFields(this);
+            runtime.util.initPartial(data, this);
+        },
+    }[localName];
+    Object.setPrototypeOf(type.prototype, new Message());
+    Object.assign(type, {
+        runtime,
+        typeName,
+        fields: runtime.util.newFieldList(fields),
+        fromBinary(bytes, options) {
+            return new type().fromBinary(bytes, options);
+        },
+        fromJson(jsonValue, options) {
+            return new type().fromJson(jsonValue, options);
+        },
+        fromJsonString(jsonString, options) {
+            return new type().fromJsonString(jsonString, options);
+        },
+        equals(a, b) {
+            return runtime.util.equals(type, a, b);
+        },
+    });
+    return type;
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/google/varint.js
+// Copyright 2008 Google Inc.  All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+// * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+// * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+// * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Code generated by the Protocol Buffer compiler is owned by the owner
+// of the input file used when generating it.  This code is not
+// standalone and requires a support library to be linked with it.  This
+// support library is itself covered by the above license.
+/* eslint-disable prefer-const,@typescript-eslint/restrict-plus-operands */
+/**
+ * Read a 64 bit varint as two JS numbers.
+ *
+ * Returns tuple:
+ * [0]: low bits
+ * [1]: high bits
+ *
+ * Copyright 2008 Google Inc.  All rights reserved.
+ *
+ * See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/buffer_decoder.js#L175
+ */
+function varint64read() {
+    let lowBits = 0;
+    let highBits = 0;
+    for (let shift = 0; shift < 28; shift += 7) {
+        let b = this.buf[this.pos++];
+        lowBits |= (b & 0x7f) << shift;
+        if ((b & 0x80) == 0) {
+            this.assertBounds();
+            return [lowBits, highBits];
+        }
+    }
+    let middleByte = this.buf[this.pos++];
+    // last four bits of the first 32 bit number
+    lowBits |= (middleByte & 0x0f) << 28;
+    // 3 upper bits are part of the next 32 bit number
+    highBits = (middleByte & 0x70) >> 4;
+    if ((middleByte & 0x80) == 0) {
+        this.assertBounds();
+        return [lowBits, highBits];
+    }
+    for (let shift = 3; shift <= 31; shift += 7) {
+        let b = this.buf[this.pos++];
+        highBits |= (b & 0x7f) << shift;
+        if ((b & 0x80) == 0) {
+            this.assertBounds();
+            return [lowBits, highBits];
+        }
+    }
+    throw new Error("invalid varint");
+}
+/**
+ * Write a 64 bit varint, given as two JS numbers, to the given bytes array.
+ *
+ * Copyright 2008 Google Inc.  All rights reserved.
+ *
+ * See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/writer.js#L344
+ */
+function varint64write(lo, hi, bytes) {
+    for (let i = 0; i < 28; i = i + 7) {
+        const shift = lo >>> i;
+        const hasNext = !(shift >>> 7 == 0 && hi == 0);
+        const byte = (hasNext ? shift | 0x80 : shift) & 0xff;
+        bytes.push(byte);
+        if (!hasNext) {
+            return;
+        }
+    }
+    const splitBits = ((lo >>> 28) & 0x0f) | ((hi & 0x07) << 4);
+    const hasMoreBits = !(hi >> 3 == 0);
+    bytes.push((hasMoreBits ? splitBits | 0x80 : splitBits) & 0xff);
+    if (!hasMoreBits) {
+        return;
+    }
+    for (let i = 3; i < 31; i = i + 7) {
+        const shift = hi >>> i;
+        const hasNext = !(shift >>> 7 == 0);
+        const byte = (hasNext ? shift | 0x80 : shift) & 0xff;
+        bytes.push(byte);
+        if (!hasNext) {
+            return;
+        }
+    }
+    bytes.push((hi >>> 31) & 0x01);
+}
+// constants for binary math
+const TWO_PWR_32_DBL = 0x100000000;
+/**
+ * Parse decimal string of 64 bit integer value as two JS numbers.
+ *
+ * Copyright 2008 Google Inc.  All rights reserved.
+ *
+ * See https://github.com/protocolbuffers/protobuf-javascript/blob/a428c58273abad07c66071d9753bc4d1289de426/experimental/runtime/int64.js#L10
+ */
+function int64FromString(dec) {
+    // Check for minus sign.
+    const minus = dec[0] === "-";
+    if (minus) {
+        dec = dec.slice(1);
+    }
+    // Work 6 decimal digits at a time, acting like we're converting base 1e6
+    // digits to binary. This is safe to do with floating point math because
+    // Number.isSafeInteger(ALL_32_BITS * 1e6) == true.
+    const base = 1e6;
+    let lowBits = 0;
+    let highBits = 0;
+    function add1e6digit(begin, end) {
+        // Note: Number('') is 0.
+        const digit1e6 = Number(dec.slice(begin, end));
+        highBits *= base;
+        lowBits = lowBits * base + digit1e6;
+        // Carry bits from lowBits to
+        if (lowBits >= TWO_PWR_32_DBL) {
+            highBits = highBits + ((lowBits / TWO_PWR_32_DBL) | 0);
+            lowBits = lowBits % TWO_PWR_32_DBL;
+        }
+    }
+    add1e6digit(-24, -18);
+    add1e6digit(-18, -12);
+    add1e6digit(-12, -6);
+    add1e6digit(-6);
+    return minus ? negate(lowBits, highBits) : newBits(lowBits, highBits);
+}
+/**
+ * Losslessly converts a 64-bit signed integer in 32:32 split representation
+ * into a decimal string.
+ *
+ * Copyright 2008 Google Inc.  All rights reserved.
+ *
+ * See https://github.com/protocolbuffers/protobuf-javascript/blob/a428c58273abad07c66071d9753bc4d1289de426/experimental/runtime/int64.js#L10
+ */
+function int64ToString(lo, hi) {
+    let bits = newBits(lo, hi);
+    // If we're treating the input as a signed value and the high bit is set, do
+    // a manual two's complement conversion before the decimal conversion.
+    const negative = (bits.hi & 0x80000000);
+    if (negative) {
+        bits = negate(bits.lo, bits.hi);
+    }
+    const result = uInt64ToString(bits.lo, bits.hi);
+    return negative ? "-" + result : result;
+}
+/**
+ * Losslessly converts a 64-bit unsigned integer in 32:32 split representation
+ * into a decimal string.
+ *
+ * Copyright 2008 Google Inc.  All rights reserved.
+ *
+ * See https://github.com/protocolbuffers/protobuf-javascript/blob/a428c58273abad07c66071d9753bc4d1289de426/experimental/runtime/int64.js#L10
+ */
+function uInt64ToString(lo, hi) {
+    ({ lo, hi } = toUnsigned(lo, hi));
+    // Skip the expensive conversion if the number is small enough to use the
+    // built-in conversions.
+    // Number.MAX_SAFE_INTEGER = 0x001FFFFF FFFFFFFF, thus any number with
+    // highBits <= 0x1FFFFF can be safely expressed with a double and retain
+    // integer precision.
+    // Proven by: Number.isSafeInteger(0x1FFFFF * 2**32 + 0xFFFFFFFF) == true.
+    if (hi <= 0x1FFFFF) {
+        return String(TWO_PWR_32_DBL * hi + lo);
+    }
+    // What this code is doing is essentially converting the input number from
+    // base-2 to base-1e7, which allows us to represent the 64-bit range with
+    // only 3 (very large) digits. Those digits are then trivial to convert to
+    // a base-10 string.
+    // The magic numbers used here are -
+    // 2^24 = 16777216 = (1,6777216) in base-1e7.
+    // 2^48 = 281474976710656 = (2,8147497,6710656) in base-1e7.
+    // Split 32:32 representation into 16:24:24 representation so our
+    // intermediate digits don't overflow.
+    const low = lo & 0xFFFFFF;
+    const mid = ((lo >>> 24) | (hi << 8)) & 0xFFFFFF;
+    const high = (hi >> 16) & 0xFFFF;
+    // Assemble our three base-1e7 digits, ignoring carries. The maximum
+    // value in a digit at this step is representable as a 48-bit integer, which
+    // can be stored in a 64-bit floating point number.
+    let digitA = low + (mid * 6777216) + (high * 6710656);
+    let digitB = mid + (high * 8147497);
+    let digitC = (high * 2);
+    // Apply carries from A to B and from B to C.
+    const base = 10000000;
+    if (digitA >= base) {
+        digitB += Math.floor(digitA / base);
+        digitA %= base;
+    }
+    if (digitB >= base) {
+        digitC += Math.floor(digitB / base);
+        digitB %= base;
+    }
+    // If digitC is 0, then we should have returned in the trivial code path
+    // at the top for non-safe integers. Given this, we can assume both digitB
+    // and digitA need leading zeros.
+    return digitC.toString() + decimalFrom1e7WithLeadingZeros(digitB) +
+        decimalFrom1e7WithLeadingZeros(digitA);
+}
+function toUnsigned(lo, hi) {
+    return { lo: lo >>> 0, hi: hi >>> 0 };
+}
+function newBits(lo, hi) {
+    return { lo: lo | 0, hi: hi | 0 };
+}
+/**
+ * Returns two's compliment negation of input.
+ * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_Operators#Signed_32-bit_integers
+ */
+function negate(lowBits, highBits) {
+    highBits = ~highBits;
+    if (lowBits) {
+        lowBits = ~lowBits + 1;
+    }
+    else {
+        // If lowBits is 0, then bitwise-not is 0xFFFFFFFF,
+        // adding 1 to that, results in 0x100000000, which leaves
+        // the low bits 0x0 and simply adds one to the high bits.
+        highBits += 1;
+    }
+    return newBits(lowBits, highBits);
+}
+/**
+ * Returns decimal representation of digit1e7 with leading zeros.
+ */
+const decimalFrom1e7WithLeadingZeros = (digit1e7) => {
+    const partial = String(digit1e7);
+    return "0000000".slice(partial.length) + partial;
+};
+/**
+ * Write a 32 bit varint, signed or unsigned. Same as `varint64write(0, value, bytes)`
+ *
+ * Copyright 2008 Google Inc.  All rights reserved.
+ *
+ * See https://github.com/protocolbuffers/protobuf/blob/1b18833f4f2a2f681f4e4a25cdf3b0a43115ec26/js/binary/encoder.js#L144
+ */
+function varint32write(value, bytes) {
+    if (value >= 0) {
+        // write value as varint 32
+        while (value > 0x7f) {
+            bytes.push((value & 0x7f) | 0x80);
+            value = value >>> 7;
+        }
+        bytes.push(value);
+    }
+    else {
+        for (let i = 0; i < 9; i++) {
+            bytes.push((value & 127) | 128);
+            value = value >> 7;
+        }
+        bytes.push(1);
+    }
+}
+/**
+ * Read an unsigned 32 bit varint.
+ *
+ * See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/buffer_decoder.js#L220
+ */
+function varint32read() {
+    let b = this.buf[this.pos++];
+    let result = b & 0x7f;
+    if ((b & 0x80) == 0) {
+        this.assertBounds();
+        return result;
+    }
+    b = this.buf[this.pos++];
+    result |= (b & 0x7f) << 7;
+    if ((b & 0x80) == 0) {
+        this.assertBounds();
+        return result;
+    }
+    b = this.buf[this.pos++];
+    result |= (b & 0x7f) << 14;
+    if ((b & 0x80) == 0) {
+        this.assertBounds();
+        return result;
+    }
+    b = this.buf[this.pos++];
+    result |= (b & 0x7f) << 21;
+    if ((b & 0x80) == 0) {
+        this.assertBounds();
+        return result;
+    }
+    // Extract only last 4 bits
+    b = this.buf[this.pos++];
+    result |= (b & 0x0f) << 28;
+    for (let readBytes = 5; (b & 0x80) !== 0 && readBytes < 10; readBytes++)
+        b = this.buf[this.pos++];
+    if ((b & 0x80) != 0)
+        throw new Error("invalid varint");
+    this.assertBounds();
+    // Result can have 32 bits, convert it to unsigned
+    return result >>> 0;
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/proto-int64.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+function makeInt64Support() {
+    const dv = new DataView(new ArrayBuffer(8));
+    // note that Safari 14 implements BigInt, but not the DataView methods
+    const ok = typeof BigInt === "function" &&
+        typeof dv.getBigInt64 === "function" &&
+        typeof dv.getBigUint64 === "function" &&
+        typeof dv.setBigInt64 === "function" &&
+        typeof dv.setBigUint64 === "function" &&
+        (typeof process != "object" ||
+            typeof process.env != "object" ||
+            process.env.BUF_BIGINT_DISABLE !== "1");
+    if (ok) {
+        const MIN = BigInt("-9223372036854775808"), MAX = BigInt("9223372036854775807"), UMIN = BigInt("0"), UMAX = BigInt("18446744073709551615");
+        return {
+            zero: BigInt(0),
+            supported: true,
+            parse(value) {
+                const bi = typeof value == "bigint" ? value : BigInt(value);
+                if (bi > MAX || bi < MIN) {
+                    throw new Error(`int64 invalid: ${value}`);
+                }
+                return bi;
+            },
+            uParse(value) {
+                const bi = typeof value == "bigint" ? value : BigInt(value);
+                if (bi > UMAX || bi < UMIN) {
+                    throw new Error(`uint64 invalid: ${value}`);
+                }
+                return bi;
+            },
+            enc(value) {
+                dv.setBigInt64(0, this.parse(value), true);
+                return {
+                    lo: dv.getInt32(0, true),
+                    hi: dv.getInt32(4, true),
+                };
+            },
+            uEnc(value) {
+                dv.setBigInt64(0, this.uParse(value), true);
+                return {
+                    lo: dv.getInt32(0, true),
+                    hi: dv.getInt32(4, true),
+                };
+            },
+            dec(lo, hi) {
+                dv.setInt32(0, lo, true);
+                dv.setInt32(4, hi, true);
+                return dv.getBigInt64(0, true);
+            },
+            uDec(lo, hi) {
+                dv.setInt32(0, lo, true);
+                dv.setInt32(4, hi, true);
+                return dv.getBigUint64(0, true);
+            },
+        };
+    }
+    const assertInt64String = (value) => assert(/^-?[0-9]+$/.test(value), `int64 invalid: ${value}`);
+    const assertUInt64String = (value) => assert(/^[0-9]+$/.test(value), `uint64 invalid: ${value}`);
+    return {
+        zero: "0",
+        supported: false,
+        parse(value) {
+            if (typeof value != "string") {
+                value = value.toString();
+            }
+            assertInt64String(value);
+            return value;
+        },
+        uParse(value) {
+            if (typeof value != "string") {
+                value = value.toString();
+            }
+            assertUInt64String(value);
+            return value;
+        },
+        enc(value) {
+            if (typeof value != "string") {
+                value = value.toString();
+            }
+            assertInt64String(value);
+            return int64FromString(value);
+        },
+        uEnc(value) {
+            if (typeof value != "string") {
+                value = value.toString();
+            }
+            assertUInt64String(value);
+            return int64FromString(value);
+        },
+        dec(lo, hi) {
+            return int64ToString(lo, hi);
+        },
+        uDec(lo, hi) {
+            return uInt64ToString(lo, hi);
+        },
+    };
+}
+const protoInt64 = makeInt64Support();
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/scalar.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/**
+ * Scalar value types. This is a subset of field types declared by protobuf
+ * enum google.protobuf.FieldDescriptorProto.Type The types GROUP and MESSAGE
+ * are omitted, but the numerical values are identical.
+ */
+var ScalarType;
+(function (ScalarType) {
+    // 0 is reserved for errors.
+    // Order is weird for historical reasons.
+    ScalarType[ScalarType["DOUBLE"] = 1] = "DOUBLE";
+    ScalarType[ScalarType["FLOAT"] = 2] = "FLOAT";
+    // Not ZigZag encoded.  Negative numbers take 10 bytes.  Use TYPE_SINT64 if
+    // negative values are likely.
+    ScalarType[ScalarType["INT64"] = 3] = "INT64";
+    ScalarType[ScalarType["UINT64"] = 4] = "UINT64";
+    // Not ZigZag encoded.  Negative numbers take 10 bytes.  Use TYPE_SINT32 if
+    // negative values are likely.
+    ScalarType[ScalarType["INT32"] = 5] = "INT32";
+    ScalarType[ScalarType["FIXED64"] = 6] = "FIXED64";
+    ScalarType[ScalarType["FIXED32"] = 7] = "FIXED32";
+    ScalarType[ScalarType["BOOL"] = 8] = "BOOL";
+    ScalarType[ScalarType["STRING"] = 9] = "STRING";
+    // Tag-delimited aggregate.
+    // Group type is deprecated and not supported in proto3. However, Proto3
+    // implementations should still be able to parse the group wire format and
+    // treat group fields as unknown fields.
+    // TYPE_GROUP = 10,
+    // TYPE_MESSAGE = 11,  // Length-delimited aggregate.
+    // New in version 2.
+    ScalarType[ScalarType["BYTES"] = 12] = "BYTES";
+    ScalarType[ScalarType["UINT32"] = 13] = "UINT32";
+    // TYPE_ENUM = 14,
+    ScalarType[ScalarType["SFIXED32"] = 15] = "SFIXED32";
+    ScalarType[ScalarType["SFIXED64"] = 16] = "SFIXED64";
+    ScalarType[ScalarType["SINT32"] = 17] = "SINT32";
+    ScalarType[ScalarType["SINT64"] = 18] = "SINT64";
+})(ScalarType || (ScalarType = {}));
+/**
+ * JavaScript representation of fields with 64 bit integral types (int64, uint64,
+ * sint64, fixed64, sfixed64).
+ *
+ * This is a subset of google.protobuf.FieldOptions.JSType, which defines JS_NORMAL,
+ * JS_STRING, and JS_NUMBER. Protobuf-ES uses BigInt by default, but will use
+ * String if `[jstype = JS_STRING]` is specified.
+ *
+ * ```protobuf
+ * uint64 field_a = 1; // BigInt
+ * uint64 field_b = 2 [jstype = JS_NORMAL]; // BigInt
+ * uint64 field_b = 2 [jstype = JS_NUMBER]; // BigInt
+ * uint64 field_b = 2 [jstype = JS_STRING]; // String
+ * ```
+ */
+var LongType;
+(function (LongType) {
+    /**
+     * Use JavaScript BigInt.
+     */
+    LongType[LongType["BIGINT"] = 0] = "BIGINT";
+    /**
+     * Use JavaScript String.
+     *
+     * Field option `[jstype = JS_STRING]`.
+     */
+    LongType[LongType["STRING"] = 1] = "STRING";
+})(LongType || (LongType = {}));
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/private/scalars.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+/**
+ * Returns true if both scalar values are equal.
+ */
+function scalarEquals(type, a, b) {
+    if (a === b) {
+        // This correctly matches equal values except BYTES and (possibly) 64-bit integers.
+        return true;
+    }
+    // Special case BYTES - we need to compare each byte individually
+    if (type == ScalarType.BYTES) {
+        if (!(a instanceof Uint8Array) || !(b instanceof Uint8Array)) {
+            return false;
+        }
+        if (a.length !== b.length) {
+            return false;
+        }
+        for (let i = 0; i < a.length; i++) {
+            if (a[i] !== b[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+    // Special case 64-bit integers - we support number, string and bigint representation.
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+    switch (type) {
+        case ScalarType.UINT64:
+        case ScalarType.FIXED64:
+        case ScalarType.INT64:
+        case ScalarType.SFIXED64:
+        case ScalarType.SINT64:
+            // Loose comparison will match between 0n, 0 and "0".
+            return a == b;
+    }
+    // Anything that hasn't been caught by strict comparison or special cased
+    // BYTES and 64-bit integers is not equal.
+    return false;
+}
+/**
+ * Returns the zero value for the given scalar type.
+ */
+function scalarZeroValue(type, longType) {
+    switch (type) {
+        case ScalarType.BOOL:
+            return false;
+        case ScalarType.UINT64:
+        case ScalarType.FIXED64:
+        case ScalarType.INT64:
+        case ScalarType.SFIXED64:
+        case ScalarType.SINT64:
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison -- acceptable since it's covered by tests
+            return (longType == 0 ? protoInt64.zero : "0");
+        case ScalarType.DOUBLE:
+        case ScalarType.FLOAT:
+            return 0.0;
+        case ScalarType.BYTES:
+            return new Uint8Array(0);
+        case ScalarType.STRING:
+            return "";
+        default:
+            // Handles INT32, UINT32, SINT32, FIXED32, SFIXED32.
+            // We do not use individual cases to save a few bytes code size.
+            return 0;
+    }
+}
+/**
+ * Returns true for a zero-value. For example, an integer has the zero-value `0`,
+ * a boolean is `false`, a string is `""`, and bytes is an empty Uint8Array.
+ *
+ * In proto3, zero-values are not written to the wire, unless the field is
+ * optional or repeated.
+ */
+function isScalarZeroValue(type, value) {
+    switch (type) {
+        case ScalarType.BOOL:
+            return value === false;
+        case ScalarType.STRING:
+            return value === "";
+        case ScalarType.BYTES:
+            return value instanceof Uint8Array && !value.byteLength;
+        default:
+            return value == 0; // Loose comparison matches 0n, 0 and "0"
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/private/extensions.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+/**
+ * Create a new extension using the given runtime.
+ */
+function makeExtension(runtime, typeName, extendee, field) {
+    let fi;
+    return {
+        typeName,
+        extendee,
+        get field() {
+            if (!fi) {
+                const i = (typeof field == "function" ? field() : field);
+                i.name = typeName.split(".").pop();
+                i.jsonName = `[${typeName}]`;
+                fi = runtime.util.newFieldList([i]).list()[0];
+            }
+            return fi;
+        },
+        runtime,
+    };
+}
+/**
+ * Create a container that allows us to read extension fields into it with the
+ * same logic as regular fields.
+ */
+function createExtensionContainer(extension) {
+    const localName = extension.field.localName;
+    const container = Object.create(null);
+    container[localName] = initExtensionField(extension);
+    return [container, () => container[localName]];
+}
+function initExtensionField(ext) {
+    const field = ext.field;
+    if (field.repeated) {
+        return [];
+    }
+    if (field.default !== undefined) {
+        return field.default;
+    }
+    switch (field.kind) {
+        case "enum":
+            return field.T.values[0].no;
+        case "scalar":
+            return scalarZeroValue(field.T, field.L);
+        case "message":
+            // eslint-disable-next-line no-case-declarations
+            const T = field.T, value = new T();
+            return T.fieldWrapper ? T.fieldWrapper.unwrapField(value) : value;
+        case "map":
+            throw "map fields are not allowed to be extensions";
+    }
+}
+/**
+ * Helper to filter unknown fields, optimized based on field type.
+ */
+function filterUnknownFields(unknownFields, field) {
+    if (!field.repeated && (field.kind == "enum" || field.kind == "scalar")) {
+        // singular scalar fields do not merge, we pick the last
+        for (let i = unknownFields.length - 1; i >= 0; --i) {
+            if (unknownFields[i].no == field.no) {
+                return [unknownFields[i]];
+            }
+        }
+        return [];
+    }
+    return unknownFields.filter((uf) => uf.no === field.no);
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/extension-accessor.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+/**
+ * Retrieve an extension value from a message.
+ *
+ * The function never returns undefined. Use hasExtension() to check whether an
+ * extension is set. If the extension is not set, this function returns the
+ * default value (if one was specified in the protobuf source), or the zero value
+ * (for example `0` for numeric types, `[]` for repeated extension fields, and
+ * an empty message instance for message fields).
+ *
+ * Extensions are stored as unknown fields on a message. To mutate an extension
+ * value, make sure to store the new value with setExtension() after mutating.
+ *
+ * If the extension does not extend the given message, an error is raised.
+ */
+function getExtension(message, extension, options) {
+    assertExtendee(extension, message);
+    const opt = extension.runtime.bin.makeReadOptions(options);
+    const ufs = filterUnknownFields(message.getType().runtime.bin.listUnknownFields(message), extension.field);
+    const [container, get] = createExtensionContainer(extension);
+    for (const uf of ufs) {
+        extension.runtime.bin.readField(container, opt.readerFactory(uf.data), extension.field, uf.wireType, opt);
+    }
+    return get();
+}
+/**
+ * Set an extension value on a message. If the message already has a value for
+ * this extension, the value is replaced.
+ *
+ * If the extension does not extend the given message, an error is raised.
+ */
+function setExtension(message, extension, value, options) {
+    assertExtendee(extension, message);
+    const readOpt = extension.runtime.bin.makeReadOptions(options);
+    const writeOpt = extension.runtime.bin.makeWriteOptions(options);
+    if (hasExtension(message, extension)) {
+        const ufs = message
+            .getType()
+            .runtime.bin.listUnknownFields(message)
+            .filter((uf) => uf.no != extension.field.no);
+        message.getType().runtime.bin.discardUnknownFields(message);
+        for (const uf of ufs) {
+            message
+                .getType()
+                .runtime.bin.onUnknownField(message, uf.no, uf.wireType, uf.data);
+        }
+    }
+    const writer = writeOpt.writerFactory();
+    let f = extension.field;
+    // Implicit presence does not apply to extensions, see https://github.com/protocolbuffers/protobuf/issues/8234
+    // We patch the field info to use explicit presence:
+    if (!f.opt && !f.repeated && (f.kind == "enum" || f.kind == "scalar")) {
+        f = Object.assign(Object.assign({}, extension.field), { opt: true });
+    }
+    extension.runtime.bin.writeField(f, value, writer, writeOpt);
+    const reader = readOpt.readerFactory(writer.finish());
+    while (reader.pos < reader.len) {
+        const [no, wireType] = reader.tag();
+        const data = reader.skip(wireType, no);
+        message.getType().runtime.bin.onUnknownField(message, no, wireType, data);
+    }
+}
+/**
+ * Remove an extension value from a message.
+ *
+ * If the extension does not extend the given message, an error is raised.
+ */
+function clearExtension(message, extension) {
+    assertExtendee(extension, message);
+    if (hasExtension(message, extension)) {
+        const bin = message.getType().runtime.bin;
+        const ufs = bin
+            .listUnknownFields(message)
+            .filter((uf) => uf.no != extension.field.no);
+        bin.discardUnknownFields(message);
+        for (const uf of ufs) {
+            bin.onUnknownField(message, uf.no, uf.wireType, uf.data);
+        }
+    }
+}
+/**
+ * Check whether an extension is set on a message.
+ */
+function hasExtension(message, extension) {
+    const messageType = message.getType();
+    return (extension.extendee.typeName === messageType.typeName &&
+        !!messageType.runtime.bin
+            .listUnknownFields(message)
+            .find((uf) => uf.no == extension.field.no));
+}
+function assertExtendee(extension, message) {
+    assert(extension.extendee.typeName == message.getType().typeName, `extension ${extension.typeName} can only be applied to message ${extension.extendee.typeName}`);
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/private/reflect.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * Returns true if the field is set.
+ */
+function isFieldSet(field, target) {
+    const localName = field.localName;
+    if (field.repeated) {
+        return target[localName].length > 0;
+    }
+    if (field.oneof) {
+        return target[field.oneof.localName].case === localName; // eslint-disable-line @typescript-eslint/no-unsafe-member-access
+    }
+    switch (field.kind) {
+        case "enum":
+        case "scalar":
+            if (field.opt || field.req) {
+                // explicit presence
+                return target[localName] !== undefined;
+            }
+            // implicit presence
+            if (field.kind == "enum") {
+                return target[localName] !== field.T.values[0].no;
+            }
+            return !isScalarZeroValue(field.T, target[localName]);
+        case "message":
+            return target[localName] !== undefined;
+        case "map":
+            return Object.keys(target[localName]).length > 0; // eslint-disable-line @typescript-eslint/no-unsafe-argument
+    }
+}
+/**
+ * Resets the field, so that isFieldSet() will return false.
+ */
+function clearField(field, target) {
+    const localName = field.localName;
+    const implicitPresence = !field.opt && !field.req;
+    if (field.repeated) {
+        target[localName] = [];
+    }
+    else if (field.oneof) {
+        target[field.oneof.localName] = { case: undefined };
+    }
+    else {
+        switch (field.kind) {
+            case "map":
+                target[localName] = {};
+                break;
+            case "enum":
+                target[localName] = implicitPresence ? field.T.values[0].no : undefined;
+                break;
+            case "scalar":
+                target[localName] = implicitPresence
+                    ? scalarZeroValue(field.T, field.L)
+                    : undefined;
+                break;
+            case "message":
+                target[localName] = undefined;
+                break;
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/is-message.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * Check whether the given object is any subtype of Message or is a specific
+ * Message by passing the type.
+ *
+ * Just like `instanceof`, `isMessage` narrows the type. The advantage of
+ * `isMessage` is that it compares identity by the message type name, not by
+ * class identity. This makes it robust against the dual package hazard and
+ * similar situations, where the same message is duplicated.
+ *
+ * This function is _mostly_ equivalent to the `instanceof` operator. For
+ * example, `isMessage(foo, MyMessage)` is the same as `foo instanceof MyMessage`,
+ * and `isMessage(foo)` is the same as `foo instanceof Message`. In most cases,
+ * `isMessage` should be preferred over `instanceof`.
+ *
+ * However, due to the fact that `isMessage` does not use class identity, there
+ * are subtle differences between this function and `instanceof`. Notably,
+ * calling `isMessage` on an explicit type of Message will return false.
+ */
+function isMessage(arg, type) {
+    if (arg === null || typeof arg != "object") {
+        return false;
+    }
+    if (!Object.getOwnPropertyNames(Message.prototype).every((m) => m in arg && typeof arg[m] == "function")) {
+        return false;
+    }
+    const actualType = arg.getType();
+    if (actualType === null ||
+        typeof actualType != "function" ||
+        !("typeName" in actualType) ||
+        typeof actualType.typeName != "string") {
+        return false;
+    }
+    return type === undefined ? true : actualType.typeName == type.typeName;
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/private/field-wrapper.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+/**
+ * Wrap a primitive message field value in its corresponding wrapper
+ * message. This function is idempotent.
+ */
+function wrapField(type, value) {
+    if (isMessage(value) || !type.fieldWrapper) {
+        return value;
+    }
+    return type.fieldWrapper.wrapField(value);
+}
+/**
+ * If the given field uses one of the well-known wrapper types, return
+ * the primitive type it wraps.
+ */
+function getUnwrappedFieldType(field) {
+    if (field.fieldKind !== "message") {
+        return undefined;
+    }
+    if (field.repeated) {
+        return undefined;
+    }
+    if (field.oneof != undefined) {
+        return undefined;
+    }
+    return wktWrapperToScalarType[field.message.typeName];
+}
+const wktWrapperToScalarType = {
+    "google.protobuf.DoubleValue": ScalarType.DOUBLE,
+    "google.protobuf.FloatValue": ScalarType.FLOAT,
+    "google.protobuf.Int64Value": ScalarType.INT64,
+    "google.protobuf.UInt64Value": ScalarType.UINT64,
+    "google.protobuf.Int32Value": ScalarType.INT32,
+    "google.protobuf.UInt32Value": ScalarType.UINT32,
+    "google.protobuf.BoolValue": ScalarType.BOOL,
+    "google.protobuf.StringValue": ScalarType.STRING,
+    "google.protobuf.BytesValue": ScalarType.BYTES,
+};
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/private/json-format.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+
+
+
+
+
+
+
+
+
+/* eslint-disable no-case-declarations,@typescript-eslint/no-unsafe-argument,@typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-call */
+// Default options for parsing JSON.
+const jsonReadDefaults = {
+    ignoreUnknownFields: false,
+};
+// Default options for serializing to JSON.
+const jsonWriteDefaults = {
+    emitDefaultValues: false,
+    enumAsInteger: false,
+    useProtoFieldName: false,
+    prettySpaces: 0,
+};
+function makeReadOptions(options) {
+    return options ? Object.assign(Object.assign({}, jsonReadDefaults), options) : jsonReadDefaults;
+}
+function makeWriteOptions(options) {
+    return options ? Object.assign(Object.assign({}, jsonWriteDefaults), options) : jsonWriteDefaults;
+}
+const tokenNull = Symbol();
+const tokenIgnoredUnknownEnum = Symbol();
+function makeJsonFormat() {
+    return {
+        makeReadOptions,
+        makeWriteOptions,
+        readMessage(type, json, options, message) {
+            if (json == null || Array.isArray(json) || typeof json != "object") {
+                throw new Error(`cannot decode message ${type.typeName} from JSON: ${debugJsonValue(json)}`);
+            }
+            message = message !== null && message !== void 0 ? message : new type();
+            const oneofSeen = new Map();
+            const registry = options.typeRegistry;
+            for (const [jsonKey, jsonValue] of Object.entries(json)) {
+                const field = type.fields.findJsonName(jsonKey);
+                if (field) {
+                    if (field.oneof) {
+                        if (jsonValue === null && field.kind == "scalar") {
+                            // see conformance test Required.Proto3.JsonInput.OneofFieldNull{First,Second}
+                            continue;
+                        }
+                        const seen = oneofSeen.get(field.oneof);
+                        if (seen !== undefined) {
+                            throw new Error(`cannot decode message ${type.typeName} from JSON: multiple keys for oneof "${field.oneof.name}" present: "${seen}", "${jsonKey}"`);
+                        }
+                        oneofSeen.set(field.oneof, jsonKey);
+                    }
+                    readField(message, jsonValue, field, options, type);
+                }
+                else {
+                    let found = false;
+                    if ((registry === null || registry === void 0 ? void 0 : registry.findExtension) &&
+                        jsonKey.startsWith("[") &&
+                        jsonKey.endsWith("]")) {
+                        const ext = registry.findExtension(jsonKey.substring(1, jsonKey.length - 1));
+                        if (ext && ext.extendee.typeName == type.typeName) {
+                            found = true;
+                            const [container, get] = createExtensionContainer(ext);
+                            readField(container, jsonValue, ext.field, options, ext);
+                            // We pass on the options as BinaryReadOptions/BinaryWriteOptions,
+                            // so that users can bring their own binary reader and writer factories
+                            // if necessary.
+                            setExtension(message, ext, get(), options);
+                        }
+                    }
+                    if (!found && !options.ignoreUnknownFields) {
+                        throw new Error(`cannot decode message ${type.typeName} from JSON: key "${jsonKey}" is unknown`);
+                    }
+                }
+            }
+            return message;
+        },
+        writeMessage(message, options) {
+            const type = message.getType();
+            const json = {};
+            let field;
+            try {
+                for (field of type.fields.byNumber()) {
+                    if (!isFieldSet(field, message)) {
+                        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+                        if (field.req) {
+                            throw `required field not set`;
+                        }
+                        if (!options.emitDefaultValues) {
+                            continue;
+                        }
+                        if (!canEmitFieldDefaultValue(field)) {
+                            continue;
+                        }
+                    }
+                    const value = field.oneof
+                        ? message[field.oneof.localName].value
+                        : message[field.localName];
+                    const jsonValue = writeField(field, value, options);
+                    if (jsonValue !== undefined) {
+                        json[options.useProtoFieldName ? field.name : field.jsonName] =
+                            jsonValue;
+                    }
+                }
+                const registry = options.typeRegistry;
+                if (registry === null || registry === void 0 ? void 0 : registry.findExtensionFor) {
+                    for (const uf of type.runtime.bin.listUnknownFields(message)) {
+                        const ext = registry.findExtensionFor(type.typeName, uf.no);
+                        if (ext && hasExtension(message, ext)) {
+                            // We pass on the options as BinaryReadOptions, so that users can bring their own
+                            // binary reader factory if necessary.
+                            const value = getExtension(message, ext, options);
+                            const jsonValue = writeField(ext.field, value, options);
+                            if (jsonValue !== undefined) {
+                                json[ext.field.jsonName] = jsonValue;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (e) {
+                const m = field
+                    ? `cannot encode field ${type.typeName}.${field.name} to JSON`
+                    : `cannot encode message ${type.typeName} to JSON`;
+                const r = e instanceof Error ? e.message : String(e);
+                throw new Error(m + (r.length > 0 ? `: ${r}` : ""));
+            }
+            return json;
+        },
+        readScalar(type, json, longType) {
+            // The signature of our internal function has changed. For backwards-
+            // compatibility, we support the old form that is part of the public API
+            // through the interface JsonFormat.
+            return readScalar(type, json, longType !== null && longType !== void 0 ? longType : LongType.BIGINT, true);
+        },
+        writeScalar(type, value, emitDefaultValues) {
+            // The signature of our internal function has changed. For backwards-
+            // compatibility, we support the old form that is part of the public API
+            // through the interface JsonFormat.
+            if (value === undefined) {
+                return undefined;
+            }
+            if (emitDefaultValues || isScalarZeroValue(type, value)) {
+                return writeScalar(type, value);
+            }
+            return undefined;
+        },
+        debug: debugJsonValue,
+    };
+}
+function debugJsonValue(json) {
+    if (json === null) {
+        return "null";
+    }
+    switch (typeof json) {
+        case "object":
+            return Array.isArray(json) ? "array" : "object";
+        case "string":
+            return json.length > 100 ? "string" : `"${json.split('"').join('\\"')}"`;
+        default:
+            return String(json);
+    }
+}
+// Read a JSON value for a field.
+// The "parentType" argument is only used to provide context in errors.
+function readField(target, jsonValue, field, options, parentType) {
+    let localName = field.localName;
+    if (field.repeated) {
+        assert(field.kind != "map");
+        if (jsonValue === null) {
+            return;
+        }
+        if (!Array.isArray(jsonValue)) {
+            throw new Error(`cannot decode field ${parentType.typeName}.${field.name} from JSON: ${debugJsonValue(jsonValue)}`);
+        }
+        const targetArray = target[localName];
+        for (const jsonItem of jsonValue) {
+            if (jsonItem === null) {
+                throw new Error(`cannot decode field ${parentType.typeName}.${field.name} from JSON: ${debugJsonValue(jsonItem)}`);
+            }
+            switch (field.kind) {
+                case "message":
+                    targetArray.push(field.T.fromJson(jsonItem, options));
+                    break;
+                case "enum":
+                    const enumValue = readEnum(field.T, jsonItem, options.ignoreUnknownFields, true);
+                    if (enumValue !== tokenIgnoredUnknownEnum) {
+                        targetArray.push(enumValue);
+                    }
+                    break;
+                case "scalar":
+                    try {
+                        targetArray.push(readScalar(field.T, jsonItem, field.L, true));
+                    }
+                    catch (e) {
+                        let m = `cannot decode field ${parentType.typeName}.${field.name} from JSON: ${debugJsonValue(jsonItem)}`;
+                        if (e instanceof Error && e.message.length > 0) {
+                            m += `: ${e.message}`;
+                        }
+                        throw new Error(m);
+                    }
+                    break;
+            }
+        }
+    }
+    else if (field.kind == "map") {
+        if (jsonValue === null) {
+            return;
+        }
+        if (typeof jsonValue != "object" || Array.isArray(jsonValue)) {
+            throw new Error(`cannot decode field ${parentType.typeName}.${field.name} from JSON: ${debugJsonValue(jsonValue)}`);
+        }
+        const targetMap = target[localName];
+        for (const [jsonMapKey, jsonMapValue] of Object.entries(jsonValue)) {
+            if (jsonMapValue === null) {
+                throw new Error(`cannot decode field ${parentType.typeName}.${field.name} from JSON: map value null`);
+            }
+            let key;
+            try {
+                key = readMapKey(field.K, jsonMapKey);
+            }
+            catch (e) {
+                let m = `cannot decode map key for field ${parentType.typeName}.${field.name} from JSON: ${debugJsonValue(jsonValue)}`;
+                if (e instanceof Error && e.message.length > 0) {
+                    m += `: ${e.message}`;
+                }
+                throw new Error(m);
+            }
+            switch (field.V.kind) {
+                case "message":
+                    targetMap[key] = field.V.T.fromJson(jsonMapValue, options);
+                    break;
+                case "enum":
+                    const enumValue = readEnum(field.V.T, jsonMapValue, options.ignoreUnknownFields, true);
+                    if (enumValue !== tokenIgnoredUnknownEnum) {
+                        targetMap[key] = enumValue;
+                    }
+                    break;
+                case "scalar":
+                    try {
+                        targetMap[key] = readScalar(field.V.T, jsonMapValue, LongType.BIGINT, true);
+                    }
+                    catch (e) {
+                        let m = `cannot decode map value for field ${parentType.typeName}.${field.name} from JSON: ${debugJsonValue(jsonValue)}`;
+                        if (e instanceof Error && e.message.length > 0) {
+                            m += `: ${e.message}`;
+                        }
+                        throw new Error(m);
+                    }
+                    break;
+            }
+        }
+    }
+    else {
+        if (field.oneof) {
+            target = target[field.oneof.localName] = { case: localName };
+            localName = "value";
+        }
+        switch (field.kind) {
+            case "message":
+                const messageType = field.T;
+                if (jsonValue === null &&
+                    messageType.typeName != "google.protobuf.Value") {
+                    return;
+                }
+                let currentValue = target[localName];
+                if (isMessage(currentValue)) {
+                    currentValue.fromJson(jsonValue, options);
+                }
+                else {
+                    target[localName] = currentValue = messageType.fromJson(jsonValue, options);
+                    if (messageType.fieldWrapper && !field.oneof) {
+                        target[localName] =
+                            messageType.fieldWrapper.unwrapField(currentValue);
+                    }
+                }
+                break;
+            case "enum":
+                const enumValue = readEnum(field.T, jsonValue, options.ignoreUnknownFields, false);
+                switch (enumValue) {
+                    case tokenNull:
+                        clearField(field, target);
+                        break;
+                    case tokenIgnoredUnknownEnum:
+                        break;
+                    default:
+                        target[localName] = enumValue;
+                        break;
+                }
+                break;
+            case "scalar":
+                try {
+                    const scalarValue = readScalar(field.T, jsonValue, field.L, false);
+                    switch (scalarValue) {
+                        case tokenNull:
+                            clearField(field, target);
+                            break;
+                        default:
+                            target[localName] = scalarValue;
+                            break;
+                    }
+                }
+                catch (e) {
+                    let m = `cannot decode field ${parentType.typeName}.${field.name} from JSON: ${debugJsonValue(jsonValue)}`;
+                    if (e instanceof Error && e.message.length > 0) {
+                        m += `: ${e.message}`;
+                    }
+                    throw new Error(m);
+                }
+                break;
+        }
+    }
+}
+function readMapKey(type, json) {
+    if (type === ScalarType.BOOL) {
+        // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+        switch (json) {
+            case "true":
+                json = true;
+                break;
+            case "false":
+                json = false;
+                break;
+        }
+    }
+    return readScalar(type, json, LongType.BIGINT, true).toString();
+}
+function readScalar(type, json, longType, nullAsZeroValue) {
+    if (json === null) {
+        if (nullAsZeroValue) {
+            return scalarZeroValue(type, longType);
+        }
+        return tokenNull;
+    }
+    // every valid case in the switch below returns, and every fall
+    // through is regarded as a failure.
+    switch (type) {
+        // float, double: JSON value will be a number or one of the special string values "NaN", "Infinity", and "-Infinity".
+        // Either numbers or strings are accepted. Exponent notation is also accepted.
+        case ScalarType.DOUBLE:
+        case ScalarType.FLOAT:
+            if (json === "NaN")
+                return Number.NaN;
+            if (json === "Infinity")
+                return Number.POSITIVE_INFINITY;
+            if (json === "-Infinity")
+                return Number.NEGATIVE_INFINITY;
+            if (json === "") {
+                // empty string is not a number
+                break;
+            }
+            if (typeof json == "string" && json.trim().length !== json.length) {
+                // extra whitespace
+                break;
+            }
+            if (typeof json != "string" && typeof json != "number") {
+                break;
+            }
+            const float = Number(json);
+            if (Number.isNaN(float)) {
+                // not a number
+                break;
+            }
+            if (!Number.isFinite(float)) {
+                // infinity and -infinity are handled by string representation above, so this is an error
+                break;
+            }
+            if (type == ScalarType.FLOAT)
+                assertFloat32(float);
+            return float;
+        // int32, fixed32, uint32: JSON value will be a decimal number. Either numbers or strings are accepted.
+        case ScalarType.INT32:
+        case ScalarType.FIXED32:
+        case ScalarType.SFIXED32:
+        case ScalarType.SINT32:
+        case ScalarType.UINT32:
+            let int32;
+            if (typeof json == "number")
+                int32 = json;
+            else if (typeof json == "string" && json.length > 0) {
+                if (json.trim().length === json.length)
+                    int32 = Number(json);
+            }
+            if (int32 === undefined)
+                break;
+            if (type == ScalarType.UINT32 || type == ScalarType.FIXED32)
+                assertUInt32(int32);
+            else
+                assertInt32(int32);
+            return int32;
+        // int64, fixed64, uint64: JSON value will be a decimal string. Either numbers or strings are accepted.
+        case ScalarType.INT64:
+        case ScalarType.SFIXED64:
+        case ScalarType.SINT64:
+            if (typeof json != "number" && typeof json != "string")
+                break;
+            const long = protoInt64.parse(json);
+            // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+            return longType ? long.toString() : long;
+        case ScalarType.FIXED64:
+        case ScalarType.UINT64:
+            if (typeof json != "number" && typeof json != "string")
+                break;
+            const uLong = protoInt64.uParse(json);
+            // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+            return longType ? uLong.toString() : uLong;
+        // bool:
+        case ScalarType.BOOL:
+            if (typeof json !== "boolean")
+                break;
+            return json;
+        // string:
+        case ScalarType.STRING:
+            if (typeof json !== "string") {
+                break;
+            }
+            // A string must always contain UTF-8 encoded or 7-bit ASCII.
+            // We validate with encodeURIComponent, which appears to be the fastest widely available option.
+            try {
+                encodeURIComponent(json);
+            }
+            catch (e) {
+                throw new Error("invalid UTF8");
+            }
+            return json;
+        // bytes: JSON value will be the data encoded as a string using standard base64 encoding with paddings.
+        // Either standard or URL-safe base64 encoding with/without paddings are accepted.
+        case ScalarType.BYTES:
+            if (json === "")
+                return new Uint8Array(0);
+            if (typeof json !== "string")
+                break;
+            return proto_base64_protoBase64.dec(json);
+    }
+    throw new Error();
+}
+function readEnum(type, json, ignoreUnknownFields, nullAsZeroValue) {
+    if (json === null) {
+        if (type.typeName == "google.protobuf.NullValue") {
+            return 0; // google.protobuf.NullValue.NULL_VALUE = 0
+        }
+        return nullAsZeroValue ? type.values[0].no : tokenNull;
+    }
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+    switch (typeof json) {
+        case "number":
+            if (Number.isInteger(json)) {
+                return json;
+            }
+            break;
+        case "string":
+            const value = type.findName(json);
+            if (value !== undefined) {
+                return value.no;
+            }
+            if (ignoreUnknownFields) {
+                return tokenIgnoredUnknownEnum;
+            }
+            break;
+    }
+    throw new Error(`cannot decode enum ${type.typeName} from JSON: ${debugJsonValue(json)}`);
+}
+// Decide whether an unset field should be emitted with JSON write option `emitDefaultValues`
+function canEmitFieldDefaultValue(field) {
+    if (field.repeated || field.kind == "map") {
+        // maps are {}, repeated fields are []
+        return true;
+    }
+    if (field.oneof) {
+        // oneof fields are never emitted
+        return false;
+    }
+    if (field.kind == "message") {
+        // singular message field are allowed to emit JSON null, but we do not
+        return false;
+    }
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    if (field.opt || field.req) {
+        // the field uses explicit presence, so we cannot emit a zero value
+        return false;
+    }
+    return true;
+}
+function writeField(field, value, options) {
+    if (field.kind == "map") {
+        assert(typeof value == "object" && value != null);
+        const jsonObj = {};
+        const entries = Object.entries(value);
+        switch (field.V.kind) {
+            case "scalar":
+                for (const [entryKey, entryValue] of entries) {
+                    jsonObj[entryKey.toString()] = writeScalar(field.V.T, entryValue); // JSON standard allows only (double quoted) string as property key
+                }
+                break;
+            case "message":
+                for (const [entryKey, entryValue] of entries) {
+                    // JSON standard allows only (double quoted) string as property key
+                    jsonObj[entryKey.toString()] = entryValue.toJson(options);
+                }
+                break;
+            case "enum":
+                const enumType = field.V.T;
+                for (const [entryKey, entryValue] of entries) {
+                    // JSON standard allows only (double quoted) string as property key
+                    jsonObj[entryKey.toString()] = writeEnum(enumType, entryValue, options.enumAsInteger);
+                }
+                break;
+        }
+        return options.emitDefaultValues || entries.length > 0
+            ? jsonObj
+            : undefined;
+    }
+    if (field.repeated) {
+        assert(Array.isArray(value));
+        const jsonArr = [];
+        switch (field.kind) {
+            case "scalar":
+                for (let i = 0; i < value.length; i++) {
+                    jsonArr.push(writeScalar(field.T, value[i]));
+                }
+                break;
+            case "enum":
+                for (let i = 0; i < value.length; i++) {
+                    jsonArr.push(writeEnum(field.T, value[i], options.enumAsInteger));
+                }
+                break;
+            case "message":
+                for (let i = 0; i < value.length; i++) {
+                    jsonArr.push(value[i].toJson(options));
+                }
+                break;
+        }
+        return options.emitDefaultValues || jsonArr.length > 0
+            ? jsonArr
+            : undefined;
+    }
+    switch (field.kind) {
+        case "scalar":
+            return writeScalar(field.T, value);
+        case "enum":
+            return writeEnum(field.T, value, options.enumAsInteger);
+        case "message":
+            return wrapField(field.T, value).toJson(options);
+    }
+}
+function writeEnum(type, value, enumAsInteger) {
+    var _a;
+    assert(typeof value == "number");
+    if (type.typeName == "google.protobuf.NullValue") {
+        return null;
+    }
+    if (enumAsInteger) {
+        return value;
+    }
+    const val = type.findNumber(value);
+    return (_a = val === null || val === void 0 ? void 0 : val.name) !== null && _a !== void 0 ? _a : value; // if we don't know the enum value, just return the number
+}
+function writeScalar(type, value) {
+    switch (type) {
+        // int32, fixed32, uint32: JSON value will be a decimal number. Either numbers or strings are accepted.
+        case ScalarType.INT32:
+        case ScalarType.SFIXED32:
+        case ScalarType.SINT32:
+        case ScalarType.FIXED32:
+        case ScalarType.UINT32:
+            assert(typeof value == "number");
+            return value;
+        // float, double: JSON value will be a number or one of the special string values "NaN", "Infinity", and "-Infinity".
+        // Either numbers or strings are accepted. Exponent notation is also accepted.
+        case ScalarType.FLOAT:
+        // assertFloat32(value);
+        case ScalarType.DOUBLE: // eslint-disable-line no-fallthrough
+            assert(typeof value == "number");
+            if (Number.isNaN(value))
+                return "NaN";
+            if (value === Number.POSITIVE_INFINITY)
+                return "Infinity";
+            if (value === Number.NEGATIVE_INFINITY)
+                return "-Infinity";
+            return value;
+        // string:
+        case ScalarType.STRING:
+            assert(typeof value == "string");
+            return value;
+        // bool:
+        case ScalarType.BOOL:
+            assert(typeof value == "boolean");
+            return value;
+        // JSON value will be a decimal string. Either numbers or strings are accepted.
+        case ScalarType.UINT64:
+        case ScalarType.FIXED64:
+        case ScalarType.INT64:
+        case ScalarType.SFIXED64:
+        case ScalarType.SINT64:
+            assert(typeof value == "bigint" ||
+                typeof value == "string" ||
+                typeof value == "number");
+            return value.toString();
+        // bytes: JSON value will be the data encoded as a string using standard base64 encoding with paddings.
+        // Either standard or URL-safe base64 encoding with/without paddings are accepted.
+        case ScalarType.BYTES:
+            assert(value instanceof Uint8Array);
+            return proto_base64_protoBase64.enc(value);
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/binary-encoding.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+/* eslint-disable prefer-const,no-case-declarations,@typescript-eslint/restrict-plus-operands */
+/**
+ * Protobuf binary format wire types.
+ *
+ * A wire type provides just enough information to find the length of the
+ * following value.
+ *
+ * See https://developers.google.com/protocol-buffers/docs/encoding#structure
+ */
+var WireType;
+(function (WireType) {
+    /**
+     * Used for int32, int64, uint32, uint64, sint32, sint64, bool, enum
+     */
+    WireType[WireType["Varint"] = 0] = "Varint";
+    /**
+     * Used for fixed64, sfixed64, double.
+     * Always 8 bytes with little-endian byte order.
+     */
+    WireType[WireType["Bit64"] = 1] = "Bit64";
+    /**
+     * Used for string, bytes, embedded messages, packed repeated fields
+     *
+     * Only repeated numeric types (types which use the varint, 32-bit,
+     * or 64-bit wire types) can be packed. In proto3, such fields are
+     * packed by default.
+     */
+    WireType[WireType["LengthDelimited"] = 2] = "LengthDelimited";
+    /**
+     * Start of a tag-delimited aggregate, such as a proto2 group, or a message
+     * in editions with message_encoding = DELIMITED.
+     */
+    WireType[WireType["StartGroup"] = 3] = "StartGroup";
+    /**
+     * End of a tag-delimited aggregate.
+     */
+    WireType[WireType["EndGroup"] = 4] = "EndGroup";
+    /**
+     * Used for fixed32, sfixed32, float.
+     * Always 4 bytes with little-endian byte order.
+     */
+    WireType[WireType["Bit32"] = 5] = "Bit32";
+})(WireType || (WireType = {}));
+class BinaryWriter {
+    constructor(textEncoder) {
+        /**
+         * Previous fork states.
+         */
+        this.stack = [];
+        this.textEncoder = textEncoder !== null && textEncoder !== void 0 ? textEncoder : new TextEncoder();
+        this.chunks = [];
+        this.buf = [];
+    }
+    /**
+     * Return all bytes written and reset this writer.
+     */
+    finish() {
+        this.chunks.push(new Uint8Array(this.buf)); // flush the buffer
+        let len = 0;
+        for (let i = 0; i < this.chunks.length; i++)
+            len += this.chunks[i].length;
+        let bytes = new Uint8Array(len);
+        let offset = 0;
+        for (let i = 0; i < this.chunks.length; i++) {
+            bytes.set(this.chunks[i], offset);
+            offset += this.chunks[i].length;
+        }
+        this.chunks = [];
+        return bytes;
+    }
+    /**
+     * Start a new fork for length-delimited data like a message
+     * or a packed repeated field.
+     *
+     * Must be joined later with `join()`.
+     */
+    fork() {
+        this.stack.push({ chunks: this.chunks, buf: this.buf });
+        this.chunks = [];
+        this.buf = [];
+        return this;
+    }
+    /**
+     * Join the last fork. Write its length and bytes, then
+     * return to the previous state.
+     */
+    join() {
+        // get chunk of fork
+        let chunk = this.finish();
+        // restore previous state
+        let prev = this.stack.pop();
+        if (!prev)
+            throw new Error("invalid state, fork stack empty");
+        this.chunks = prev.chunks;
+        this.buf = prev.buf;
+        // write length of chunk as varint
+        this.uint32(chunk.byteLength);
+        return this.raw(chunk);
+    }
+    /**
+     * Writes a tag (field number and wire type).
+     *
+     * Equivalent to `uint32( (fieldNo << 3 | type) >>> 0 )`.
+     *
+     * Generated code should compute the tag ahead of time and call `uint32()`.
+     */
+    tag(fieldNo, type) {
+        return this.uint32(((fieldNo << 3) | type) >>> 0);
+    }
+    /**
+     * Write a chunk of raw bytes.
+     */
+    raw(chunk) {
+        if (this.buf.length) {
+            this.chunks.push(new Uint8Array(this.buf));
+            this.buf = [];
+        }
+        this.chunks.push(chunk);
+        return this;
+    }
+    /**
+     * Write a `uint32` value, an unsigned 32 bit varint.
+     */
+    uint32(value) {
+        assertUInt32(value);
+        // write value as varint 32, inlined for speed
+        while (value > 0x7f) {
+            this.buf.push((value & 0x7f) | 0x80);
+            value = value >>> 7;
+        }
+        this.buf.push(value);
+        return this;
+    }
+    /**
+     * Write a `int32` value, a signed 32 bit varint.
+     */
+    int32(value) {
+        assertInt32(value);
+        varint32write(value, this.buf);
+        return this;
+    }
+    /**
+     * Write a `bool` value, a variant.
+     */
+    bool(value) {
+        this.buf.push(value ? 1 : 0);
+        return this;
+    }
+    /**
+     * Write a `bytes` value, length-delimited arbitrary data.
+     */
+    bytes(value) {
+        this.uint32(value.byteLength); // write length of chunk as varint
+        return this.raw(value);
+    }
+    /**
+     * Write a `string` value, length-delimited data converted to UTF-8 text.
+     */
+    string(value) {
+        let chunk = this.textEncoder.encode(value);
+        this.uint32(chunk.byteLength); // write length of chunk as varint
+        return this.raw(chunk);
+    }
+    /**
+     * Write a `float` value, 32-bit floating point number.
+     */
+    float(value) {
+        assertFloat32(value);
+        let chunk = new Uint8Array(4);
+        new DataView(chunk.buffer).setFloat32(0, value, true);
+        return this.raw(chunk);
+    }
+    /**
+     * Write a `double` value, a 64-bit floating point number.
+     */
+    double(value) {
+        let chunk = new Uint8Array(8);
+        new DataView(chunk.buffer).setFloat64(0, value, true);
+        return this.raw(chunk);
+    }
+    /**
+     * Write a `fixed32` value, an unsigned, fixed-length 32-bit integer.
+     */
+    fixed32(value) {
+        assertUInt32(value);
+        let chunk = new Uint8Array(4);
+        new DataView(chunk.buffer).setUint32(0, value, true);
+        return this.raw(chunk);
+    }
+    /**
+     * Write a `sfixed32` value, a signed, fixed-length 32-bit integer.
+     */
+    sfixed32(value) {
+        assertInt32(value);
+        let chunk = new Uint8Array(4);
+        new DataView(chunk.buffer).setInt32(0, value, true);
+        return this.raw(chunk);
+    }
+    /**
+     * Write a `sint32` value, a signed, zigzag-encoded 32-bit varint.
+     */
+    sint32(value) {
+        assertInt32(value);
+        // zigzag encode
+        value = ((value << 1) ^ (value >> 31)) >>> 0;
+        varint32write(value, this.buf);
+        return this;
+    }
+    /**
+     * Write a `fixed64` value, a signed, fixed-length 64-bit integer.
+     */
+    sfixed64(value) {
+        let chunk = new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.enc(value);
+        view.setInt32(0, tc.lo, true);
+        view.setInt32(4, tc.hi, true);
+        return this.raw(chunk);
+    }
+    /**
+     * Write a `fixed64` value, an unsigned, fixed-length 64 bit integer.
+     */
+    fixed64(value) {
+        let chunk = new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.uEnc(value);
+        view.setInt32(0, tc.lo, true);
+        view.setInt32(4, tc.hi, true);
+        return this.raw(chunk);
+    }
+    /**
+     * Write a `int64` value, a signed 64-bit varint.
+     */
+    int64(value) {
+        let tc = protoInt64.enc(value);
+        varint64write(tc.lo, tc.hi, this.buf);
+        return this;
+    }
+    /**
+     * Write a `sint64` value, a signed, zig-zag-encoded 64-bit varint.
+     */
+    sint64(value) {
+        let tc = protoInt64.enc(value), 
+        // zigzag encode
+        sign = tc.hi >> 31, lo = (tc.lo << 1) ^ sign, hi = ((tc.hi << 1) | (tc.lo >>> 31)) ^ sign;
+        varint64write(lo, hi, this.buf);
+        return this;
+    }
+    /**
+     * Write a `uint64` value, an unsigned 64-bit varint.
+     */
+    uint64(value) {
+        let tc = protoInt64.uEnc(value);
+        varint64write(tc.lo, tc.hi, this.buf);
+        return this;
+    }
+}
+class BinaryReader {
+    constructor(buf, textDecoder) {
+        this.varint64 = varint64read; // dirty cast for `this`
+        /**
+         * Read a `uint32` field, an unsigned 32 bit varint.
+         */
+        this.uint32 = varint32read; // dirty cast for `this` and access to protected `buf`
+        this.buf = buf;
+        this.len = buf.length;
+        this.pos = 0;
+        this.view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+        this.textDecoder = textDecoder !== null && textDecoder !== void 0 ? textDecoder : new TextDecoder();
+    }
+    /**
+     * Reads a tag - field number and wire type.
+     */
+    tag() {
+        let tag = this.uint32(), fieldNo = tag >>> 3, wireType = tag & 7;
+        if (fieldNo <= 0 || wireType < 0 || wireType > 5)
+            throw new Error("illegal tag: field no " + fieldNo + " wire type " + wireType);
+        return [fieldNo, wireType];
+    }
+    /**
+     * Skip one element and return the skipped data.
+     *
+     * When skipping StartGroup, provide the tags field number to check for
+     * matching field number in the EndGroup tag.
+     */
+    skip(wireType, fieldNo) {
+        let start = this.pos;
+        switch (wireType) {
+            case WireType.Varint:
+                while (this.buf[this.pos++] & 0x80) {
+                    // ignore
+                }
+                break;
+            // eslint-disable-next-line
+            // @ts-ignore TS7029: Fallthrough case in switch
+            case WireType.Bit64:
+                this.pos += 4;
+            // eslint-disable-next-line
+            // @ts-ignore TS7029: Fallthrough case in switch
+            case WireType.Bit32:
+                this.pos += 4;
+                break;
+            case WireType.LengthDelimited:
+                let len = this.uint32();
+                this.pos += len;
+                break;
+            case WireType.StartGroup:
+                for (;;) {
+                    const [fn, wt] = this.tag();
+                    if (wt === WireType.EndGroup) {
+                        if (fieldNo !== undefined && fn !== fieldNo) {
+                            throw new Error("invalid end group tag");
+                        }
+                        break;
+                    }
+                    this.skip(wt, fn);
+                }
+                break;
+            default:
+                throw new Error("cant skip wire type " + wireType);
+        }
+        this.assertBounds();
+        return this.buf.subarray(start, this.pos);
+    }
+    /**
+     * Throws error if position in byte array is out of range.
+     */
+    assertBounds() {
+        if (this.pos > this.len)
+            throw new RangeError("premature EOF");
+    }
+    /**
+     * Read a `int32` field, a signed 32 bit varint.
+     */
+    int32() {
+        return this.uint32() | 0;
+    }
+    /**
+     * Read a `sint32` field, a signed, zigzag-encoded 32-bit varint.
+     */
+    sint32() {
+        let zze = this.uint32();
+        // decode zigzag
+        return (zze >>> 1) ^ -(zze & 1);
+    }
+    /**
+     * Read a `int64` field, a signed 64-bit varint.
+     */
+    int64() {
+        return protoInt64.dec(...this.varint64());
+    }
+    /**
+     * Read a `uint64` field, an unsigned 64-bit varint.
+     */
+    uint64() {
+        return protoInt64.uDec(...this.varint64());
+    }
+    /**
+     * Read a `sint64` field, a signed, zig-zag-encoded 64-bit varint.
+     */
+    sint64() {
+        let [lo, hi] = this.varint64();
+        // decode zig zag
+        let s = -(lo & 1);
+        lo = ((lo >>> 1) | ((hi & 1) << 31)) ^ s;
+        hi = (hi >>> 1) ^ s;
+        return protoInt64.dec(lo, hi);
+    }
+    /**
+     * Read a `bool` field, a variant.
+     */
+    bool() {
+        let [lo, hi] = this.varint64();
+        return lo !== 0 || hi !== 0;
+    }
+    /**
+     * Read a `fixed32` field, an unsigned, fixed-length 32-bit integer.
+     */
+    fixed32() {
+        return this.view.getUint32((this.pos += 4) - 4, true);
+    }
+    /**
+     * Read a `sfixed32` field, a signed, fixed-length 32-bit integer.
+     */
+    sfixed32() {
+        return this.view.getInt32((this.pos += 4) - 4, true);
+    }
+    /**
+     * Read a `fixed64` field, an unsigned, fixed-length 64 bit integer.
+     */
+    fixed64() {
+        return protoInt64.uDec(this.sfixed32(), this.sfixed32());
+    }
+    /**
+     * Read a `fixed64` field, a signed, fixed-length 64-bit integer.
+     */
+    sfixed64() {
+        return protoInt64.dec(this.sfixed32(), this.sfixed32());
+    }
+    /**
+     * Read a `float` field, 32-bit floating point number.
+     */
+    float() {
+        return this.view.getFloat32((this.pos += 4) - 4, true);
+    }
+    /**
+     * Read a `double` field, a 64-bit floating point number.
+     */
+    double() {
+        return this.view.getFloat64((this.pos += 8) - 8, true);
+    }
+    /**
+     * Read a `bytes` field, length-delimited arbitrary data.
+     */
+    bytes() {
+        let len = this.uint32(), start = this.pos;
+        this.pos += len;
+        this.assertBounds();
+        return this.buf.subarray(start, start + len);
+    }
+    /**
+     * Read a `string` field, length-delimited data converted to UTF-8 text.
+     */
+    string() {
+        return this.textDecoder.decode(this.bytes());
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/private/binary-format.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+
+
+
+
+
+/* eslint-disable prefer-const,no-case-declarations,@typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-argument,@typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-return */
+const unknownFieldsSymbol = Symbol("@bufbuild/protobuf/unknown-fields");
+// Default options for parsing binary data.
+const readDefaults = {
+    readUnknownFields: true,
+    readerFactory: (bytes) => new BinaryReader(bytes),
+};
+// Default options for serializing binary data.
+const writeDefaults = {
+    writeUnknownFields: true,
+    writerFactory: () => new BinaryWriter(),
+};
+function binary_format_makeReadOptions(options) {
+    return options ? Object.assign(Object.assign({}, readDefaults), options) : readDefaults;
+}
+function binary_format_makeWriteOptions(options) {
+    return options ? Object.assign(Object.assign({}, writeDefaults), options) : writeDefaults;
+}
+function makeBinaryFormat() {
+    return {
+        makeReadOptions: binary_format_makeReadOptions,
+        makeWriteOptions: binary_format_makeWriteOptions,
+        listUnknownFields(message) {
+            var _a;
+            return (_a = message[unknownFieldsSymbol]) !== null && _a !== void 0 ? _a : [];
+        },
+        discardUnknownFields(message) {
+            delete message[unknownFieldsSymbol];
+        },
+        writeUnknownFields(message, writer) {
+            const m = message;
+            const c = m[unknownFieldsSymbol];
+            if (c) {
+                for (const f of c) {
+                    writer.tag(f.no, f.wireType).raw(f.data);
+                }
+            }
+        },
+        onUnknownField(message, no, wireType, data) {
+            const m = message;
+            if (!Array.isArray(m[unknownFieldsSymbol])) {
+                m[unknownFieldsSymbol] = [];
+            }
+            m[unknownFieldsSymbol].push({ no, wireType, data });
+        },
+        readMessage(message, reader, lengthOrEndTagFieldNo, options, delimitedMessageEncoding) {
+            const type = message.getType();
+            // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+            const end = delimitedMessageEncoding
+                ? reader.len
+                : reader.pos + lengthOrEndTagFieldNo;
+            let fieldNo, wireType;
+            while (reader.pos < end) {
+                [fieldNo, wireType] = reader.tag();
+                if (delimitedMessageEncoding === true &&
+                    wireType == WireType.EndGroup) {
+                    break;
+                }
+                const field = type.fields.find(fieldNo);
+                if (!field) {
+                    const data = reader.skip(wireType, fieldNo);
+                    if (options.readUnknownFields) {
+                        this.onUnknownField(message, fieldNo, wireType, data);
+                    }
+                    continue;
+                }
+                binary_format_readField(message, reader, field, wireType, options);
+            }
+            if (delimitedMessageEncoding && // eslint-disable-line @typescript-eslint/strict-boolean-expressions
+                (wireType != WireType.EndGroup || fieldNo !== lengthOrEndTagFieldNo)) {
+                throw new Error(`invalid end group tag`);
+            }
+        },
+        readField: binary_format_readField,
+        writeMessage(message, writer, options) {
+            const type = message.getType();
+            for (const field of type.fields.byNumber()) {
+                if (!isFieldSet(field, message)) {
+                    if (field.req) {
+                        throw new Error(`cannot encode field ${type.typeName}.${field.name} to binary: required field not set`);
+                    }
+                    continue;
+                }
+                const value = field.oneof
+                    ? message[field.oneof.localName].value
+                    : message[field.localName];
+                binary_format_writeField(field, value, writer, options);
+            }
+            if (options.writeUnknownFields) {
+                this.writeUnknownFields(message, writer);
+            }
+            return writer;
+        },
+        writeField(field, value, writer, options) {
+            // The behavior of our internal function has changed, it does no longer
+            // accept `undefined` values for singular scalar and map.
+            // For backwards-compatibility, we support the old form that is part of
+            // the public API through the interface BinaryFormat.
+            if (value === undefined) {
+                return undefined;
+            }
+            binary_format_writeField(field, value, writer, options);
+        },
+    };
+}
+function binary_format_readField(target, // eslint-disable-line @typescript-eslint/no-explicit-any -- `any` is the best choice for dynamic access
+reader, field, wireType, options) {
+    let { repeated, localName } = field;
+    if (field.oneof) {
+        target = target[field.oneof.localName];
+        if (target.case != localName) {
+            delete target.value;
+        }
+        target.case = localName;
+        localName = "value";
+    }
+    switch (field.kind) {
+        case "scalar":
+        case "enum":
+            const scalarType = field.kind == "enum" ? ScalarType.INT32 : field.T;
+            let read = binary_format_readScalar;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison -- acceptable since it's covered by tests
+            if (field.kind == "scalar" && field.L > 0) {
+                read = readScalarLTString;
+            }
+            if (repeated) {
+                let arr = target[localName]; // safe to assume presence of array, oneof cannot contain repeated values
+                const isPacked = wireType == WireType.LengthDelimited &&
+                    scalarType != ScalarType.STRING &&
+                    scalarType != ScalarType.BYTES;
+                if (isPacked) {
+                    let e = reader.uint32() + reader.pos;
+                    while (reader.pos < e) {
+                        arr.push(read(reader, scalarType));
+                    }
+                }
+                else {
+                    arr.push(read(reader, scalarType));
+                }
+            }
+            else {
+                target[localName] = read(reader, scalarType);
+            }
+            break;
+        case "message":
+            const messageType = field.T;
+            if (repeated) {
+                // safe to assume presence of array, oneof cannot contain repeated values
+                target[localName].push(readMessageField(reader, new messageType(), options, field));
+            }
+            else {
+                if (isMessage(target[localName])) {
+                    readMessageField(reader, target[localName], options, field);
+                }
+                else {
+                    target[localName] = readMessageField(reader, new messageType(), options, field);
+                    if (messageType.fieldWrapper && !field.oneof && !field.repeated) {
+                        target[localName] = messageType.fieldWrapper.unwrapField(target[localName]);
+                    }
+                }
+            }
+            break;
+        case "map":
+            let [mapKey, mapVal] = readMapEntry(field, reader, options);
+            // safe to assume presence of map object, oneof cannot contain repeated values
+            target[localName][mapKey] = mapVal;
+            break;
+    }
+}
+// Read a message, avoiding MessageType.fromBinary() to re-use the
+// BinaryReadOptions and the IBinaryReader.
+function readMessageField(reader, message, options, field) {
+    const format = message.getType().runtime.bin;
+    const delimited = field === null || field === void 0 ? void 0 : field.delimited;
+    format.readMessage(message, reader, delimited ? field.no : reader.uint32(), // eslint-disable-line @typescript-eslint/strict-boolean-expressions
+    options, delimited);
+    return message;
+}
+// Read a map field, expecting key field = 1, value field = 2
+function readMapEntry(field, reader, options) {
+    const length = reader.uint32(), end = reader.pos + length;
+    let key, val;
+    while (reader.pos < end) {
+        const [fieldNo] = reader.tag();
+        switch (fieldNo) {
+            case 1:
+                key = binary_format_readScalar(reader, field.K);
+                break;
+            case 2:
+                switch (field.V.kind) {
+                    case "scalar":
+                        val = binary_format_readScalar(reader, field.V.T);
+                        break;
+                    case "enum":
+                        val = reader.int32();
+                        break;
+                    case "message":
+                        val = readMessageField(reader, new field.V.T(), options, undefined);
+                        break;
+                }
+                break;
+        }
+    }
+    if (key === undefined) {
+        key = scalarZeroValue(field.K, LongType.BIGINT);
+    }
+    if (typeof key != "string" && typeof key != "number") {
+        key = key.toString();
+    }
+    if (val === undefined) {
+        switch (field.V.kind) {
+            case "scalar":
+                val = scalarZeroValue(field.V.T, LongType.BIGINT);
+                break;
+            case "enum":
+                val = field.V.T.values[0].no;
+                break;
+            case "message":
+                val = new field.V.T();
+                break;
+        }
+    }
+    return [key, val];
+}
+// Read a scalar value, but return 64 bit integral types (int64, uint64,
+// sint64, fixed64, sfixed64) as string instead of bigint.
+function readScalarLTString(reader, type) {
+    const v = binary_format_readScalar(reader, type);
+    return typeof v == "bigint" ? v.toString() : v;
+}
+// Does not use scalarTypeInfo() for better performance.
+function binary_format_readScalar(reader, type) {
+    switch (type) {
+        case ScalarType.STRING:
+            return reader.string();
+        case ScalarType.BOOL:
+            return reader.bool();
+        case ScalarType.DOUBLE:
+            return reader.double();
+        case ScalarType.FLOAT:
+            return reader.float();
+        case ScalarType.INT32:
+            return reader.int32();
+        case ScalarType.INT64:
+            return reader.int64();
+        case ScalarType.UINT64:
+            return reader.uint64();
+        case ScalarType.FIXED64:
+            return reader.fixed64();
+        case ScalarType.BYTES:
+            return reader.bytes();
+        case ScalarType.FIXED32:
+            return reader.fixed32();
+        case ScalarType.SFIXED32:
+            return reader.sfixed32();
+        case ScalarType.SFIXED64:
+            return reader.sfixed64();
+        case ScalarType.SINT64:
+            return reader.sint64();
+        case ScalarType.UINT32:
+            return reader.uint32();
+        case ScalarType.SINT32:
+            return reader.sint32();
+    }
+}
+function binary_format_writeField(field, value, writer, options) {
+    assert(value !== undefined);
+    const repeated = field.repeated;
+    switch (field.kind) {
+        case "scalar":
+        case "enum":
+            let scalarType = field.kind == "enum" ? ScalarType.INT32 : field.T;
+            if (repeated) {
+                assert(Array.isArray(value));
+                if (field.packed) {
+                    writePacked(writer, scalarType, field.no, value);
+                }
+                else {
+                    for (const item of value) {
+                        binary_format_writeScalar(writer, scalarType, field.no, item);
+                    }
+                }
+            }
+            else {
+                binary_format_writeScalar(writer, scalarType, field.no, value);
+            }
+            break;
+        case "message":
+            if (repeated) {
+                assert(Array.isArray(value));
+                for (const item of value) {
+                    writeMessageField(writer, options, field, item);
+                }
+            }
+            else {
+                writeMessageField(writer, options, field, value);
+            }
+            break;
+        case "map":
+            assert(typeof value == "object" && value != null);
+            for (const [key, val] of Object.entries(value)) {
+                writeMapEntry(writer, options, field, key, val);
+            }
+            break;
+    }
+}
+function writeMapEntry(writer, options, field, key, value) {
+    writer.tag(field.no, WireType.LengthDelimited);
+    writer.fork();
+    // javascript only allows number or string for object properties
+    // we convert from our representation to the protobuf type
+    let keyValue = key;
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check -- we deliberately handle just the special cases for map keys
+    switch (field.K) {
+        case ScalarType.INT32:
+        case ScalarType.FIXED32:
+        case ScalarType.UINT32:
+        case ScalarType.SFIXED32:
+        case ScalarType.SINT32:
+            keyValue = Number.parseInt(key);
+            break;
+        case ScalarType.BOOL:
+            assert(key == "true" || key == "false");
+            keyValue = key == "true";
+            break;
+    }
+    // write key, expecting key field number = 1
+    binary_format_writeScalar(writer, field.K, 1, keyValue);
+    // write value, expecting value field number = 2
+    switch (field.V.kind) {
+        case "scalar":
+            binary_format_writeScalar(writer, field.V.T, 2, value);
+            break;
+        case "enum":
+            binary_format_writeScalar(writer, ScalarType.INT32, 2, value);
+            break;
+        case "message":
+            assert(value !== undefined);
+            writer.tag(2, WireType.LengthDelimited).bytes(value.toBinary(options));
+            break;
+    }
+    writer.join();
+}
+// Value must not be undefined
+function writeMessageField(writer, options, field, value) {
+    const message = wrapField(field.T, value);
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    if (field.delimited)
+        writer
+            .tag(field.no, WireType.StartGroup)
+            .raw(message.toBinary(options))
+            .tag(field.no, WireType.EndGroup);
+    else
+        writer
+            .tag(field.no, WireType.LengthDelimited)
+            .bytes(message.toBinary(options));
+}
+function binary_format_writeScalar(writer, type, fieldNo, value) {
+    assert(value !== undefined);
+    let [wireType, method] = scalarTypeInfo(type);
+    writer.tag(fieldNo, wireType)[method](value);
+}
+function writePacked(writer, type, fieldNo, value) {
+    if (!value.length) {
+        return;
+    }
+    writer.tag(fieldNo, WireType.LengthDelimited).fork();
+    let [, method] = scalarTypeInfo(type);
+    for (let i = 0; i < value.length; i++) {
+        writer[method](value[i]);
+    }
+    writer.join();
+}
+/**
+ * Get information for writing a scalar value.
+ *
+ * Returns tuple:
+ * [0]: appropriate WireType
+ * [1]: name of the appropriate method of IBinaryWriter
+ * [2]: whether the given value is a default value for proto3 semantics
+ *
+ * If argument `value` is omitted, [2] is always false.
+ */
+// TODO replace call-sites writeScalar() and writePacked(), then remove
+function scalarTypeInfo(type) {
+    let wireType = WireType.Varint;
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check -- INT32, UINT32, SINT32 are covered by the defaults
+    switch (type) {
+        case ScalarType.BYTES:
+        case ScalarType.STRING:
+            wireType = WireType.LengthDelimited;
+            break;
+        case ScalarType.DOUBLE:
+        case ScalarType.FIXED64:
+        case ScalarType.SFIXED64:
+            wireType = WireType.Bit64;
+            break;
+        case ScalarType.FIXED32:
+        case ScalarType.SFIXED32:
+        case ScalarType.FLOAT:
+            wireType = WireType.Bit32;
+            break;
+    }
+    const method = ScalarType[type].toLowerCase();
+    return [wireType, method];
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/private/util-common.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+
+
+/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-argument,no-case-declarations */
+function makeUtilCommon() {
+    return {
+        setEnumType: setEnumType,
+        initPartial(source, target) {
+            if (source === undefined) {
+                return;
+            }
+            const type = target.getType();
+            for (const member of type.fields.byMember()) {
+                const localName = member.localName, t = target, s = source;
+                if (s[localName] == null) {
+                    // TODO if source is a Message instance, we should use isFieldSet() here to support future field presence
+                    continue;
+                }
+                switch (member.kind) {
+                    case "oneof":
+                        const sk = s[localName].case;
+                        if (sk === undefined) {
+                            continue;
+                        }
+                        const sourceField = member.findField(sk);
+                        let val = s[localName].value;
+                        if (sourceField &&
+                            sourceField.kind == "message" &&
+                            !isMessage(val, sourceField.T)) {
+                            val = new sourceField.T(val);
+                        }
+                        else if (sourceField &&
+                            sourceField.kind === "scalar" &&
+                            sourceField.T === ScalarType.BYTES) {
+                            val = toU8Arr(val);
+                        }
+                        t[localName] = { case: sk, value: val };
+                        break;
+                    case "scalar":
+                    case "enum":
+                        let copy = s[localName];
+                        if (member.T === ScalarType.BYTES) {
+                            copy = member.repeated
+                                ? copy.map(toU8Arr)
+                                : toU8Arr(copy);
+                        }
+                        t[localName] = copy;
+                        break;
+                    case "map":
+                        switch (member.V.kind) {
+                            case "scalar":
+                            case "enum":
+                                if (member.V.T === ScalarType.BYTES) {
+                                    for (const [k, v] of Object.entries(s[localName])) {
+                                        t[localName][k] = toU8Arr(v);
+                                    }
+                                }
+                                else {
+                                    Object.assign(t[localName], s[localName]);
+                                }
+                                break;
+                            case "message":
+                                const messageType = member.V.T;
+                                for (const k of Object.keys(s[localName])) {
+                                    let val = s[localName][k];
+                                    if (!messageType.fieldWrapper) {
+                                        // We only take partial input for messages that are not a wrapper type.
+                                        // For those messages, we recursively normalize the partial input.
+                                        val = new messageType(val);
+                                    }
+                                    t[localName][k] = val;
+                                }
+                                break;
+                        }
+                        break;
+                    case "message":
+                        const mt = member.T;
+                        if (member.repeated) {
+                            t[localName] = s[localName].map((val) => isMessage(val, mt) ? val : new mt(val));
+                        }
+                        else {
+                            const val = s[localName];
+                            if (mt.fieldWrapper) {
+                                if (
+                                // We can't use BytesValue.typeName as that will create a circular import
+                                mt.typeName === "google.protobuf.BytesValue") {
+                                    t[localName] = toU8Arr(val);
+                                }
+                                else {
+                                    t[localName] = val;
+                                }
+                            }
+                            else {
+                                t[localName] = isMessage(val, mt) ? val : new mt(val);
+                            }
+                        }
+                        break;
+                }
+            }
+        },
+        // TODO use isFieldSet() here to support future field presence
+        equals(type, a, b) {
+            if (a === b) {
+                return true;
+            }
+            if (!a || !b) {
+                return false;
+            }
+            return type.fields.byMember().every((m) => {
+                const va = a[m.localName];
+                const vb = b[m.localName];
+                if (m.repeated) {
+                    if (va.length !== vb.length) {
+                        return false;
+                    }
+                    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check -- repeated fields are never "map"
+                    switch (m.kind) {
+                        case "message":
+                            return va.every((a, i) => m.T.equals(a, vb[i]));
+                        case "scalar":
+                            return va.every((a, i) => scalarEquals(m.T, a, vb[i]));
+                        case "enum":
+                            return va.every((a, i) => scalarEquals(ScalarType.INT32, a, vb[i]));
+                    }
+                    throw new Error(`repeated cannot contain ${m.kind}`);
+                }
+                switch (m.kind) {
+                    case "message":
+                        return m.T.equals(va, vb);
+                    case "enum":
+                        return scalarEquals(ScalarType.INT32, va, vb);
+                    case "scalar":
+                        return scalarEquals(m.T, va, vb);
+                    case "oneof":
+                        if (va.case !== vb.case) {
+                            return false;
+                        }
+                        const s = m.findField(va.case);
+                        if (s === undefined) {
+                            return true;
+                        }
+                        // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check -- oneof fields are never "map"
+                        switch (s.kind) {
+                            case "message":
+                                return s.T.equals(va.value, vb.value);
+                            case "enum":
+                                return scalarEquals(ScalarType.INT32, va.value, vb.value);
+                            case "scalar":
+                                return scalarEquals(s.T, va.value, vb.value);
+                        }
+                        throw new Error(`oneof cannot contain ${s.kind}`);
+                    case "map":
+                        const keys = Object.keys(va).concat(Object.keys(vb));
+                        switch (m.V.kind) {
+                            case "message":
+                                const messageType = m.V.T;
+                                return keys.every((k) => messageType.equals(va[k], vb[k]));
+                            case "enum":
+                                return keys.every((k) => scalarEquals(ScalarType.INT32, va[k], vb[k]));
+                            case "scalar":
+                                const scalarType = m.V.T;
+                                return keys.every((k) => scalarEquals(scalarType, va[k], vb[k]));
+                        }
+                        break;
+                }
+            });
+        },
+        // TODO use isFieldSet() here to support future field presence
+        clone(message) {
+            const type = message.getType(), target = new type(), any = target;
+            for (const member of type.fields.byMember()) {
+                const source = message[member.localName];
+                let copy;
+                if (member.repeated) {
+                    copy = source.map(cloneSingularField);
+                }
+                else if (member.kind == "map") {
+                    copy = any[member.localName];
+                    for (const [key, v] of Object.entries(source)) {
+                        copy[key] = cloneSingularField(v);
+                    }
+                }
+                else if (member.kind == "oneof") {
+                    const f = member.findField(source.case);
+                    copy = f
+                        ? { case: source.case, value: cloneSingularField(source.value) }
+                        : { case: undefined };
+                }
+                else {
+                    copy = cloneSingularField(source);
+                }
+                any[member.localName] = copy;
+            }
+            for (const uf of type.runtime.bin.listUnknownFields(message)) {
+                type.runtime.bin.onUnknownField(any, uf.no, uf.wireType, uf.data);
+            }
+            return target;
+        },
+    };
+}
+// clone a single field value - i.e. the element type of repeated fields, the value type of maps
+function cloneSingularField(value) {
+    if (value === undefined) {
+        return value;
+    }
+    if (isMessage(value)) {
+        return value.clone();
+    }
+    if (value instanceof Uint8Array) {
+        const c = new Uint8Array(value.byteLength);
+        c.set(value);
+        return c;
+    }
+    return value;
+}
+// converts any ArrayLike<number> to Uint8Array if necessary.
+function toU8Arr(input) {
+    return input instanceof Uint8Array ? input : new Uint8Array(input);
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/private/proto-runtime.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+
+
+
+function makeProtoRuntime(syntax, newFieldList, initFields) {
+    return {
+        syntax,
+        json: makeJsonFormat(),
+        bin: makeBinaryFormat(),
+        util: Object.assign(Object.assign({}, makeUtilCommon()), { newFieldList,
+            initFields }),
+        makeMessageType(typeName, fields, opt) {
+            return makeMessageType(this, typeName, fields, opt);
+        },
+        makeEnum: makeEnum,
+        makeEnumType: makeEnumType,
+        getEnumType: getEnumType,
+        makeExtension(typeName, extendee, field) {
+            return makeExtension(this, typeName, extendee, field);
+        },
+    };
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/private/field-list.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+class InternalFieldList {
+    constructor(fields, normalizer) {
+        this._fields = fields;
+        this._normalizer = normalizer;
+    }
+    findJsonName(jsonName) {
+        if (!this.jsonNames) {
+            const t = {};
+            for (const f of this.list()) {
+                t[f.jsonName] = t[f.name] = f;
+            }
+            this.jsonNames = t;
+        }
+        return this.jsonNames[jsonName];
+    }
+    find(fieldNo) {
+        if (!this.numbers) {
+            const t = {};
+            for (const f of this.list()) {
+                t[f.no] = f;
+            }
+            this.numbers = t;
+        }
+        return this.numbers[fieldNo];
+    }
+    list() {
+        if (!this.all) {
+            this.all = this._normalizer(this._fields);
+        }
+        return this.all;
+    }
+    byNumber() {
+        if (!this.numbersAsc) {
+            this.numbersAsc = this.list()
+                .concat()
+                .sort((a, b) => a.no - b.no);
+        }
+        return this.numbersAsc;
+    }
+    byMember() {
+        if (!this.members) {
+            this.members = [];
+            const a = this.members;
+            let o;
+            for (const f of this.list()) {
+                if (f.oneof) {
+                    if (f.oneof !== o) {
+                        o = f.oneof;
+                        a.push(o);
+                    }
+                }
+                else {
+                    a.push(f);
+                }
+            }
+        }
+        return this.members;
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/private/names.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/**
+ * Returns the name of a protobuf element in generated code.
+ *
+ * Field names - including oneofs - are converted to lowerCamelCase. For
+ * messages, enumerations and services, the package name is stripped from
+ * the type name. For nested messages and enumerations, the names are joined
+ * with an underscore. For methods, the first character is made lowercase.
+ */
+function localName(desc) {
+    switch (desc.kind) {
+        case "field":
+            return localFieldName(desc.name, desc.oneof !== undefined);
+        case "oneof":
+            return localOneofName(desc.name);
+        case "enum":
+        case "message":
+        case "service":
+        case "extension": {
+            const pkg = desc.file.proto.package;
+            const offset = pkg === undefined ? 0 : pkg.length + 1;
+            const name = desc.typeName.substring(offset).replace(/\./g, "_");
+            // For services, we only care about safe identifiers, not safe object properties,
+            // but we have shipped v1 with a bug that respected object properties, and we
+            // do not want to introduce a breaking change, so we continue to escape for
+            // safe object properties.
+            // See https://github.com/bufbuild/protobuf-es/pull/391
+            return safeObjectProperty(safeIdentifier(name));
+        }
+        case "enum_value": {
+            let name = desc.name;
+            const sharedPrefix = desc.parent.sharedPrefix;
+            if (sharedPrefix !== undefined) {
+                name = name.substring(sharedPrefix.length);
+            }
+            return safeObjectProperty(name);
+        }
+        case "rpc": {
+            let name = desc.name;
+            if (name.length == 0) {
+                return name;
+            }
+            name = name[0].toLowerCase() + name.substring(1);
+            return safeObjectProperty(name);
+        }
+    }
+}
+/**
+ * Returns the name of a field in generated code.
+ */
+function localFieldName(protoName, inOneof) {
+    const name = protoCamelCase(protoName);
+    if (inOneof) {
+        // oneof member names are not properties, but values of the `case` property.
+        return name;
+    }
+    return safeObjectProperty(safeMessageProperty(name));
+}
+/**
+ * Returns the name of a oneof group in generated code.
+ */
+function localOneofName(protoName) {
+    return localFieldName(protoName, false);
+}
+/**
+ * Returns the JSON name for a protobuf field, exactly like protoc does.
+ */
+const fieldJsonName = protoCamelCase;
+/**
+ * Finds a prefix shared by enum values, for example `MY_ENUM_` for
+ * `enum MyEnum {MY_ENUM_A=0; MY_ENUM_B=1;}`.
+ */
+function findEnumSharedPrefix(enumName, valueNames) {
+    const prefix = camelToSnakeCase(enumName) + "_";
+    for (const name of valueNames) {
+        if (!name.toLowerCase().startsWith(prefix)) {
+            return undefined;
+        }
+        const shortName = name.substring(prefix.length);
+        if (shortName.length == 0) {
+            return undefined;
+        }
+        if (/^\d/.test(shortName)) {
+            // identifiers must not start with numbers
+            return undefined;
+        }
+    }
+    return prefix;
+}
+/**
+ * Converts lowerCamelCase or UpperCamelCase into lower_snake_case.
+ * This is used to find shared prefixes in an enum.
+ */
+function camelToSnakeCase(camel) {
+    return (camel.substring(0, 1) + camel.substring(1).replace(/[A-Z]/g, (c) => "_" + c)).toLowerCase();
+}
+/**
+ * Converts snake_case to protoCamelCase according to the convention
+ * used by protoc to convert a field name to a JSON name.
+ */
+function protoCamelCase(snakeCase) {
+    let capNext = false;
+    const b = [];
+    for (let i = 0; i < snakeCase.length; i++) {
+        let c = snakeCase.charAt(i);
+        switch (c) {
+            case "_":
+                capNext = true;
+                break;
+            case "0":
+            case "1":
+            case "2":
+            case "3":
+            case "4":
+            case "5":
+            case "6":
+            case "7":
+            case "8":
+            case "9":
+                b.push(c);
+                capNext = false;
+                break;
+            default:
+                if (capNext) {
+                    capNext = false;
+                    c = c.toUpperCase();
+                }
+                b.push(c);
+                break;
+        }
+    }
+    return b.join("");
+}
+/**
+ * Names that cannot be used for identifiers, such as class names,
+ * but _can_ be used for object properties.
+ */
+const reservedIdentifiers = new Set([
+    // ECMAScript 2015 keywords
+    "break",
+    "case",
+    "catch",
+    "class",
+    "const",
+    "continue",
+    "debugger",
+    "default",
+    "delete",
+    "do",
+    "else",
+    "export",
+    "extends",
+    "false",
+    "finally",
+    "for",
+    "function",
+    "if",
+    "import",
+    "in",
+    "instanceof",
+    "new",
+    "null",
+    "return",
+    "super",
+    "switch",
+    "this",
+    "throw",
+    "true",
+    "try",
+    "typeof",
+    "var",
+    "void",
+    "while",
+    "with",
+    "yield",
+    // ECMAScript 2015 future reserved keywords
+    "enum",
+    "implements",
+    "interface",
+    "let",
+    "package",
+    "private",
+    "protected",
+    "public",
+    "static",
+    // Class name cannot be 'Object' when targeting ES5 with module CommonJS
+    "Object",
+    // TypeScript keywords that cannot be used for types (as opposed to variables)
+    "bigint",
+    "number",
+    "boolean",
+    "string",
+    "object",
+    // Identifiers reserved for the runtime, so we can generate legible code
+    "globalThis",
+    "Uint8Array",
+    "Partial",
+]);
+/**
+ * Names that cannot be used for object properties because they are reserved
+ * by built-in JavaScript properties.
+ */
+const reservedObjectProperties = new Set([
+    // names reserved by JavaScript
+    "constructor",
+    "toString",
+    "toJSON",
+    "valueOf",
+]);
+/**
+ * Names that cannot be used for object properties because they are reserved
+ * by the runtime.
+ */
+const reservedMessageProperties = new Set([
+    // names reserved by the runtime
+    "getType",
+    "clone",
+    "equals",
+    "fromBinary",
+    "fromJson",
+    "fromJsonString",
+    "toBinary",
+    "toJson",
+    "toJsonString",
+    // names reserved by the runtime for the future
+    "toObject",
+]);
+const fallback = (name) => `${name}$`;
+/**
+ * Will wrap names that are Object prototype properties or names reserved
+ * for `Message`s.
+ */
+const safeMessageProperty = (name) => {
+    if (reservedMessageProperties.has(name)) {
+        return fallback(name);
+    }
+    return name;
+};
+/**
+ * Names that cannot be used for object properties because they are reserved
+ * by built-in JavaScript properties.
+ */
+const safeObjectProperty = (name) => {
+    if (reservedObjectProperties.has(name)) {
+        return fallback(name);
+    }
+    return name;
+};
+/**
+ * Names that can be used for identifiers or class properties
+ */
+const safeIdentifier = (name) => {
+    if (reservedIdentifiers.has(name)) {
+        return fallback(name);
+    }
+    return name;
+};
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/private/field.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+class InternalOneofInfo {
+    constructor(name) {
+        this.kind = "oneof";
+        this.repeated = false;
+        this.packed = false;
+        this.opt = false;
+        this.req = false;
+        this.default = undefined;
+        this.fields = [];
+        this.name = name;
+        this.localName = localOneofName(name);
+    }
+    addField(field) {
+        assert(field.oneof === this, `field ${field.name} not one of ${this.name}`);
+        this.fields.push(field);
+    }
+    findField(localName) {
+        if (!this._lookup) {
+            this._lookup = Object.create(null);
+            for (let i = 0; i < this.fields.length; i++) {
+                this._lookup[this.fields[i].localName] = this.fields[i];
+            }
+        }
+        return this._lookup[localName];
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/private/field-normalize.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+/**
+ * Convert a collection of field info to an array of normalized FieldInfo.
+ *
+ * The argument `packedByDefault` specifies whether fields that do not specify
+ * `packed` should be packed (proto3) or unpacked (proto2).
+ */
+function normalizeFieldInfos(fieldInfos, packedByDefault) {
+    var _a, _b, _c, _d, _e, _f;
+    const r = [];
+    let o;
+    for (const field of typeof fieldInfos == "function"
+        ? fieldInfos()
+        : fieldInfos) {
+        const f = field;
+        f.localName = localFieldName(field.name, field.oneof !== undefined);
+        f.jsonName = (_a = field.jsonName) !== null && _a !== void 0 ? _a : fieldJsonName(field.name);
+        f.repeated = (_b = field.repeated) !== null && _b !== void 0 ? _b : false;
+        if (field.kind == "scalar") {
+            f.L = (_c = field.L) !== null && _c !== void 0 ? _c : LongType.BIGINT;
+        }
+        f.delimited = (_d = field.delimited) !== null && _d !== void 0 ? _d : false;
+        f.req = (_e = field.req) !== null && _e !== void 0 ? _e : false;
+        f.opt = (_f = field.opt) !== null && _f !== void 0 ? _f : false;
+        if (field.packed === undefined) {
+            if (packedByDefault) {
+                f.packed =
+                    field.kind == "enum" ||
+                        (field.kind == "scalar" &&
+                            field.T != ScalarType.BYTES &&
+                            field.T != ScalarType.STRING);
+            }
+            else {
+                f.packed = false;
+            }
+        }
+        // We do not surface options at this time
+        // f.options = field.options ?? emptyReadonlyObject;
+        if (field.oneof !== undefined) {
+            const ooname = typeof field.oneof == "string" ? field.oneof : field.oneof.name;
+            if (!o || o.name != ooname) {
+                o = new InternalOneofInfo(ooname);
+            }
+            f.oneof = o;
+            o.addField(f);
+        }
+        r.push(f);
+    }
+    return r;
+}
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/proto3.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+
+/**
+ * Provides functionality for messages defined with the proto3 syntax.
+ */
+const proto3 = makeProtoRuntime("proto3", (fields) => {
+    return new InternalFieldList(fields, (source) => normalizeFieldInfos(source, true));
+}, 
+// TODO merge with proto2 and initExtensionField, also see initPartial, equals, clone
+(target) => {
+    for (const member of target.getType().fields.byMember()) {
+        if (member.opt) {
+            continue;
+        }
+        const name = member.localName, t = target;
+        if (member.repeated) {
+            t[name] = [];
+            continue;
+        }
+        switch (member.kind) {
+            case "oneof":
+                t[name] = { case: undefined };
+                break;
+            case "enum":
+                t[name] = 0;
+                break;
+            case "map":
+                t[name] = {};
+                break;
+            case "scalar":
+                t[name] = scalarZeroValue(member.T, member.L);
+                break;
+            case "message":
+                // message fields are always optional in proto3
+                break;
+        }
+    }
+});
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/google/protobuf/timestamp_pb.js
+// Copyright 2021-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+/**
+ * A Timestamp represents a point in time independent of any time zone or local
+ * calendar, encoded as a count of seconds and fractions of seconds at
+ * nanosecond resolution. The count is relative to an epoch at UTC midnight on
+ * January 1, 1970, in the proleptic Gregorian calendar which extends the
+ * Gregorian calendar backwards to year one.
+ *
+ * All minutes are 60 seconds long. Leap seconds are "smeared" so that no leap
+ * second table is needed for interpretation, using a [24-hour linear
+ * smear](https://developers.google.com/time/smear).
+ *
+ * The range is from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59.999999999Z. By
+ * restricting to that range, we ensure that we can convert to and from [RFC
+ * 3339](https://www.ietf.org/rfc/rfc3339.txt) date strings.
+ *
+ * # Examples
+ *
+ * Example 1: Compute Timestamp from POSIX `time()`.
+ *
+ *     Timestamp timestamp;
+ *     timestamp.set_seconds(time(NULL));
+ *     timestamp.set_nanos(0);
+ *
+ * Example 2: Compute Timestamp from POSIX `gettimeofday()`.
+ *
+ *     struct timeval tv;
+ *     gettimeofday(&tv, NULL);
+ *
+ *     Timestamp timestamp;
+ *     timestamp.set_seconds(tv.tv_sec);
+ *     timestamp.set_nanos(tv.tv_usec * 1000);
+ *
+ * Example 3: Compute Timestamp from Win32 `GetSystemTimeAsFileTime()`.
+ *
+ *     FILETIME ft;
+ *     GetSystemTimeAsFileTime(&ft);
+ *     UINT64 ticks = (((UINT64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime;
+ *
+ *     // A Windows tick is 100 nanoseconds. Windows epoch 1601-01-01T00:00:00Z
+ *     // is 11644473600 seconds before Unix epoch 1970-01-01T00:00:00Z.
+ *     Timestamp timestamp;
+ *     timestamp.set_seconds((INT64) ((ticks / 10000000) - 11644473600LL));
+ *     timestamp.set_nanos((INT32) ((ticks % 10000000) * 100));
+ *
+ * Example 4: Compute Timestamp from Java `System.currentTimeMillis()`.
+ *
+ *     long millis = System.currentTimeMillis();
+ *
+ *     Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)
+ *         .setNanos((int) ((millis % 1000) * 1000000)).build();
+ *
+ * Example 5: Compute Timestamp from Java `Instant.now()`.
+ *
+ *     Instant now = Instant.now();
+ *
+ *     Timestamp timestamp =
+ *         Timestamp.newBuilder().setSeconds(now.getEpochSecond())
+ *             .setNanos(now.getNano()).build();
+ *
+ * Example 6: Compute Timestamp from current time in Python.
+ *
+ *     timestamp = Timestamp()
+ *     timestamp.GetCurrentTime()
+ *
+ * # JSON Mapping
+ *
+ * In JSON format, the Timestamp type is encoded as a string in the
+ * [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. That is, the
+ * format is "{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z"
+ * where {year} is always expressed using four digits while {month}, {day},
+ * {hour}, {min}, and {sec} are zero-padded to two digits each. The fractional
+ * seconds, which can go up to 9 digits (i.e. up to 1 nanosecond resolution),
+ * are optional. The "Z" suffix indicates the timezone ("UTC"); the timezone
+ * is required. A proto3 JSON serializer should always use UTC (as indicated by
+ * "Z") when printing the Timestamp type and a proto3 JSON parser should be
+ * able to accept both UTC and other timezones (as indicated by an offset).
+ *
+ * For example, "2017-01-15T01:30:15.01Z" encodes 15.01 seconds past
+ * 01:30 UTC on January 15, 2017.
+ *
+ * In JavaScript, one can convert a Date object to this format using the
+ * standard
+ * [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)
+ * method. In Python, a standard `datetime.datetime` object can be converted
+ * to this format using
+ * [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with
+ * the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use
+ * the Joda Time's [`ISODateTimeFormat.dateTime()`](
+ * http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()
+ * ) to obtain a formatter capable of generating timestamps in this format.
+ *
+ *
+ * @generated from message google.protobuf.Timestamp
+ */
+class Timestamp extends Message {
+    constructor(data) {
+        super();
+        /**
+         * Represents seconds of UTC time since Unix epoch
+         * 1970-01-01T00:00:00Z. Must be from 0001-01-01T00:00:00Z to
+         * 9999-12-31T23:59:59Z inclusive.
+         *
+         * @generated from field: int64 seconds = 1;
+         */
+        this.seconds = protoInt64.zero;
+        /**
+         * Non-negative fractions of a second at nanosecond resolution. Negative
+         * second values with fractions must still have non-negative nanos values
+         * that count forward in time. Must be from 0 to 999,999,999
+         * inclusive.
+         *
+         * @generated from field: int32 nanos = 2;
+         */
+        this.nanos = 0;
+        proto3.util.initPartial(data, this);
+    }
+    fromJson(json, options) {
+        if (typeof json !== "string") {
+            throw new Error(`cannot decode google.protobuf.Timestamp from JSON: ${proto3.json.debug(json)}`);
+        }
+        const matches = json.match(/^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:Z|\.([0-9]{3,9})Z|([+-][0-9][0-9]:[0-9][0-9]))$/);
+        if (!matches) {
+            throw new Error(`cannot decode google.protobuf.Timestamp from JSON: invalid RFC 3339 string`);
+        }
+        const ms = Date.parse(matches[1] + "-" + matches[2] + "-" + matches[3] + "T" + matches[4] + ":" + matches[5] + ":" + matches[6] + (matches[8] ? matches[8] : "Z"));
+        if (Number.isNaN(ms)) {
+            throw new Error(`cannot decode google.protobuf.Timestamp from JSON: invalid RFC 3339 string`);
+        }
+        if (ms < Date.parse("0001-01-01T00:00:00Z") || ms > Date.parse("9999-12-31T23:59:59Z")) {
+            throw new Error(`cannot decode message google.protobuf.Timestamp from JSON: must be from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59Z inclusive`);
+        }
+        this.seconds = protoInt64.parse(ms / 1000);
+        this.nanos = 0;
+        if (matches[7]) {
+            this.nanos = (parseInt("1" + matches[7] + "0".repeat(9 - matches[7].length)) - 1000000000);
+        }
+        return this;
+    }
+    toJson(options) {
+        const ms = Number(this.seconds) * 1000;
+        if (ms < Date.parse("0001-01-01T00:00:00Z") || ms > Date.parse("9999-12-31T23:59:59Z")) {
+            throw new Error(`cannot encode google.protobuf.Timestamp to JSON: must be from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59Z inclusive`);
+        }
+        if (this.nanos < 0) {
+            throw new Error(`cannot encode google.protobuf.Timestamp to JSON: nanos must not be negative`);
+        }
+        let z = "Z";
+        if (this.nanos > 0) {
+            const nanosStr = (this.nanos + 1000000000).toString().substring(1);
+            if (nanosStr.substring(3) === "000000") {
+                z = "." + nanosStr.substring(0, 3) + "Z";
+            }
+            else if (nanosStr.substring(6) === "000") {
+                z = "." + nanosStr.substring(0, 6) + "Z";
+            }
+            else {
+                z = "." + nanosStr + "Z";
+            }
+        }
+        return new Date(ms).toISOString().replace(".000Z", z);
+    }
+    toDate() {
+        return new Date(Number(this.seconds) * 1000 + Math.ceil(this.nanos / 1000000));
+    }
+    static now() {
+        return Timestamp.fromDate(new Date());
+    }
+    static fromDate(date) {
+        const ms = date.getTime();
+        return new Timestamp({
+            seconds: protoInt64.parse(Math.floor(ms / 1000)),
+            nanos: (ms % 1000) * 1000000,
+        });
+    }
+    static fromBinary(bytes, options) {
+        return new Timestamp().fromBinary(bytes, options);
+    }
+    static fromJson(jsonValue, options) {
+        return new Timestamp().fromJson(jsonValue, options);
+    }
+    static fromJsonString(jsonString, options) {
+        return new Timestamp().fromJsonString(jsonString, options);
+    }
+    static equals(a, b) {
+        return proto3.util.equals(Timestamp, a, b);
+    }
+}
+Timestamp.runtime = proto3;
+Timestamp.typeName = "google.protobuf.Timestamp";
+Timestamp.fields = proto3.util.newFieldList(() => [
+    { no: 1, name: "seconds", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 2, name: "nanos", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+]);
+
+;// CONCATENATED MODULE: ./node_modules/@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/label_pb.js
+// Copyright 2023-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// @generated by protoc-gen-es v1.7.2
+// @generated from file buf/registry/module/v1/label.proto (package buf.registry.module.v1, syntax proto3)
+/* eslint-disable */
+// @ts-nocheck
+
+
+
+/**
+ * A check status for a Commit.
+ *
+ * Policy checks are an enterprise-only feature - contact us to learn more!
+ *
+ * @generated from enum buf.registry.module.v1.CommitCheckStatus
+ */
+const CommitCheckStatus = proto3.makeEnum(
+  "buf.registry.module.v1.CommitCheckStatus",
+  [
+    {no: 0, name: "COMMIT_CHECK_STATUS_UNSPECIFIED", localName: "UNSPECIFIED"},
+    {no: 1, name: "COMMIT_CHECK_STATUS_DISABLED", localName: "DISABLED"},
+    {no: 2, name: "COMMIT_CHECK_STATUS_PASSED", localName: "PASSED"},
+    {no: 3, name: "COMMIT_CHECK_STATUS_PENDING", localName: "PENDING"},
+    {no: 4, name: "COMMIT_CHECK_STATUS_REJECTED", localName: "REJECTED"},
+    {no: 5, name: "COMMIT_CHECK_STATUS_APPROVED", localName: "APPROVED"},
+  ],
+);
+
+/**
+ * A label on a specific Module.
+ *
+ * Many Labels can be associated with one Commit.
+ *
+ * @generated from message buf.registry.module.v1.Label
+ */
+const Label = proto3.makeMessageType(
+  "buf.registry.module.v1.Label",
+  () => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "create_time", kind: "message", T: Timestamp },
+    { no: 3, name: "update_time", kind: "message", T: Timestamp },
+    { no: 4, name: "archive_time", kind: "message", T: Timestamp },
+    { no: 5, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "owner_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "module_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: "commit_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: "updated_by_user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 10, name: "commit_check_state", kind: "message", T: CommitCheckState },
+  ],
+);
+
+/**
+ * The state of a Commit's policy checks for a particular Label.
+ *
+ * Policy checks are an enterprise-only feature - contact us to learn more!
+ *
+ * @generated from message buf.registry.module.v1.CommitCheckState
+ */
+const CommitCheckState = proto3.makeMessageType(
+  "buf.registry.module.v1.CommitCheckState",
+  () => [
+    { no: 1, name: "status", kind: "enum", T: proto3.getEnumType(CommitCheckStatus) },
+    { no: 3, name: "update_time", kind: "message", T: Timestamp },
+  ],
+);
+
+/**
+ * LabelRef is a reference to a Label, either an id or a fully-qualified name.
+ *
+ * This is used in requests.
+ *
+ * @generated from message buf.registry.module.v1.LabelRef
+ */
+const LabelRef = proto3.makeMessageType(
+  "buf.registry.module.v1.LabelRef",
+  () => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "value" },
+    { no: 2, name: "name", kind: "message", T: LabelRef_Name, oneof: "value" },
+  ],
+);
+
+/**
+ * The fully-qualified name of a Label within a BSR instance.
+ *
+ * A Name uniquely identifies a Label.
+ * This is used for requests when a caller only has the label name and not the ID.
+ *
+ * @generated from message buf.registry.module.v1.LabelRef.Name
+ */
+const LabelRef_Name = proto3.makeMessageType(
+  "buf.registry.module.v1.LabelRef.Name",
+  () => [
+    { no: 1, name: "owner", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "module", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "label", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+  {localName: "LabelRef_Name"},
+);
+
+/**
+ * A reference to a Label scoped to a Module, either an id or a name.
+ *
+ * This is used in requests.
+ *
+ * @generated from message buf.registry.module.v1.ScopedLabelRef
+ */
+const ScopedLabelRef = proto3.makeMessageType(
+  "buf.registry.module.v1.ScopedLabelRef",
+  () => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "value" },
+    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "value" },
+  ],
+);
+
+
+;// CONCATENATED MODULE: ./node_modules/@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/module_pb.js
+// Copyright 2023-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// @generated by protoc-gen-es v1.7.2
+// @generated from file buf/registry/module/v1/module.proto (package buf.registry.module.v1, syntax proto3)
+/* eslint-disable */
+// @ts-nocheck
+
+
+
+/**
+ * The visibility of a Module, currently either public or private.
+ *
+ * @generated from enum buf.registry.module.v1.ModuleVisibility
+ */
+const ModuleVisibility = proto3.makeEnum(
+  "buf.registry.module.v1.ModuleVisibility",
+  [
+    {no: 0, name: "MODULE_VISIBILITY_UNSPECIFIED", localName: "UNSPECIFIED"},
+    {no: 1, name: "MODULE_VISIBILITY_PUBLIC", localName: "PUBLIC"},
+    {no: 2, name: "MODULE_VISIBILITY_PRIVATE", localName: "PRIVATE"},
+  ],
+);
+
+/**
+ * The state of a Module, currently either active or deprecated.
+ *
+ * @generated from enum buf.registry.module.v1.ModuleState
+ */
+const ModuleState = proto3.makeEnum(
+  "buf.registry.module.v1.ModuleState",
+  [
+    {no: 0, name: "MODULE_STATE_UNSPECIFIED", localName: "UNSPECIFIED"},
+    {no: 1, name: "MODULE_STATE_ACTIVE", localName: "ACTIVE"},
+    {no: 2, name: "MODULE_STATE_DEPRECATED", localName: "DEPRECATED"},
+  ],
+);
+
+/**
+ * A module within the BSR.
+ *
+ * @generated from message buf.registry.module.v1.Module
+ */
+const Module = proto3.makeMessageType(
+  "buf.registry.module.v1.Module",
+  () => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "create_time", kind: "message", T: Timestamp },
+    { no: 3, name: "update_time", kind: "message", T: Timestamp },
+    { no: 4, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "owner_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "visibility", kind: "enum", T: proto3.getEnumType(ModuleVisibility) },
+    { no: 7, name: "state", kind: "enum", T: proto3.getEnumType(ModuleState) },
+    { no: 8, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: "url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 10, name: "default_label_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+);
+
+/**
+ * ModuleRef is a reference to a Module, either an id or a fully-qualified name.
+ *
+ * This is used in requests.
+ *
+ * @generated from message buf.registry.module.v1.ModuleRef
+ */
+const ModuleRef = proto3.makeMessageType(
+  "buf.registry.module.v1.ModuleRef",
+  () => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "value" },
+    { no: 2, name: "name", kind: "message", T: ModuleRef_Name, oneof: "value" },
+  ],
+);
+
+/**
+ * The fully-qualified name of a Module within a BSR instance.
+ *
+ * A Name uniquely identifies a Module.
+ * This is used for requests when a caller only has the module name and not the ID.
+ *
+ * @generated from message buf.registry.module.v1.ModuleRef.Name
+ */
+const ModuleRef_Name = proto3.makeMessageType(
+  "buf.registry.module.v1.ModuleRef.Name",
+  () => [
+    { no: 1, name: "owner", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "module", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+  {localName: "ModuleRef_Name"},
+);
+
+
+;// CONCATENATED MODULE: ./node_modules/@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/digest_pb.js
+// Copyright 2023-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// @generated by protoc-gen-es v1.7.2
+// @generated from file buf/registry/module/v1/digest.proto (package buf.registry.module.v1, syntax proto3)
+/* eslint-disable */
+// @ts-nocheck
+
+
+
+/**
+ * The type of Digest.
+ *
+ * @generated from enum buf.registry.module.v1.DigestType
+ */
+const DigestType = proto3.makeEnum(
+  "buf.registry.module.v1.DigestType",
+  [
+    {no: 0, name: "DIGEST_TYPE_UNSPECIFIED", localName: "UNSPECIFIED"},
+    {no: 1, name: "DIGEST_TYPE_B5", localName: "B5"},
+  ],
+);
+
+/**
+ * A digest of a Commit's content.
+ *
+ * A digest represents all content for a single Commit, including its .proto files, documentation
+ * files, license files, and the digests of its dependencies.
+ *
+ * @generated from message buf.registry.module.v1.Digest
+ */
+const Digest = proto3.makeMessageType(
+  "buf.registry.module.v1.Digest",
+  () => [
+    { no: 1, name: "type", kind: "enum", T: proto3.getEnumType(DigestType) },
+    { no: 2, name: "value", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+  ],
+);
+
+
+;// CONCATENATED MODULE: ./node_modules/@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/commit_pb.js
+// Copyright 2023-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// @generated by protoc-gen-es v1.7.2
+// @generated from file buf/registry/module/v1/commit.proto (package buf.registry.module.v1, syntax proto3)
+/* eslint-disable */
+// @ts-nocheck
+
+
+
+
+/**
+ * A commit on a specific Module.
+ *
+ * Commits are immutable.
+ *
+ * Many Commits may be associated with one Digest.
+ *
+ * Note that the Digest returned on a Commit depends on the requested DigestType in the
+ * RPC that returned the Commit.
+ *
+ * @generated from message buf.registry.module.v1.Commit
+ */
+const Commit = proto3.makeMessageType(
+  "buf.registry.module.v1.Commit",
+  () => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "create_time", kind: "message", T: Timestamp },
+    { no: 3, name: "owner_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "module_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "digest", kind: "message", T: Digest },
+    { no: 6, name: "created_by_user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "source_control_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+);
+
+
+;// CONCATENATED MODULE: ./node_modules/@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/resource_pb.js
+// Copyright 2023-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// @generated by protoc-gen-es v1.7.2
+// @generated from file buf/registry/module/v1/resource.proto (package buf.registry.module.v1, syntax proto3)
+/* eslint-disable */
+// @ts-nocheck
+
+
+
+
+
+
+/**
+ * A Module, Label, or Commit.
+ *
+ * @generated from message buf.registry.module.v1.Resource
+ */
+const Resource = proto3.makeMessageType(
+  "buf.registry.module.v1.Resource",
+  () => [
+    { no: 1, name: "module", kind: "message", T: Module, oneof: "value" },
+    { no: 2, name: "label", kind: "message", T: Label, oneof: "value" },
+    { no: 3, name: "commit", kind: "message", T: Commit, oneof: "value" },
+  ],
+);
+
+/**
+ * A reference to any of:
+ *   - Module
+ *   - Label
+ *   - Commit
+ *
+ * The id or name is resolved to a specific resource.
+ * If an id is passed, this is interpreted as being the id of the resource.
+ * If a name is passed, the semantics according to ResourceRef.Name are applied.
+ *
+ * ResourceRefs can only be used in requests, and only for read-only RPCs, that is
+ * you should not use an arbitrary reference when modifying a specific resource.
+ *
+ * @generated from message buf.registry.module.v1.ResourceRef
+ */
+const ResourceRef = proto3.makeMessageType(
+  "buf.registry.module.v1.ResourceRef",
+  () => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "value" },
+    { no: 2, name: "name", kind: "message", T: ResourceRef_Name, oneof: "value" },
+  ],
+);
+
+/**
+ * The fully-qualified name component of a ResourceRef.
+ *
+ * The following semantics are applied:
+ *   - If the child oneof is not specified, the name is interpreted to reference a Module.
+ *   - If label_name is specified, the name is interpreted to reference a Label.
+ *   - If ref is specified, it is interpreted to be either an id or name.
+ *     - If an id, this is equivalent to setting the id field on ResourceRef. However,
+ *       backends can choose to validate that the owner and module fields match the resource
+ *       referenced, as additional validation.
+ *     - If a name, this is interpreted to be a Label name.
+ *     - If there is a conflict between names across resources (for example, there is a Commit id
+ *       and Label name of the same value), the following order of precedence is applied:
+ *       - Commit
+ *       - Label
+ *
+ * Names can only be used in requests, and only for read-only RPCs, that is
+ * you should not use an arbitrary reference when modifying a specific resource.
+ *
+ * @generated from message buf.registry.module.v1.ResourceRef.Name
+ */
+const ResourceRef_Name = proto3.makeMessageType(
+  "buf.registry.module.v1.ResourceRef.Name",
+  () => [
+    { no: 1, name: "owner", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "module", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "label_name", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "child" },
+    { no: 4, name: "ref", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "child" },
+  ],
+  {localName: "ResourceRef_Name"},
+);
+
+
+;// CONCATENATED MODULE: ./node_modules/@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/label_service_pb.js
+// Copyright 2023-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// @generated by protoc-gen-es v1.7.2
+// @generated from file buf/registry/module/v1/label_service.proto (package buf.registry.module.v1, syntax proto3)
+/* eslint-disable */
+// @ts-nocheck
+
+
+
+
+
+
+/**
+ * @generated from message buf.registry.module.v1.GetLabelsRequest
+ */
+const GetLabelsRequest = proto3.makeMessageType(
+  "buf.registry.module.v1.GetLabelsRequest",
+  () => [
+    { no: 1, name: "label_refs", kind: "message", T: LabelRef, repeated: true },
+  ],
+);
+
+/**
+ * @generated from message buf.registry.module.v1.GetLabelsResponse
+ */
+const GetLabelsResponse = proto3.makeMessageType(
+  "buf.registry.module.v1.GetLabelsResponse",
+  () => [
+    { no: 1, name: "labels", kind: "message", T: Label, repeated: true },
+  ],
+);
+
+/**
+ * @generated from message buf.registry.module.v1.ListLabelsRequest
+ */
+const ListLabelsRequest = proto3.makeMessageType(
+  "buf.registry.module.v1.ListLabelsRequest",
+  () => [
+    { no: 1, name: "page_size", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 2, name: "page_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "resource_ref", kind: "message", T: ResourceRef },
+    { no: 4, name: "order", kind: "enum", T: proto3.getEnumType(ListLabelsRequest_Order) },
+    { no: 5, name: "commit_check_statuses", kind: "enum", T: proto3.getEnumType(CommitCheckStatus), repeated: true },
+    { no: 6, name: "name_query", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "archive_filter", kind: "enum", T: proto3.getEnumType(ListLabelsRequest_ArchiveFilter) },
+  ],
+);
+
+/**
+ * The list order.
+ *
+ * @generated from enum buf.registry.module.v1.ListLabelsRequest.Order
+ */
+const ListLabelsRequest_Order = proto3.makeEnum(
+  "buf.registry.module.v1.ListLabelsRequest.Order",
+  [
+    {no: 0, name: "ORDER_UNSPECIFIED", localName: "UNSPECIFIED"},
+    {no: 1, name: "ORDER_CREATE_TIME_DESC", localName: "CREATE_TIME_DESC"},
+    {no: 2, name: "ORDER_CREATE_TIME_ASC", localName: "CREATE_TIME_ASC"},
+    {no: 3, name: "ORDER_UPDATE_TIME_DESC", localName: "UPDATE_TIME_DESC"},
+    {no: 4, name: "ORDER_UPDATE_TIME_ASC", localName: "UPDATE_TIME_ASC"},
+  ],
+);
+
+/**
+ * A filter on whether a Label is archived or not.
+ *
+ * @generated from enum buf.registry.module.v1.ListLabelsRequest.ArchiveFilter
+ */
+const ListLabelsRequest_ArchiveFilter = proto3.makeEnum(
+  "buf.registry.module.v1.ListLabelsRequest.ArchiveFilter",
+  [
+    {no: 0, name: "ARCHIVE_FILTER_UNSPECIFIED", localName: "UNSPECIFIED"},
+    {no: 1, name: "ARCHIVE_FILTER_UNARCHIVED_ONLY", localName: "UNARCHIVED_ONLY"},
+    {no: 2, name: "ARCHIVE_FILTER_ARCHIVED_ONLY", localName: "ARCHIVED_ONLY"},
+    {no: 3, name: "ARCHIVE_FILTER_ALL", localName: "ALL"},
+  ],
+);
+
+/**
+ * @generated from message buf.registry.module.v1.ListLabelsResponse
+ */
+const ListLabelsResponse = proto3.makeMessageType(
+  "buf.registry.module.v1.ListLabelsResponse",
+  () => [
+    { no: 1, name: "next_page_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "labels", kind: "message", T: Label, repeated: true },
+  ],
+);
+
+/**
+ * @generated from message buf.registry.module.v1.ListLabelHistoryRequest
+ */
+const ListLabelHistoryRequest = proto3.makeMessageType(
+  "buf.registry.module.v1.ListLabelHistoryRequest",
+  () => [
+    { no: 1, name: "page_size", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 2, name: "page_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "label_ref", kind: "message", T: LabelRef },
+    { no: 4, name: "order", kind: "enum", T: proto3.getEnumType(ListLabelHistoryRequest_Order) },
+    { no: 5, name: "commit_check_statuses", kind: "enum", T: proto3.getEnumType(CommitCheckStatus), repeated: true },
+    { no: 6, name: "start_commit_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "only_commits_with_changed_digests", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ],
+);
+
+/**
+ * The list order.
+ *
+ * @generated from enum buf.registry.module.v1.ListLabelHistoryRequest.Order
+ */
+const ListLabelHistoryRequest_Order = proto3.makeEnum(
+  "buf.registry.module.v1.ListLabelHistoryRequest.Order",
+  [
+    {no: 0, name: "ORDER_UNSPECIFIED", localName: "UNSPECIFIED"},
+    {no: 1, name: "ORDER_DESC", localName: "DESC"},
+    {no: 2, name: "ORDER_ASC", localName: "ASC"},
+  ],
+);
+
+/**
+ * @generated from message buf.registry.module.v1.ListLabelHistoryResponse
+ */
+const ListLabelHistoryResponse = proto3.makeMessageType(
+  "buf.registry.module.v1.ListLabelHistoryResponse",
+  () => [
+    { no: 1, name: "next_page_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "values", kind: "message", T: ListLabelHistoryResponse_Value, repeated: true },
+  ],
+);
+
+/**
+ * @generated from message buf.registry.module.v1.ListLabelHistoryResponse.Value
+ */
+const ListLabelHistoryResponse_Value = proto3.makeMessageType(
+  "buf.registry.module.v1.ListLabelHistoryResponse.Value",
+  () => [
+    { no: 1, name: "commit", kind: "message", T: Commit },
+    { no: 2, name: "commit_check_state", kind: "message", T: CommitCheckState },
+  ],
+  {localName: "ListLabelHistoryResponse_Value"},
+);
+
+/**
+ * @generated from message buf.registry.module.v1.CreateOrUpdateLabelsRequest
+ */
+const CreateOrUpdateLabelsRequest = proto3.makeMessageType(
+  "buf.registry.module.v1.CreateOrUpdateLabelsRequest",
+  () => [
+    { no: 1, name: "values", kind: "message", T: CreateOrUpdateLabelsRequest_Value, repeated: true },
+  ],
+);
+
+/**
+ * An individual request to create or update a Label.
+ *
+ * @generated from message buf.registry.module.v1.CreateOrUpdateLabelsRequest.Value
+ */
+const CreateOrUpdateLabelsRequest_Value = proto3.makeMessageType(
+  "buf.registry.module.v1.CreateOrUpdateLabelsRequest.Value",
+  () => [
+    { no: 1, name: "label_ref", kind: "message", T: LabelRef },
+    { no: 2, name: "commit_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+  {localName: "CreateOrUpdateLabelsRequest_Value"},
+);
+
+/**
+ * @generated from message buf.registry.module.v1.CreateOrUpdateLabelsResponse
+ */
+const CreateOrUpdateLabelsResponse = proto3.makeMessageType(
+  "buf.registry.module.v1.CreateOrUpdateLabelsResponse",
+  () => [
+    { no: 1, name: "labels", kind: "message", T: Label, repeated: true },
+  ],
+);
+
+/**
+ * @generated from message buf.registry.module.v1.ArchiveLabelsRequest
+ */
+const ArchiveLabelsRequest = proto3.makeMessageType(
+  "buf.registry.module.v1.ArchiveLabelsRequest",
+  () => [
+    { no: 1, name: "label_refs", kind: "message", T: LabelRef, repeated: true },
+  ],
+);
+
+/**
+ * @generated from message buf.registry.module.v1.ArchiveLabelsResponse
+ */
+const ArchiveLabelsResponse = proto3.makeMessageType(
+  "buf.registry.module.v1.ArchiveLabelsResponse",
+  [],
+);
+
+/**
+ * @generated from message buf.registry.module.v1.UnarchiveLabelsRequest
+ */
+const UnarchiveLabelsRequest = proto3.makeMessageType(
+  "buf.registry.module.v1.UnarchiveLabelsRequest",
+  () => [
+    { no: 1, name: "label_refs", kind: "message", T: LabelRef, repeated: true },
+  ],
+);
+
+/**
+ * @generated from message buf.registry.module.v1.UnarchiveLabelsResponse
+ */
+const UnarchiveLabelsResponse = proto3.makeMessageType(
+  "buf.registry.module.v1.UnarchiveLabelsResponse",
+  [],
+);
+
+
+;// CONCATENATED MODULE: ./node_modules/@buf/bufbuild_registry.connectrpc_es/buf/registry/module/v1/label_service_connect.js
+// Copyright 2023-2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// @generated by protoc-gen-connect-es v1.4.0
+// @generated from file buf/registry/module/v1/label_service.proto (package buf.registry.module.v1, syntax proto3)
+/* eslint-disable */
+// @ts-nocheck
+
+
+
+
+/**
+ * Operate on Labels.
+ *
+ * @generated from service buf.registry.module.v1.LabelService
+ */
+const LabelService = {
+  typeName: "buf.registry.module.v1.LabelService",
+  methods: {
+    /**
+     * Get Labels by id or name.
+     *
+     * @generated from rpc buf.registry.module.v1.LabelService.GetLabels
+     */
+    getLabels: {
+      name: "GetLabels",
+      I: GetLabelsRequest,
+      O: GetLabelsResponse,
+      kind: service_type_MethodKind.Unary,
+      idempotency: MethodIdempotency.NoSideEffects,
+    },
+    /**
+     * List Labels for a given Module, Commit, or CommitDigest.
+     *
+     * @generated from rpc buf.registry.module.v1.LabelService.ListLabels
+     */
+    listLabels: {
+      name: "ListLabels",
+      I: ListLabelsRequest,
+      O: ListLabelsResponse,
+      kind: service_type_MethodKind.Unary,
+      idempotency: MethodIdempotency.NoSideEffects,
+    },
+    /**
+     * List the history of a Label.
+     *
+     * @generated from rpc buf.registry.module.v1.LabelService.ListLabelHistory
+     */
+    listLabelHistory: {
+      name: "ListLabelHistory",
+      I: ListLabelHistoryRequest,
+      O: ListLabelHistoryResponse,
+      kind: service_type_MethodKind.Unary,
+      idempotency: MethodIdempotency.NoSideEffects,
+    },
+    /**
+     * Create or update Labels on a Module.
+     *
+     * If the Label does not exist, it will be created.
+     * If the Label was archived, it will be unarchived.
+     * If the Label already existed, the Commit in the request has to be newer than the Commit that
+     * the Label is currently pointing to, otherwise an error is returned.
+     *
+     * This operation is atomic. Either all Labels are created/updated or an error is returned.
+     *
+     * @generated from rpc buf.registry.module.v1.LabelService.CreateOrUpdateLabels
+     */
+    createOrUpdateLabels: {
+      name: "CreateOrUpdateLabels",
+      I: CreateOrUpdateLabelsRequest,
+      O: CreateOrUpdateLabelsResponse,
+      kind: service_type_MethodKind.Unary,
+      idempotency: MethodIdempotency.Idempotent,
+    },
+    /**
+     * Archive existing Labels.
+     *
+     * This operation is atomic. Either all Labels are archived or an error is returned.
+     *
+     * @generated from rpc buf.registry.module.v1.LabelService.ArchiveLabels
+     */
+    archiveLabels: {
+      name: "ArchiveLabels",
+      I: ArchiveLabelsRequest,
+      O: ArchiveLabelsResponse,
+      kind: service_type_MethodKind.Unary,
+      idempotency: MethodIdempotency.Idempotent,
+    },
+    /**
+     * Unarchive existing Labels.
+     *
+     * This operation is atomic. Either all Labels are unarchived or an error is returned.
+     *
+     * @generated from rpc buf.registry.module.v1.LabelService.UnarchiveLabels
+     */
+    unarchiveLabels: {
+      name: "UnarchiveLabels",
+      I: UnarchiveLabelsRequest,
+      O: UnarchiveLabelsResponse,
+      kind: service_type_MethodKind.Unary,
+      idempotency: MethodIdempotency.Idempotent,
+    },
+  }
+};
+
+
 ;// CONCATENATED MODULE: ./src/inputs.ts
 // Copyright 2024 Buf Technologies, Inc.
 //
@@ -46010,7 +53853,7 @@ function getInputs() {
     return {
         version: core.getInput("version"),
         username: core.getInput("username"),
-        token: core.getInput("token"),
+        token: core.getInput("token") || getEnv("BUF_TOKEN"),
         domain: core.getInput("domain"),
         github_token: core.getInput("github_token"),
         setup_only: core.getBooleanInput("setup_only"),
@@ -46292,9 +54135,24 @@ function parseModuleNames(input) {
     if (config.modules) {
         return config.modules
             .map((module) => module.name)
-            .filter((n) => n);
+            .filter((n) => n)
+            .map((n) => parseModuleName(n));
     }
     return [];
+}
+// parseModuleName parses the module name into its registry, owner, and
+// repository parts.
+function parseModuleName(moduleName) {
+    const parts = moduleName.split("/");
+    if (parts.length != 3) {
+        throw new Error(`Invalid module name: ${moduleName}`);
+    }
+    return {
+        name: moduleName,
+        registry: parts[0],
+        owner: parts[1],
+        module: parts[2],
+    };
 }
 
 ;// CONCATENATED MODULE: ./src/main.ts
@@ -46311,6 +54169,10 @@ function parseModuleNames(input) {
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+
+
+
 
 
 
@@ -46397,7 +54259,7 @@ async function runWorkflow(bufPath, bufVersion, inputs) {
     }
     const moduleNames = parseModuleNames(inputs.input);
     steps.push = await push(bufPath, bufVersion, inputs, moduleNames);
-    steps.archive = await archive(bufPath, inputs, moduleNames);
+    steps.archive = await archive(inputs, moduleNames);
     return steps;
 }
 // login logs in to the Buf registry, storing credentials.
@@ -46407,13 +54269,12 @@ async function login(bufPath, inputs) {
         core.debug("Skipping login, no username provided");
         return;
     }
-    const resolvedToken = token || getEnv("BUF_TOKEN");
-    if (resolvedToken == "") {
+    if (token == "") {
         throw new Error("No token provided");
     }
     core.debug(`Logging in as ${username}`);
     await exec.exec(bufPath, ["registry", "login", domain, "--username", username, "--token-stdin"], {
-        input: Buffer.from(resolvedToken + "\n"),
+        input: Buffer.from(token + "\n"),
     });
 }
 // build runs the "buf build" step.
@@ -46568,7 +54429,7 @@ async function push(bufPath, bufVersion, inputs, moduleNames) {
     return run(bufPath, args);
 }
 // archive runs the "buf archive" step.
-async function archive(bufPath, inputs, moduleNames) {
+async function archive(inputs, moduleNames) {
     if (!inputs.archive) {
         core.info("Skipping archive");
         return skip();
@@ -46581,26 +54442,48 @@ async function archive(bufPath, inputs, moduleNames) {
         core.info("Skipping archive, no labels provided");
         return skip();
     }
-    // Archive is a special case, we want to iterate over all labels to allow
-    // for partial failures. If one label fails on not exists, we continue to the
-    // next. The last result is returned.
-    let result = pass();
-    for (const label of inputs.archive_labels) {
-        const args = ["beta", "registry", "archive", "--label", label];
-        if (inputs.input) {
-            args.push(inputs.input);
-        }
-        const latestResult = await run(bufPath, args);
-        if (latestResult.status == Status.Failed) {
-            if (/Failure: label with name ".*" was not found/.test(latestResult.stderr)) {
-                core.info(`Skipping archive, label ${label} not found`);
-                continue;
+    for (const moduleName of moduleNames) {
+        const baseURL = `https://${moduleName.registry}`;
+        const transport = createConnectTransport({
+            baseUrl: baseURL,
+        });
+        const client = createPromiseClient(LabelService, transport);
+        for (const label of inputs.archive_labels) {
+            const labelRef = new LabelRef({
+                value: {
+                    case: "name",
+                    value: {
+                        owner: moduleName.owner,
+                        module: moduleName.module,
+                        label: label,
+                    },
+                },
+            });
+            try {
+                await client.archiveLabels({ labelRefs: [labelRef] }, {
+                    headers: {
+                        Authorization: `Bearer ${inputs.token}`,
+                    },
+                });
+                core.info(`Archived label ${label} for ${moduleName.name}`);
             }
-            return latestResult;
+            catch (err) {
+                const connectError = connect_error_ConnectError.from(err);
+                if (connectError.code == code_Code.NotFound) {
+                    core.info(`Skipping archive, label ${label} not found for ${moduleName.name}`);
+                    continue;
+                }
+                core.error(`Failed to archive label ${label} for ${moduleName.name}: ${connectError.message}`);
+                return {
+                    status: Status.Failed,
+                    exitCode: 1,
+                    stdout: "",
+                    stderr: connectError.message,
+                };
+            }
         }
-        result = latestResult;
     }
-    return result;
+    return pass();
 }
 // Status is the status of a command execution.
 var Status;

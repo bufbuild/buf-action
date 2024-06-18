@@ -17,9 +17,16 @@ import * as fs from "fs";
 import * as path from "path";
 import * as yaml from "yaml";
 
+export interface ModuleName {
+  name: string; // Full module name
+  registry: string;
+  owner: string;
+  module: string;
+}
+
 // parseModuleNames extracts the module names from the given input. The input
 // is a directory containing a buf.yaml file.
-export function parseModuleNames(input: string): string[] {
+export function parseModuleNames(input: string): ModuleName[] {
   const bufYamlPath = path.join(input, "buf.yaml");
   const configFile = fs.readFileSync(bufYamlPath, "utf8").trim();
   const config = yaml.parse(configFile);
@@ -30,7 +37,23 @@ export function parseModuleNames(input: string): string[] {
   if (config.modules) {
     return config.modules
       .map((module: { name: string | undefined }) => module.name)
-      .filter((n: string | undefined) => n);
+      .filter((n: string | undefined) => n)
+      .map((n: string) => parseModuleName(n));
   }
   return [];
+}
+
+// parseModuleName parses the module name into its registry, owner, and
+// repository parts.
+export function parseModuleName(moduleName: string): ModuleName {
+  const parts = moduleName.split("/");
+  if (parts.length != 3) {
+    throw new Error(`Invalid module name: ${moduleName}`);
+  }
+  return {
+    name: moduleName,
+    registry: parts[0],
+    owner: parts[1],
+    module: parts[2],
+  };
 }
