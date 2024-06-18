@@ -27,7 +27,7 @@ inputs:
       Version of the Buf CLI to use.
       Example:
         with:
-          version: 1.32.2
+          version: 1.33.0
     required: false
   username:
     description: |-
