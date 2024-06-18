@@ -53853,7 +53853,7 @@ function getInputs() {
     return {
         version: core.getInput("version"),
         username: core.getInput("username"),
-        token: core.getInput("token"),
+        token: core.getInput("token") || getEnv("BUF_TOKEN"),
         domain: core.getInput("domain"),
         github_token: core.getInput("github_token"),
         setup_only: core.getBooleanInput("setup_only"),
@@ -54269,13 +54269,12 @@ async function login(bufPath, inputs) {
         core.debug("Skipping login, no username provided");
         return;
     }
-    const resolvedToken = token || getEnv("BUF_TOKEN");
-    if (resolvedToken == "") {
+    if (token == "") {
         throw new Error("No token provided");
     }
     core.debug(`Logging in as ${username}`);
     await exec.exec(bufPath, ["registry", "login", domain, "--username", username, "--token-stdin"], {
-        input: Buffer.from(resolvedToken + "\n"),
+        input: Buffer.from(token + "\n"),
     });
 }
 // build runs the "buf build" step.
@@ -54463,7 +54462,7 @@ async function archive(inputs, moduleNames) {
             try {
                 await client.archiveLabels({ labelRefs: [labelRef] }, {
                     headers: {
-                        Authorization: `Bearer ${core.getInput("token") || getEnv("BUF_TOKEN")}`,
+                        Authorization: `Bearer ${inputs.token}`,
                     },
                 });
                 core.info(`Archived label ${label} for ${moduleName.name}`);

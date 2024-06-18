@@ -52,7 +52,7 @@ export function getInputs(): Inputs {
   return {
     version: core.getInput("version"),
     username: core.getInput("username"),
-    token: core.getInput("token"),
+    token: core.getInput("token") || getEnv("BUF_TOKEN"),
     domain: core.getInput("domain"),
     github_token: core.getInput("github_token"),
     setup_only: core.getBooleanInput("setup_only"),

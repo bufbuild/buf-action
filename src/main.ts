@@ -134,8 +134,7 @@ async function login(bufPath: string, inputs: Inputs) {
     core.debug("Skipping login, no username provided");
     return;
   }
-  const resolvedToken = token || getEnv("BUF_TOKEN");
-  if (resolvedToken == "") {
+  if (token == "") {
     throw new Error("No token provided");
   }
   core.debug(`Logging in as ${username}`);
@@ -143,7 +142,7 @@ async function login(bufPath: string, inputs: Inputs) {
     bufPath,
     ["registry", "login", domain, "--username", username, "--token-stdin"],
     {
-      input: Buffer.from(resolvedToken + "\n"),
+      input: Buffer.from(token + "\n"),
     },
   );
 }
@@ -348,7 +347,7 @@ async function archive(
           { labelRefs: [labelRef] },
           {
             headers: {
-              Authorization: `Bearer ${core.getInput("token") || getEnv("BUF_TOKEN")}`,
+              Authorization: `Bearer ${inputs.token}`,
             },
           },
         );
