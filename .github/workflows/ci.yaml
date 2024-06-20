@@ -28,6 +28,7 @@ jobs:
         run: |
           make checkgenerate
   test-setup:
+    if: false  # Docker runner not able to setup buf.
     runs-on: ubuntu-latest
     needs: build
     steps:

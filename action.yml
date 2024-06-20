@@ -198,5 +198,5 @@ outputs:
       Version of the Buf CLI used.
 
 runs:
-  using: "node20"
-  main: "./dist/index.js"
+  using: "docker"
+  image: "Dockerfile"
