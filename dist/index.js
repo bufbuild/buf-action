@@ -53861,7 +53861,6 @@ function getInputs() {
         // Inputs shared between buf steps.
         input: core.getInput("input"),
         config: core.getInput("config"),
-        disable_symlinks: core.getBooleanInput("disable_symlinks"),
         paths: core.getMultilineInput("paths"),
         exclude_paths: core.getMultilineInput("exclude_paths"),
         exclude_imports: core.getBooleanInput("exclude_imports"),
@@ -54286,9 +54285,6 @@ async function build(bufPath, inputs) {
     if (inputs.config != "") {
         args.push("--config", inputs.config);
     }
-    if (inputs.disable_symlinks) {
-        args.push("--disable-symlinks");
-    }
     for (const path of inputs.paths) {
         args.push("--path", path);
     }
@@ -54312,9 +54308,6 @@ async function lint(bufPath, inputs) {
     }
     if (inputs.config != "") {
         args.push("--config", inputs.config);
-    }
-    if (inputs.disable_symlinks) {
-        args.push("--disable-symlinks");
     }
     for (const path of inputs.paths) {
         args.push("--path", path);
@@ -54342,9 +54335,6 @@ async function format(bufPath, inputs) {
     }
     if (inputs.config) {
         args.push("--config", inputs.config);
-    }
-    if (inputs.disable_symlinks) {
-        args.push("--disable-symlinks");
     }
     for (const path of inputs.paths) {
         args.push("--path", path);
@@ -54375,9 +54365,6 @@ async function breaking(bufPath, inputs) {
     }
     if (inputs.config) {
         args.push("--config", inputs.config);
-    }
-    if (inputs.disable_symlinks) {
-        args.push("--disable-symlinks");
     }
     for (const path of inputs.paths) {
         args.push("--path", path);
@@ -54419,9 +54406,6 @@ async function push(bufPath, bufVersion, inputs, moduleNames) {
     }
     if (inputs.push_source_control_url) {
         args.push("--source-control-url", inputs.push_source_control_url);
-    }
-    if (inputs.disable_symlinks) {
-        args.push("--disable-symlinks");
     }
     for (const label of inputs.push_labels) {
         args.push("--label", label);

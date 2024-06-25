@@ -26,7 +26,6 @@ export interface Inputs {
 
   input: string;
   config: string;
-  disable_symlinks: boolean;
   paths: string[];
   exclude_paths: string[];
   exclude_imports: boolean;
@@ -60,7 +59,6 @@ export function getInputs(): Inputs {
     // Inputs shared between buf steps.
     input: core.getInput("input"),
     config: core.getInput("config"),
-    disable_symlinks: core.getBooleanInput("disable_symlinks"),
     paths: core.getMultilineInput("paths"),
     exclude_paths: core.getMultilineInput("exclude_paths"),
     exclude_imports: core.getBooleanInput("exclude_imports"),

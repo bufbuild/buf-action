@@ -156,9 +156,6 @@ async function build(bufPath: string, inputs: Inputs): Promise<Result> {
   if (inputs.config != "") {
     args.push("--config", inputs.config);
   }
-  if (inputs.disable_symlinks) {
-    args.push("--disable-symlinks");
-  }
   for (const path of inputs.paths) {
     args.push("--path", path);
   }
@@ -183,9 +180,6 @@ async function lint(bufPath: string, inputs: Inputs): Promise<Result> {
   }
   if (inputs.config != "") {
     args.push("--config", inputs.config);
-  }
-  if (inputs.disable_symlinks) {
-    args.push("--disable-symlinks");
   }
   for (const path of inputs.paths) {
     args.push("--path", path);
@@ -214,9 +208,6 @@ async function format(bufPath: string, inputs: Inputs): Promise<Result> {
   }
   if (inputs.config) {
     args.push("--config", inputs.config);
-  }
-  if (inputs.disable_symlinks) {
-    args.push("--disable-symlinks");
   }
   for (const path of inputs.paths) {
     args.push("--path", path);
@@ -248,9 +239,6 @@ async function breaking(bufPath: string, inputs: Inputs): Promise<Result> {
   }
   if (inputs.config) {
     args.push("--config", inputs.config);
-  }
-  if (inputs.disable_symlinks) {
-    args.push("--disable-symlinks");
   }
   for (const path of inputs.paths) {
     args.push("--path", path);
@@ -298,9 +286,6 @@ async function push(
   }
   if (inputs.push_source_control_url) {
     args.push("--source-control-url", inputs.push_source_control_url);
-  }
-  if (inputs.disable_symlinks) {
-    args.push("--disable-symlinks");
   }
   for (const label of inputs.push_labels) {
     args.push("--label", label);

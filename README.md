@@ -42,7 +42,45 @@ jobs:
           token: ${{ secrets.BUF_TOKEN }}
 ```
 
-See [action.yml](action.yml) for all options.
+### Inputs
+
+| Parameter                       | Description                                        | Default            |
+|:--------------------------------|:---------------------------------------------------|:-------------------|
+| `version`                       | Version of the `buf` CLI to use. | Latest [version][buf-releases] |
+| `username`                      | Username for logging into the Buf Schema Registry. | |
+| `token`                         | API token for logging into the Buf Schema Registry. | |
+| `domain`                        | Domain for logging into the Buf Schema Registry.| `buf.build` |
+| `github_actor`                  | GitHub actor for API requests. | GitHub actor from environment |
+| `github_token`                  | GitHub token for API requests. | GitHub token from environment |
+| `setup_only`                    | Setup only the buf environment, optionally logging into the BSR, but without executing other commands. | |
+| `comment`                       | Comment the results on the pull request. | Only on pull requests |
+| `input`                         | Input for the buf command. | |
+| `config`                        | Path to buf.yaml or data to use for configuration. | |
+| `paths`                         | Limit to specific files or directories (separated by newlines). | |
+| `exclude_paths`                 | Exclude specific files or directories (separated by newlines). | |
+| `exclude_imports`               | Exclude imports. | |
+| `lint`                          | Whether to run the linting step. | Runs on pull requests |
+| `format`                        | Whether to run the formatting step. | Runs on pull requests |
+| `breaking`                      | Whether to run the breaking change detection step. | Runs on pull requests |
+| `breaking_against`              | Input to compare against. | Base of the pull requests or the commit before the push event |
+| `breaking_against_config`       | Path to buf.yaml or data to use for the against configuration. | |
+| `breaking_limit_to_input_files` | Only run breaking checks against the files in the input. | |
+| `push`                          | Whether to run the push step. | Runs on pushes |
+| `push_create`                   | Create the repository if it does not exist. | True |
+| `push_create_visibility`        | Repository visibility setting if created. | Unset is equivelent to "private" |
+| `push_labels`                   | Associate the labels with the pushed modules (separated by newlines). | |
+| `push_git_metadta`              | Set additional git metadata on push. | True |
+| `push_source_control_url`       | Set the source control URL for each pushed modules. | |
+| `archive`                       | Whether to run the archive step. | Runs on deletes |
+| `archive_labels`                | Labels to archive (separated by newlines), | |
+
+See [action.yml](action.yml) for reference to all available inputs.
+
+### Ouputs 
+
+| Parameter      | Description                                        |
+|:---------------|:---------------------------------------------------|
+| `buf_version`  | Version of the `buf` CLI used. | 
 
 ### Default behavior
 
@@ -295,6 +333,7 @@ Offered under the [Apache 2 license][license].
 [buf-cli]: https://github.com/bufbuild/buf
 [buf-lint]: https://github.com/marketplace/actions/buf-lint
 [buf-push]: https://github.com/marketplace/actions/buf-push
+[buf-releases]: https://github.com/bufbuild/buf/releases
 [ci]: https://github.com/bufbuild/buf-action/actions/workflows/ci.yaml
 [license]: https://github.com/bufbuild/bufisk/blob/main/LICENSE
 [slack]: https://buf.build/links/slack

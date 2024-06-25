@@ -59,7 +59,7 @@ inputs:
     default: "false"
   comment:
     description: |-
-      Comment on the pull request with the results of the lint, format, and breaking steps.
+      Comment on the pull request with the results of each step.
     required: false
     default: ${{ github.event_name == 'pull_request' }}
 
@@ -71,12 +71,6 @@ inputs:
     description: |-
       Path to buf.yaml or data to use for configuration.
     required: false
-  disable_symlinks:
-    description: |-
-      Disables following symlinks when reading sources or configuration from the local filesystem.
-      By default, symlinks are followed by buf, but never followed on the Buf Schema Registry.
-    required: false
-    default: "false"
   paths:
     description: |-
       Limit to specific files or directories (separated by newlines).
@@ -117,7 +111,7 @@ inputs:
 
   breaking:
     description: |-
-      Whether to run breaking change detection.
+      Whether to run the breaking change detection step.
       Runs by default on pull requests if the "buf skip breaking" label is not applied.
     required: false
     default: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'buf skip breaking') }}
