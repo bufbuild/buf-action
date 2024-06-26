@@ -6,7 +6,7 @@ SHELL := bash
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 MAKEFLAGS += --no-print-directory
-BUF_VERSION ?= 1.33.0
+BUF_VERSION ?= 1.34.0
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
