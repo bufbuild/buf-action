@@ -12,10 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as core from "@actions/core";
-import * as fs from "fs";
-import * as path from "path";
-import * as yaml from "yaml";
+import * as exec from "@actions/exec";
 
 export interface ModuleName {
   name: string; // Full module name
@@ -26,21 +23,21 @@ export interface ModuleName {
 
 // parseModuleNames extracts the module names from the given input. The input
 // is a directory containing a buf.yaml file.
-export function parseModuleNames(input: string): ModuleName[] {
-  const bufYamlPath = path.join(input, "buf.yaml");
-  const configFile = fs.readFileSync(bufYamlPath, "utf8").trim();
-  const config = yaml.parse(configFile);
-  core.debug(`Parsed ${bufYamlPath}: ${JSON.stringify(config)}`);
-  if (config.name) {
-    return [config.name];
-  }
-  if (config.modules) {
-    return config.modules
-      .map((module: { name: string | undefined }) => module.name)
-      .filter((n: string | undefined) => n)
-      .map((n: string) => parseModuleName(n));
-  }
-  return [];
+export async function parseModuleNames(
+  bufPath: string,
+  input: string,
+): Promise<ModuleName[]> {
+  return exec
+    .getExecOutput(bufPath, ["config", "ls-modules", "--format", "name"], {
+      cwd: input,
+    })
+    .then((output) => {
+      const stdout = output.stdout.trim();
+      if (stdout === "") {
+        return [];
+      }
+      return stdout.split("\n").map((n) => parseModuleName(n));
+    });
 }
 
 // parseModuleName parses the module name into its registry, owner, and
