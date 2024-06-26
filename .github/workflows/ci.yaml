@@ -9,6 +9,7 @@ permissions:
   pull-requests: write
 env:
   BUF_VERSION: "1.33.0"
+  BUF_MODULE: ${{ vars.BUF_MODULE }}
 jobs:
   build:
     runs-on: ubuntu-latest
