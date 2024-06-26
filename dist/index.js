@@ -54130,7 +54130,7 @@ function parseModuleNames(input) {
     const config = dist/* parse */.Qc(configFile);
     core.debug(`Parsed ${bufYamlPath}: ${JSON.stringify(config)}`);
     if (config.name) {
-        return [config.name];
+        return [parseModuleName(config.name)];
     }
     if (config.modules) {
         return config.modules

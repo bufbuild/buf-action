@@ -32,7 +32,7 @@ export function parseModuleNames(input: string): ModuleName[] {
   const config = yaml.parse(configFile);
   core.debug(`Parsed ${bufYamlPath}: ${JSON.stringify(config)}`);
   if (config.name) {
-    return [config.name];
+    return [parseModuleName(config.name)];
   }
   if (config.modules) {
     return config.modules
