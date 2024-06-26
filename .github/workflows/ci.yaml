@@ -219,7 +219,7 @@ jobs:
           BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
         run: |
           mkdir -p proto/foo/v1
-          printf "version: v2\nmodules:\n  - path: proto\n    name: buf.build/${BUF_USERNAME}/buf-action-test\n" > buf.yaml
+          printf "version: v2\nmodules:\n  - path: proto\n    name: ${BUF_MODULE}\n" > buf.yaml
           printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > proto/foo/v1/bar.proto
       - uses: ./
         with:
@@ -241,7 +241,7 @@ jobs:
           BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
         run: |
           mkdir -p proto/foo/v1
-          printf "version: v2\nmodules:\n  - path: proto\n    name: buf.build/${BUF_USERNAME}/buf-action-test\n" > buf.yaml
+          printf "version: v2\nmodules:\n  - path: proto\n    name: ${BUF_MODULE}\n" > buf.yaml
           printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > proto/foo/v1/bar.proto
       - uses: ./
         with:
@@ -295,7 +295,7 @@ jobs:
           mkdir -p foo/foo/v1 bar/bar/v1
           printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > foo/foo/v1/bar.proto
           printf "syntax = \"proto3\";\npackage bar.v1;\nmessage Foo {}\n" > bar/bar/v1/foo.proto
-          printf "version: v2\nmodules:\n  - path: foo\n    name: buf.build/${BUF_USERNAME}/buf-action-test\n  - path: bar\n" > buf.yaml
+          printf "version: v2\nmodules:\n  - path: foo\n    name: ${BUF_MODULE}\n  - path: bar\n" > buf.yaml
       - uses: ./
         with:
           username: ${{ secrets.BUF_USERNAME }}
@@ -319,7 +319,7 @@ jobs:
           BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
         run: |
           mkdir -p proto/foo/v1
-          printf "version: v2\nmodules:\n  - path: proto\n    name: buf.build/${BUF_USERNAME}/buf-action-test\n" > buf.yaml
+          printf "version: v2\nmodules:\n  - path: proto\n    name: ${BUF_MODULE}\n" > buf.yaml
           printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > proto/foo/v1/bar.proto
       - uses: ./
         with:
@@ -346,7 +346,7 @@ jobs:
           BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
         run: |
           mkdir -p proto/foo/v1
-          printf "version: v2\nmodules:\n  - path: proto\n    name: buf.build/${BUF_USERNAME}/buf-action-test\n" > buf.yaml
+          printf "version: v2\nmodules:\n  - path: proto\n    name: ${BUF_MODULE}\n" > buf.yaml
           printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > proto/foo/v1/bar.proto
       - uses: ./
         with:
