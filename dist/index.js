@@ -53866,7 +53866,7 @@ function getInputs() {
         lint: core.getBooleanInput("lint"),
         format: core.getBooleanInput("format"),
         breaking: core.getBooleanInput("breaking"),
-        breaking_against: "",
+        breaking_against: core.getInput("breaking_against"),
         push: core.getBooleanInput("push"),
         push_disable_create: core.getBooleanInput("push_disable_create"),
         archive: core.getBooleanInput("archive"),
@@ -53875,14 +53875,18 @@ function getInputs() {
     if (lib_github.context.eventName === "push") {
         const event = lib_github.context.payload;
         core.info(`The head commit is: ${event.before}`);
-        inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.before}`;
+        if (inputs.breaking_against === "") {
+            inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.before}`;
+        }
         console.log("BREAKING AGAINST", inputs.breaking_against);
         inputs.archive_labels.push(lib_github.context.ref);
     }
     if (lib_github.context.eventName === "pull_request") {
         const event = lib_github.context.payload;
         core.info(`The head commit is: ${event.pull_request.head.sha}`);
-        inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.pull_request.base.sha}`;
+        if (inputs.breaking_against === "") {
+            inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.pull_request.base.sha}`;
+        }
         console.log("BREAKING AGAINST", inputs.breaking_against);
         inputs.archive_labels.push(lib_github.context.ref);
     }
