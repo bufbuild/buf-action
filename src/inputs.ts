@@ -74,12 +74,14 @@ export function getInputs(): Inputs {
     core.info(`The head commit is: ${event.before}`);
     inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.before}`;
     console.log("BREAKING AGAINST", inputs.breaking_against);
+    inputs.archive_labels.push(github.context.ref);
   }
   if (github.context.eventName === "pull_request") {
     const event = github.context.payload as PullRequestEvent;
     core.info(`The head commit is: ${event.pull_request.head.sha}`);
     inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.pull_request.base.sha}`;
     console.log("BREAKING AGAINST", inputs.breaking_against);
+    inputs.archive_labels.push(github.context.ref);
   }
   if (github.context.eventName === "delete") {
     const event = github.context.payload as DeleteEvent;

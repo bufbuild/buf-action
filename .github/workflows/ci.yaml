@@ -330,8 +330,6 @@ jobs:
           breaking: false
           push: false
           archive: true
-          # On push github.ref_name, on delete github.event.ref_name.
-          archive_labels: ${{ github.ref_name }}
           comment: false
   test-archive-not-exists:
     if: github.event_name == 'push'

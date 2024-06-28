@@ -53877,12 +53877,14 @@ function getInputs() {
         core.info(`The head commit is: ${event.before}`);
         inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.before}`;
         console.log("BREAKING AGAINST", inputs.breaking_against);
+        inputs.archive_labels.push(lib_github.context.ref);
     }
     if (lib_github.context.eventName === "pull_request") {
         const event = lib_github.context.payload;
         core.info(`The head commit is: ${event.pull_request.head.sha}`);
         inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.pull_request.base.sha}`;
         console.log("BREAKING AGAINST", inputs.breaking_against);
+        inputs.archive_labels.push(lib_github.context.ref);
     }
     if (lib_github.context.eventName === "delete") {
         const event = lib_github.context.payload;
