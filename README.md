@@ -71,17 +71,17 @@ Add these inputs to the `with` section of the `uses` step in the workflow file.
 | `paths`                         | Limit to specific files or directories (separated by newlines). | |
 | `exclude_paths`                 | Exclude specific files or directories (separated by newlines). | |
 | `exclude_imports`               | Exclude imports. | |
-| `lint`                          | Whether to run the linting step. | Runs on pull requests |
-| `format`                        | Whether to run the formatting step. | Runs on pull requests |
-| `breaking`                      | Whether to run the breaking change detection step. | Runs on pull requests |
+| `lint`                          | Whether to run the linting step. | Runs on pushes to Git PR |
+| `format`                        | Whether to run the formatting step. | Runs on pushes to Git PR |
+| `breaking`                      | Whether to run the breaking change detection step. | Runs on pushes to Git PR |
 | `breaking_against`              | Input to compare against. | Base of the pull requests or the commit before the push event |
-| `push`                          | Whether to run the push step. | Runs on pushes |
+| `push`                          | Whether to run the push step. | Runs on Git pushes |
 | `push_create`                   | Create the repository if it does not exist. | True |
 | `push_create_visibility`        | Repository visibility setting if created. | Unset is equivelent to "private" |
 | `push_labels`                   | Associate the labels with the pushed modules (separated by newlines). | |
 | `push_git_metadta`              | Set additional git metadata on push. | True |
 | `push_source_control_url`       | Set the source control URL for each pushed modules. | |
-| `archive`                       | Whether to run the archive step. | Runs on deletes |
+| `archive`                       | Whether to run the archive step. | Runs on Git deletes |
 | `archive_labels`                | Labels to archive (separated by newlines), | |
 
 
