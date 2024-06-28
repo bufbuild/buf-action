@@ -45988,8 +45988,6 @@ var core = __nccwpck_require__(2186);
 var exec = __nccwpck_require__(1514);
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
 var lib_github = __nccwpck_require__(5438);
-// EXTERNAL MODULE: ./node_modules/semver/index.js
-var semver = __nccwpck_require__(1383);
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/service-type.js
 // Copyright 2021-2024 Buf Technologies, Inc.
 //
@@ -53848,19 +53846,19 @@ const LabelService = {
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
 // getInputs decodes the inputs from the environment variables.
 function getInputs() {
-    return {
+    console.log("CONTEXT", lib_github.context);
+    const inputs = {
         version: core.getInput("version"),
         username: core.getInput("username"),
         token: core.getInput("token") || getEnv("BUF_TOKEN"),
         domain: core.getInput("domain"),
-        github_token: core.getInput("github_token"),
         setup_only: core.getBooleanInput("setup_only"),
-        comment: core.getBooleanInput("comment"),
+        pr_comment: core.getBooleanInput("pr_comment"),
         // Inputs shared between buf steps.
         input: core.getInput("input"),
-        config: core.getInput("config"),
         paths: core.getMultilineInput("paths"),
         exclude_paths: core.getMultilineInput("exclude_paths"),
         exclude_imports: core.getBooleanInput("exclude_imports"),
@@ -53868,18 +53866,29 @@ function getInputs() {
         lint: core.getBooleanInput("lint"),
         format: core.getBooleanInput("format"),
         breaking: core.getBooleanInput("breaking"),
-        breaking_against: core.getInput("breaking_against"),
-        breaking_against_config: core.getInput("breaking_against_config"),
-        breaking_limit_to_input_files: core.getBooleanInput("breaking_limit_to_input_files"),
+        breaking_against: "",
         push: core.getBooleanInput("push"),
-        push_create: core.getBooleanInput("push_create"),
-        push_create_visibility: core.getInput("push_create_visibility"),
-        push_labels: core.getMultilineInput("push_labels"),
-        push_git_metadata: core.getBooleanInput("push_git_metadata"),
-        push_source_control_url: core.getInput("push_source_control_url"),
+        push_disable_create: core.getBooleanInput("push_disable_create"),
         archive: core.getBooleanInput("archive"),
-        archive_labels: core.getMultilineInput("archive_labels"),
+        archive_labels: [],
     };
+    if (lib_github.context.eventName === "push") {
+        const event = lib_github.context.payload;
+        core.info(`The head commit is: ${event.before}`);
+        inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.before}`;
+        console.log("BREAKING AGAINST", inputs.breaking_against);
+    }
+    if (lib_github.context.eventName === "pull_request") {
+        const event = lib_github.context.payload;
+        core.info(`The head commit is: ${event.pull_request.head.sha}`);
+        inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.pull_request.base.sha}`;
+        console.log("BREAKING AGAINST", inputs.breaking_against);
+    }
+    if (lib_github.context.eventName === "delete") {
+        const event = lib_github.context.payload;
+        inputs.archive_labels.push(event.ref);
+    }
+    return inputs;
 }
 // getEnv returns the case insensitive value of the environment variable.
 // Prefers the lowercase version of the variable if it exists.
@@ -53909,6 +53918,8 @@ var Outputs;
 
 // EXTERNAL MODULE: ./node_modules/@actions/tool-cache/lib/tool-cache.js
 var tool_cache = __nccwpck_require__(7784);
+// EXTERNAL MODULE: ./node_modules/semver/index.js
+var semver = __nccwpck_require__(1383);
 ;// CONCATENATED MODULE: ./src/installer.ts
 // Copyright 2024 Buf Technologies, Inc.
 //
@@ -54180,11 +54191,11 @@ function parseModuleName(moduleName) {
 
 
 
-
 // main is the entrypoint for the action.
 async function main() {
     const inputs = getInputs();
-    const github = (0,lib_github.getOctokit)(inputs.github_token);
+    console.log("inputs", inputs);
+    const github = (0,lib_github.getOctokit)(core.getInput("github_token"));
     const [bufPath, bufVersion] = await installBuf(github, inputs.version);
     core.setOutput(Outputs.BufVersion, bufVersion);
     await login(bufPath, inputs);
@@ -54193,11 +54204,11 @@ async function main() {
         return;
     }
     // Run the buf workflow.
-    const steps = await runWorkflow(bufPath, bufVersion, inputs);
+    const steps = await runWorkflow(bufPath, inputs);
     // Create a summary of the steps.
     const summary = createSummary(inputs, steps);
     // Comment on the PR with the summary, if requested.
-    if (inputs.comment) {
+    if (inputs.pr_comment) {
         await commentOnPR(lib_github.context, github, summary.stringify());
     }
     // Write the summary to a file defined by GITHUB_STEP_SUMMARY.
@@ -54239,7 +54250,7 @@ function createSummary(inputs, steps) {
 // First, it builds the input. If the build fails, the workflow stops.
 // Next, it runs lint, format, and breaking checks. If any of these fail, the workflow stops.
 // Finally, it pushes or archives the label to the registry.
-async function runWorkflow(bufPath, bufVersion, inputs) {
+async function runWorkflow(bufPath, inputs) {
     const steps = {};
     steps.build = await build(bufPath, inputs);
     if (steps.build.status == Status.Failed) {
@@ -54257,7 +54268,7 @@ async function runWorkflow(bufPath, bufVersion, inputs) {
         return steps;
     }
     const moduleNames = parseModuleNames(inputs.input);
-    steps.push = await push(bufPath, bufVersion, inputs, moduleNames);
+    steps.push = await push(bufPath, inputs, moduleNames);
     steps.archive = await archive(inputs, moduleNames);
     return steps;
 }
@@ -54282,9 +54293,6 @@ async function build(bufPath, inputs) {
     if (inputs.input) {
         args.push(inputs.input);
     }
-    if (inputs.config != "") {
-        args.push("--config", inputs.config);
-    }
     for (const path of inputs.paths) {
         args.push("--path", path);
     }
@@ -54305,9 +54313,6 @@ async function lint(bufPath, inputs) {
     const args = ["lint", "--error-format", "github-actions"];
     if (inputs.input) {
         args.push(inputs.input);
-    }
-    if (inputs.config != "") {
-        args.push("--config", inputs.config);
     }
     for (const path of inputs.paths) {
         args.push("--path", path);
@@ -54333,9 +54338,6 @@ async function format(bufPath, inputs) {
     if (inputs.input) {
         args.push(inputs.input);
     }
-    if (inputs.config) {
-        args.push("--config", inputs.config);
-    }
     for (const path of inputs.paths) {
         args.push("--path", path);
     }
@@ -54360,12 +54362,6 @@ async function breaking(bufPath, inputs) {
     if (inputs.input) {
         args.push(inputs.input);
     }
-    if (inputs.breaking_against_config) {
-        args.push("--against-config", inputs.breaking_against_config);
-    }
-    if (inputs.config) {
-        args.push("--config", inputs.config);
-    }
     for (const path of inputs.paths) {
         args.push("--path", path);
     }
@@ -54378,7 +54374,7 @@ async function breaking(bufPath, inputs) {
     return run(bufPath, args);
 }
 // push runs the "buf push" step.
-async function push(bufPath, bufVersion, inputs, moduleNames) {
+async function push(bufPath, inputs, moduleNames) {
     if (!inputs.push) {
         core.info("Skipping push");
         return skip();
@@ -54387,28 +54383,18 @@ async function push(bufPath, bufVersion, inputs, moduleNames) {
         core.info("Skipping push, no named modules detected");
         return skip();
     }
-    const args = ["push", "--error-format", "github-actions"];
-    // Add --exclude-unnamed on buf versions that support the flag.
-    if (semver.satisfies(bufVersion, ">=1.33.0")) {
-        args.push("--exclude-unnamed");
-    }
+    const args = [
+        "push",
+        "--error-format",
+        "github-actions",
+        "--exclude-unnamed",
+        "--create",
+        "--create-visibility",
+        "private",
+        "--git-metadata",
+    ];
     if (inputs.input) {
         args.push(inputs.input);
-    }
-    if (inputs.push_create) {
-        args.push("--create");
-        if (inputs.push_create_visibility) {
-            args.push("--create-visibility", inputs.push_create_visibility);
-        }
-    }
-    if (inputs.push_git_metadata) {
-        args.push("--git-metadata");
-    }
-    if (inputs.push_source_control_url) {
-        args.push("--source-control-url", inputs.push_source_control_url);
-    }
-    for (const label of inputs.push_labels) {
-        args.push("--label", label);
     }
     return run(bufPath, args);
 }

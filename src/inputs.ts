@@ -14,7 +14,11 @@
 
 import * as core from "@actions/core";
 import * as github from "@actions/github";
-import { PushEvent, PullRequestEvent } from "@octokit/webhooks-definitions/schema"
+import {
+  PushEvent,
+  PullRequestEvent,
+  DeleteEvent,
+} from "@octokit/webhooks-definitions/schema";
 
 // Inputs are the inputs to the action, matching the inputs in the action.yml.
 export interface Inputs {
@@ -26,7 +30,6 @@ export interface Inputs {
   pr_comment: boolean;
 
   input: string;
-  config: string;
   paths: string[];
   exclude_paths: string[];
   exclude_imports: boolean;
@@ -36,11 +39,7 @@ export interface Inputs {
   breaking: boolean;
   breaking_against: string;
   push: boolean;
-  push_create: boolean;
-  push_create_visibility: string;
-  push_labels: string[];
-  push_git_metadata: boolean;
-  push_source_control_url: string;
+  push_disable_create: boolean;
   archive: boolean;
   archive_labels: string[];
 }
@@ -48,7 +47,7 @@ export interface Inputs {
 // getInputs decodes the inputs from the environment variables.
 export function getInputs(): Inputs {
   console.log("CONTEXT", github.context);
-  let input = {
+  const inputs: Inputs = {
     version: core.getInput("version"),
     username: core.getInput("username"),
     token: core.getInput("token") || getEnv("BUF_TOKEN"),
@@ -57,7 +56,6 @@ export function getInputs(): Inputs {
     pr_comment: core.getBooleanInput("pr_comment"),
     // Inputs shared between buf steps.
     input: core.getInput("input"),
-    config: core.getInput("config"),
     paths: core.getMultilineInput("paths"),
     exclude_paths: core.getMultilineInput("exclude_paths"),
     exclude_imports: core.getBooleanInput("exclude_imports"),
@@ -67,27 +65,27 @@ export function getInputs(): Inputs {
     breaking: core.getBooleanInput("breaking"),
     breaking_against: "",
     push: core.getBooleanInput("push"),
-    push_create: core.getBooleanInput("push_create"),
-    push_create_visibility: core.getInput("push_create_visibility"),
-    push_labels: core.getMultilineInput("push_labels"),
-    push_git_metadata: core.getBooleanInput("push_git_metadata"),
-    push_source_control_url: core.getInput("push_source_control_url"),
+    push_disable_create: core.getBooleanInput("push_disable_create"),
     archive: core.getBooleanInput("archive"),
-    archive_labels: core.getMultilineInput("archive_labels"),
+    archive_labels: [],
   };
-  if (github.context.eventName === 'push') {
-    const event = github.context.payload as PushEvent
-    core.info(`The head commit is: ${event.before}`)
-    input.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.before}`
-    console.log("BREAKING AGAINST", input.breaking_against)
+  if (github.context.eventName === "push") {
+    const event = github.context.payload as PushEvent;
+    core.info(`The head commit is: ${event.before}`);
+    inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.before}`;
+    console.log("BREAKING AGAINST", inputs.breaking_against);
   }
-  if (github.context.eventName === 'pull_request') {
-    const event = github.context.payload as PullRequestEvent
-    core.info(`The head commit is: ${event.pull_request.head.sha}`)
-    input.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.pull_request.base.sha}`
-    console.log("BREAKING AGAINST", input.breaking_against)
+  if (github.context.eventName === "pull_request") {
+    const event = github.context.payload as PullRequestEvent;
+    core.info(`The head commit is: ${event.pull_request.head.sha}`);
+    inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.pull_request.base.sha}`;
+    console.log("BREAKING AGAINST", inputs.breaking_against);
   }
-
+  if (github.context.eventName === "delete") {
+    const event = github.context.payload as DeleteEvent;
+    inputs.archive_labels.push(event.ref);
+  }
+  return inputs;
 }
 
 // getEnv returns the case insensitive value of the environment variable.
