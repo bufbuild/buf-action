@@ -20,7 +20,6 @@ export interface Inputs {
   username: string;
   token: string;
   domain: string;
-  github_token: string;
   setup_only: boolean;
   comment: boolean;
 
@@ -53,7 +52,6 @@ export function getInputs(): Inputs {
     username: core.getInput("username"),
     token: core.getInput("token") || getEnv("BUF_TOKEN"),
     domain: core.getInput("domain"),
-    github_token: core.getInput("github_token"),
     setup_only: core.getBooleanInput("setup_only"),
     comment: core.getBooleanInput("comment"),
     // Inputs shared between buf steps.

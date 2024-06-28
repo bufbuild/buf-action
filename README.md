@@ -65,8 +65,6 @@ Add these inputs to the `with` section of the `uses` step in the workflow file.
 | `username`                      | Username for logging into the Buf Schema Registry. | |
 | `token`                         | API token for logging into the Buf Schema Registry. | |
 | `domain`                        | Domain for logging into the Buf Schema Registry.| `buf.build` |
-| `github_actor`                  | GitHub actor for API requests. | GitHub actor from environment |
-| `github_token`                  | GitHub token for API requests. | GitHub token from environment |
 | `setup_only`                    | Setup only the buf environment, optionally logging into the BSR, but without executing other commands. | |
 | `comment`                       | Comment the results on the pull request. | Only on pull requests |
 | `input`                         | Input for the buf command. | |
