@@ -57,8 +57,6 @@ The default behavior of this action is the recommended workflow for a GitHub rep
 To customize the behavior of the action, you can set the following inputs in the workflow file.
 Add these inputs under the `with` section of the `uses` step in the workflow file.
 
-```yaml
-
 | Parameter                       | Description                                        | Default            |
 |:--------------------------------|:---------------------------------------------------|:-------------------|
 | `version`                       | Version of the `buf` CLI to use. | Latest [version][buf-releases] |
@@ -80,18 +78,32 @@ Add these inputs under the `with` section of the `uses` step in the workflow fil
 | `archive`                       | Whether to run the archive step. | Runs on Git deletes |
 
 
-### Skipping steps
+### Skip the breaking change detection step
 
-The default configuration makes it possible to skip lint, formatting, or breaking change checks on a PR
-by adding a label with a (case-insensitive) special name to that PR.
+By default, the action runs the breaking change detection step on every pull request.
+The input `breaking` is configued to allow skipping the breaking change detection step.
+Add the label `buf skip breaking` to the PR to skip breaking change detection.
+This can be overrided by setting the input `breaking` to `false`.
 
-- `buf skip breaking`: skips breaking change detection.
-- `buf skip lint`: skips lint.
-- `buf skip format`: skips format. 
+![Skip breaking changes example](./static/img/skip-breaking-example.png "Skip breaking changes example")
 
 Ensure the workflow file includes the `pull_request` event types `labeled` and `unlabeled` so checks re-run on label changes.
-To disable this behaviour, override the action inputs `breaking`, `lint`, and `format`.
+To disable this behaviour, override the action input `breaking`.
+
 See [examples/disable-skip/buf-ci.yaml](examples/disable-skip/buf-ci.yaml) for an example.
+
+### Disable steps
+
+To disable parts of the workflow, each step corresponds to a boolean flag in the input.
+For example to disable formatting set the input `format` to `false`:
+
+```yaml
+- uses: bufbuild/buf-action@v0.1
+  with:
+    format: false
+```
+
+See [action.yml](action.yml) for all available inputs.
 
 ### Versioning
 
@@ -207,19 +219,6 @@ Subsequent steps will have `buf` available in their $PATH and can invoke `buf` d
 ```
 
 See the [only-setup.yaml](examples/only-setup/buf-ci.yaml) example.
-
-### Skip steps
-
-To skip or disable parts of the workflow, each step corresponds to a boolean flag in the input.
-For example to disable formatting set the input `format` to `false`:
-
-```yaml
-- uses: bufbuild/buf-action@v0.1
-  with:
-    format: false
-```
-
-See [action.yml](action.yml) for all available inputs.
 
 ### Customize when steps run
 
