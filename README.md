@@ -50,7 +50,6 @@ On a pull request, the action will run all checks (using `buf build`, `buf lint`
 
 When you delete a Git branch or tag, the action will archive the corresponding label on the BSR.
 
-This behavior can be configured to fit your desired workflow.
 
 ### Configuration
 
