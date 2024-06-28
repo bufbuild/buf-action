@@ -65,23 +65,23 @@ Add these inputs under the `with` section of the `uses` step in the workflow fil
 
 | Parameter                       | Description                                        | Default            |
 |:--------------------------------|:---------------------------------------------------|:-------------------|
-| `version`                       | Version of the `buf` CLI to use. | Latest [version][buf-releases] |
-| `username`                      | Username for [logging into the BSR](https://buf.build/docs/bsr/authentication). | |
-| `token`                         | API token for logging into the BSR. | |
-| `domain`                        | Domain for logging into the BSR, enterpise only.| `buf.build` |
-| `setup_only`                    | Setup only the buf environment, optionally logging into the BSR, but without executing other commands. | |
-| `pr_comment`                    | Comment the results on the pull request. | Only on pull requests |
-| `input`                         | [Input](https://buf.build/docs/reference/inputs) for the buf command. | |
-| `paths`                         | Limit to specific files or directories (separated by newlines). | |
-| `exclude_paths`                 | Exclude specific files or directories (separated by newlines). | |
-| `exclude_imports`               | Exclude imports. | |
-| `lint`                          | Whether to run the linting step. | Runs on pushes to Git PR |
-| `format`                        | Whether to run the formatting step. | Runs on pushes to Git PR |
+| `archive`                       | Whether to run the archive step. | Runs on Git deletes |
 | `breaking`                      | Whether to run the breaking change detection step. | Runs on pushes to Git PR |
 | `breaking_against`              | [Input](https://buf.build/docs/reference/inputs) to compare against. | Base of the PR or the commit before the event |
+| `domain`                        | Domain for logging into the BSR, enterpise only.| `buf.build` |
+| `exclude_imports`               | Exclude imports. | |
+| `exclude_paths`                 | Exclude specific files or directories (separated by newlines). | |
+| `format`                        | Whether to run the formatting step. | Runs on pushes to Git PR |
+| `input`                         | [Input](https://buf.build/docs/reference/inputs) for the buf command. | |
+| `lint`                          | Whether to run the linting step. | Runs on pushes to Git PR |
+| `paths`                         | Limit to specific files or directories (separated by newlines). | |
+| `pr_comment`                    | Comment the results on the pull request. | Only on pull requests |
 | `push`                          | Whether to run the push step. | Runs on Git pushes |
 | `push_disable_create`           | Disables repository creation if it does not exist. | False |
-| `archive`                       | Whether to run the archive step. | Runs on Git deletes |
+| `setup_only`                    | Setup only the buf environment, optionally logging into the BSR, but without executing other commands. | |
+| `token`                         | API token for logging into the BSR. | |
+| `username`                      | Username for [logging into the BSR](https://buf.build/docs/bsr/authentication). | |
+| `version`                       | Version of the `buf` CLI to use. | Latest [version][buf-releases] |
 
 
 ### Skip the breaking change detection step
