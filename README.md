@@ -13,7 +13,7 @@ This GitHub action makes it easy to run [`buf`][buf] within a workflow to check 
 [lint](https://buf.build/docs/lint/overview),
 [format](https://buf.build/docs/format/style),
 and [breaking change](https://buf.build/docs/breaking/overview) errors,
-as well as to automatically [publish schema changes](https://buf.build/docs/bsr/module/publish) to a public or private instance of the [Buf Schema Registry](https://buf.build/product/bsr).
+as well as to automatically [publish schema changes](https://buf.build/docs/bsr/module/publish) to the [Buf Schema Registry (BSR)](https://buf.build/product/bsr).
 
 ![Annotations example for lint and breaking changes](./static/img/annotations-example.png "Annotations example")
 
@@ -42,8 +42,6 @@ jobs:
           token: ${{ secrets.BUF_TOKEN }}
 ```
 
-See [action.yml](action.yml) for all options.
-
 ### Default behavior
 
 The default behavior of this action is the recommended workflow for a GitHub repository that contains Protobuf files.
@@ -54,18 +52,58 @@ The default behavior of this action is the recommended workflow for a GitHub rep
 | [`pull_request`][pull-request-event] | Run all checks and post (or update) a [summary comment](#summary-comment) on the PR every time the PR is updated. Errors are added as annotations on the PR. | `buf build`<br>`buf lint`<br>`buf format`<br>`buf breaking` |
 | [`delete`][delete-event] | Archive the corresponding label on the BSR every time a Git branch or tag is deleted from GitHub. | `buf beta registry archive --label` |
 
-### Skipping steps
+### Configuration
 
-The default configuration makes it possible to skip lint, formatting, or breaking change checks on a PR
-by adding a label with a (case-insensitive) special name to that PR.
+To customize the behavior of the action, you can set the following inputs in the workflow file.
+Add these inputs under the `with` section of the `uses` step in the workflow file.
 
-- `buf skip breaking`: skips breaking change detection.
-- `buf skip lint`: skips lint.
-- `buf skip format`: skips format. 
+| Parameter                       | Description                                        | Default            |
+|:--------------------------------|:---------------------------------------------------|:-------------------|
+| `version`                       | Version of the `buf` CLI to use. | Latest [version][buf-releases] |
+| `username`                      | Username for logging into the BSR. | |
+| `token`                         | API token for logging into the BSR. | |
+| `domain`                        | Domain for logging into the BSR, enterpise only.| `buf.build` |
+| `setup_only`                    | Setup only the buf environment, optionally logging into the BSR, but without executing other commands. | |
+| `pr_comment`                    | Comment the results on the pull request. | Only on pull requests |
+| `input`                         | Input for the buf command. | |
+| `paths`                         | Limit to specific files or directories (separated by newlines). | |
+| `exclude_paths`                 | Exclude specific files or directories (separated by newlines). | |
+| `exclude_imports`               | Exclude imports. | |
+| `lint`                          | Whether to run the linting step. | Runs on pushes to Git PR |
+| `format`                        | Whether to run the formatting step. | Runs on pushes to Git PR |
+| `breaking`                      | Whether to run the breaking change detection step. | Runs on pushes to Git PR |
+| `breaking_against`              | Input to compare against. | Base of the pull requests or the commit before the push event |
+| `push`                          | Whether to run the push step. | Runs on Git pushes |
+| `push_disable_create`           | Disables repository creation if it does not exist. | False |
+| `archive`                       | Whether to run the archive step. | Runs on Git deletes |
+
+
+### Skip the breaking change detection step
+
+By default, the action runs the breaking change detection step on every pull request.
+The input `breaking` is configued to allow skipping the breaking change detection step.
+Add the label `buf skip breaking` to the PR to skip breaking change detection.
+This can be overrided by setting the input `breaking` to `false`.
+
+![Skip breaking changes example](./static/img/skip-breaking-example.png "Skip breaking changes example")
 
 Ensure the workflow file includes the `pull_request` event types `labeled` and `unlabeled` so checks re-run on label changes.
-To disable this behaviour, override the action inputs `breaking`, `lint`, and `format`.
+To disable this behaviour, override the action input `breaking`.
+
 See [examples/disable-skip/buf-ci.yaml](examples/disable-skip/buf-ci.yaml) for an example.
+
+### Disable steps
+
+To disable parts of the workflow, each step corresponds to a boolean flag in the input.
+For example to disable formatting set the input `format` to `false`:
+
+```yaml
+- uses: bufbuild/buf-action@v0.1
+  with:
+    format: false
+```
+
+See [action.yml](action.yml) for all available inputs.
 
 ### Versioning
 
@@ -182,19 +220,6 @@ Subsequent steps will have `buf` available in their $PATH and can invoke `buf` d
 
 See the [only-setup.yaml](examples/only-setup/buf-ci.yaml) example.
 
-### Skip steps
-
-To skip or disable parts of the workflow, each step corresponds to a boolean flag in the input.
-For example to disable formatting set the input `format` to `false`:
-
-```yaml
-- uses: bufbuild/buf-action@v0.1
-  with:
-    format: false
-```
-
-See [action.yml](action.yml) for all available inputs.
-
 ### Customize when steps run
 
 To trigger steps on different events use the GitHub action context to deduce the event type.
@@ -223,9 +248,9 @@ For example to disable breaking change detection on commits, create an expressio
 
 See [GitHub Actions job context](https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions#job-context) documentation.
 
-### Only push on changes
+### Only push on changes to APIs
 
-To push only on changes to the protos, restrict the push step for any changes to buf releated files.
+To push only on changes to when your module changes, restrict the push step for any changes to buf releated files.
 This can be achieved by using the `paths` filter on the `push` event.
 
 ```yaml
@@ -240,27 +265,6 @@ push:
 ```
 
 See the [push-on-changes.yaml](examples/push-on-changes/buf-ci.yaml) example.
-
-### Verify generated files are up-to-date
-
-If your project uses local code generation, we recommend checking for diffs on pull requests.
-This isn't available as a built-in step because generating code may require manual setup, but can easily be added by invoking `buf`.
-
-To check that generated files match committed protobuf files, run the `buf generate` command and then `git diff`.
-If differences exist, `git diff` returns a non-zero exit code with the `--exit-code` flag.
-
-```yaml
-- name: Run buf generate
-  run: |
-    buf generate --error-format github-actions
-    git diff --exit-code gen
-```
-
-#### Builtin protoc plugins
-
-Some projects require the use of builtin `protoc` plugins, such as `protoc-gen-cpp`.
-To use these plugins, please additionaly install `protoc` such as with the action
-[`setup-protoc`](https://github.com/marketplace/actions/setup-protoc).
 
 ### Example workflows
 
@@ -295,6 +299,7 @@ Offered under the [Apache 2 license][license].
 [buf-cli]: https://github.com/bufbuild/buf
 [buf-lint]: https://github.com/marketplace/actions/buf-lint
 [buf-push]: https://github.com/marketplace/actions/buf-push
+[buf-releases]: https://github.com/bufbuild/buf/releases
 [ci]: https://github.com/bufbuild/buf-action/actions/workflows/ci.yaml
 [license]: https://github.com/bufbuild/bufisk/blob/main/LICENSE
 [slack]: https://buf.build/links/slack

@@ -15,7 +15,6 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import { context, getOctokit } from "@actions/github";
-import * as semver from "semver";
 
 import { createConnectTransport } from "@connectrpc/connect-web";
 import { createPromiseClient, ConnectError, Code } from "@connectrpc/connect";
@@ -31,7 +30,8 @@ import { parseModuleNames, ModuleName } from "./config";
 // main is the entrypoint for the action.
 async function main() {
   const inputs = getInputs();
-  const github = getOctokit(inputs.github_token);
+  console.log("inputs", inputs);
+  const github = getOctokit(core.getInput("github_token"));
   const [bufPath, bufVersion] = await installBuf(github, inputs.version);
   core.setOutput(Outputs.BufVersion, bufVersion);
   await login(bufPath, inputs);
@@ -41,11 +41,11 @@ async function main() {
     return;
   }
   // Run the buf workflow.
-  const steps = await runWorkflow(bufPath, bufVersion, inputs);
+  const steps = await runWorkflow(bufPath, inputs);
   // Create a summary of the steps.
   const summary = createSummary(inputs, steps);
   // Comment on the PR with the summary, if requested.
-  if (inputs.comment) {
+  if (inputs.pr_comment) {
     await commentOnPR(context, github, summary.stringify());
   }
   // Write the summary to a file defined by GITHUB_STEP_SUMMARY.
@@ -100,11 +100,7 @@ function createSummary(inputs: Inputs, steps: Steps): typeof core.summary {
 // First, it builds the input. If the build fails, the workflow stops.
 // Next, it runs lint, format, and breaking checks. If any of these fail, the workflow stops.
 // Finally, it pushes or archives the label to the registry.
-async function runWorkflow(
-  bufPath: string,
-  bufVersion: string,
-  inputs: Inputs,
-): Promise<Steps> {
+async function runWorkflow(bufPath: string, inputs: Inputs): Promise<Steps> {
   const steps: Steps = {};
   steps.build = await build(bufPath, inputs);
   if (steps.build.status == Status.Failed) {
@@ -122,7 +118,7 @@ async function runWorkflow(
     return steps;
   }
   const moduleNames = parseModuleNames(inputs.input);
-  steps.push = await push(bufPath, bufVersion, inputs, moduleNames);
+  steps.push = await push(bufPath, inputs, moduleNames);
   steps.archive = await archive(inputs, moduleNames);
   return steps;
 }
@@ -153,12 +149,6 @@ async function build(bufPath: string, inputs: Inputs): Promise<Result> {
   if (inputs.input) {
     args.push(inputs.input);
   }
-  if (inputs.config != "") {
-    args.push("--config", inputs.config);
-  }
-  if (inputs.disable_symlinks) {
-    args.push("--disable-symlinks");
-  }
   for (const path of inputs.paths) {
     args.push("--path", path);
   }
@@ -180,12 +170,6 @@ async function lint(bufPath: string, inputs: Inputs): Promise<Result> {
   const args = ["lint", "--error-format", "github-actions"];
   if (inputs.input) {
     args.push(inputs.input);
-  }
-  if (inputs.config != "") {
-    args.push("--config", inputs.config);
-  }
-  if (inputs.disable_symlinks) {
-    args.push("--disable-symlinks");
   }
   for (const path of inputs.paths) {
     args.push("--path", path);
@@ -212,12 +196,6 @@ async function format(bufPath: string, inputs: Inputs): Promise<Result> {
   if (inputs.input) {
     args.push(inputs.input);
   }
-  if (inputs.config) {
-    args.push("--config", inputs.config);
-  }
-  if (inputs.disable_symlinks) {
-    args.push("--disable-symlinks");
-  }
   for (const path of inputs.paths) {
     args.push("--path", path);
   }
@@ -243,15 +221,6 @@ async function breaking(bufPath: string, inputs: Inputs): Promise<Result> {
   if (inputs.input) {
     args.push(inputs.input);
   }
-  if (inputs.breaking_against_config) {
-    args.push("--against-config", inputs.breaking_against_config);
-  }
-  if (inputs.config) {
-    args.push("--config", inputs.config);
-  }
-  if (inputs.disable_symlinks) {
-    args.push("--disable-symlinks");
-  }
   for (const path of inputs.paths) {
     args.push("--path", path);
   }
@@ -267,7 +236,6 @@ async function breaking(bufPath: string, inputs: Inputs): Promise<Result> {
 // push runs the "buf push" step.
 async function push(
   bufPath: string,
-  bufVersion: string,
   inputs: Inputs,
   moduleNames: ModuleName[],
 ): Promise<Result> {
@@ -279,31 +247,18 @@ async function push(
     core.debug("Skipping push, no named modules detected");
     return skip();
   }
-  const args = ["push", "--error-format", "github-actions"];
-  // Add --exclude-unnamed on buf versions that support the flag.
-  if (semver.satisfies(bufVersion, ">=1.33.0")) {
-    args.push("--exclude-unnamed");
-  }
+  const args = [
+    "push",
+    "--error-format",
+    "github-actions",
+    "--exclude-unnamed",
+    "--create",
+    "--create-visibility",
+    "private",
+    "--git-metadata",
+  ];
   if (inputs.input) {
     args.push(inputs.input);
-  }
-  if (inputs.push_create) {
-    args.push("--create");
-    if (inputs.push_create_visibility) {
-      args.push("--create-visibility", inputs.push_create_visibility);
-    }
-  }
-  if (inputs.push_git_metadata) {
-    args.push("--git-metadata");
-  }
-  if (inputs.push_source_control_url) {
-    args.push("--source-control-url", inputs.push_source_control_url);
-  }
-  if (inputs.disable_symlinks) {
-    args.push("--disable-symlinks");
-  }
-  for (const label of inputs.push_labels) {
-    args.push("--label", label);
   }
   return run(bufPath, args);
 }
