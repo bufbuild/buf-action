@@ -249,9 +249,9 @@ For example to disable breaking change detection on commits, create an expressio
 
 See [GitHub Actions job context](https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions#job-context) documentation.
 
-### Only push on changes
+### Only push on changes to APIs
 
-To push only on changes to the protos, restrict the push step for any changes to buf releated files.
+To push only on changes to when your module changes, restrict the push step for any changes to buf releated files.
 This can be achieved by using the `paths` filter on the `push` event.
 
 ```yaml
