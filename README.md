@@ -13,7 +13,7 @@ This GitHub action makes it easy to run [`buf`][buf] within a workflow to check 
 [lint](https://buf.build/docs/lint/overview),
 [format](https://buf.build/docs/format/style),
 and [breaking change](https://buf.build/docs/breaking/overview) errors,
-as well as to automatically [publish schema changes](https://buf.build/docs/bsr/module/publish) to a public or private instance of the [Buf Schema Registry](https://buf.build/product/bsr).
+as well as to automatically [publish schema changes](https://buf.build/docs/bsr/module/publish) to the [Buf Schema Registry (BSR)](https://buf.build/product/bsr).
 
 ![Annotations example for lint and breaking changes](./static/img/annotations-example.png "Annotations example")
 
