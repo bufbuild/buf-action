@@ -64,9 +64,9 @@ Add these inputs to the `with` section of the `uses` step in the workflow file.
 | `version`                       | Version of the `buf` CLI to use. | Latest [version][buf-releases] |
 | `username`                      | Username for logging into the BSR. | |
 | `token`                         | API token for logging into the BSR. | |
-| `domain`                        | Domain for logging into the BSR.| `buf.build` |
+| `domain`                        | Domain for logging into the BSR, enterpise only.| `buf.build` |
 | `setup_only`                    | Setup only the buf environment, optionally logging into the BSR, but without executing other commands. | |
-| `comment`                       | Comment the results on the pull request. | Only on pull requests |
+| `pr_comment`                    | Comment the results on the pull request. | Only on pull requests |
 | `input`                         | Input for the buf command. | |
 | `config`                        | Path to buf.yaml or data to use for configuration. | |
 | `paths`                         | Limit to specific files or directories (separated by newlines). | |

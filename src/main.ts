@@ -45,7 +45,7 @@ async function main() {
   // Create a summary of the steps.
   const summary = createSummary(inputs, steps);
   // Comment on the PR with the summary, if requested.
-  if (inputs.comment) {
+  if (inputs.pr_comment) {
     await commentOnPR(context, github, summary.stringify());
   }
   // Write the summary to a file defined by GITHUB_STEP_SUMMARY.

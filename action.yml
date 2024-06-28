@@ -31,15 +31,15 @@ inputs:
     required: false
   username:
     description: |-
-      Username for logging into the Buf Schema Registry.
+      Username for logging into the BSR.
     required: false
   token:
     description: |-
-      API token for logging into the Buf Schema Registry.
+      API token for logging into the BSR.
     required: false
   domain:
     description: |-
-      Domain for logging into the Buf Schema Registry.
+      Domain for logging into the BSR, enterprise only.
     required: false
     default: "buf.build"
   github_actor:
@@ -57,7 +57,7 @@ inputs:
       Setup only the buf environment, optionally logging into the BSR, but without executing other commands.
     required: false
     default: "false"
-  comment:
+  pr_comment:
     description: |-
       Comment on the pull request with the results of each step.
     required: false

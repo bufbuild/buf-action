@@ -21,7 +21,7 @@ export interface Inputs {
   token: string;
   domain: string;
   setup_only: boolean;
-  comment: boolean;
+  pr_comment: boolean;
 
   input: string;
   config: string;
@@ -53,7 +53,7 @@ export function getInputs(): Inputs {
     token: core.getInput("token") || getEnv("BUF_TOKEN"),
     domain: core.getInput("domain"),
     setup_only: core.getBooleanInput("setup_only"),
-    comment: core.getBooleanInput("comment"),
+    pr_comment: core.getBooleanInput("pr_comment"),
     // Inputs shared between buf steps.
     input: core.getInput("input"),
     config: core.getInput("config"),
