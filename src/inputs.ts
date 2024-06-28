@@ -13,6 +13,8 @@
 // limitations under the License.
 
 import * as core from "@actions/core";
+import * as github from "@actions/github";
+import { PushEvent, PullRequestEvent } from "@octokit/webhooks-definitions/schema"
 
 // Inputs are the inputs to the action, matching the inputs in the action.yml.
 export interface Inputs {
@@ -33,8 +35,6 @@ export interface Inputs {
   format: boolean;
   breaking: boolean;
   breaking_against: string;
-  breaking_against_config: string;
-  breaking_limit_to_input_files: boolean;
   push: boolean;
   push_create: boolean;
   push_create_visibility: string;
@@ -47,7 +47,8 @@ export interface Inputs {
 
 // getInputs decodes the inputs from the environment variables.
 export function getInputs(): Inputs {
-  return {
+  console.log("CONTEXT", github.context);
+  let input = {
     version: core.getInput("version"),
     username: core.getInput("username"),
     token: core.getInput("token") || getEnv("BUF_TOKEN"),
@@ -64,11 +65,7 @@ export function getInputs(): Inputs {
     lint: core.getBooleanInput("lint"),
     format: core.getBooleanInput("format"),
     breaking: core.getBooleanInput("breaking"),
-    breaking_against: core.getInput("breaking_against"),
-    breaking_against_config: core.getInput("breaking_against_config"),
-    breaking_limit_to_input_files: core.getBooleanInput(
-      "breaking_limit_to_input_files",
-    ),
+    breaking_against: "",
     push: core.getBooleanInput("push"),
     push_create: core.getBooleanInput("push_create"),
     push_create_visibility: core.getInput("push_create_visibility"),
@@ -78,6 +75,19 @@ export function getInputs(): Inputs {
     archive: core.getBooleanInput("archive"),
     archive_labels: core.getMultilineInput("archive_labels"),
   };
+  if (github.context.eventName === 'push') {
+    const event = github.context.payload as PushEvent
+    core.info(`The head commit is: ${event.before}`)
+    input.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.before}`
+    console.log("BREAKING AGAINST", input.breaking_against)
+  }
+  if (github.context.eventName === 'pull_request') {
+    const event = github.context.payload as PullRequestEvent
+    core.info(`The head commit is: ${event.pull_request.head.sha}`)
+    input.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.pull_request.base.sha}`
+    console.log("BREAKING AGAINST", input.breaking_against)
+  }
+
 }
 
 // getEnv returns the case insensitive value of the environment variable.

@@ -68,7 +68,6 @@ Add these inputs to the `with` section of the `uses` step in the workflow file.
 | `setup_only`                    | Setup only the buf environment, optionally logging into the BSR, but without executing other commands. | |
 | `pr_comment`                    | Comment the results on the pull request. | Only on pull requests |
 | `input`                         | Input for the buf command. | |
-| `config`                        | Path to buf.yaml or data to use for configuration. | |
 | `paths`                         | Limit to specific files or directories (separated by newlines). | |
 | `exclude_paths`                 | Exclude specific files or directories (separated by newlines). | |
 | `exclude_imports`               | Exclude imports. | |
@@ -76,8 +75,6 @@ Add these inputs to the `with` section of the `uses` step in the workflow file.
 | `format`                        | Whether to run the formatting step. | Runs on pull requests |
 | `breaking`                      | Whether to run the breaking change detection step. | Runs on pull requests |
 | `breaking_against`              | Input to compare against. | Base of the pull requests or the commit before the push event |
-| `breaking_against_config`       | Path to buf.yaml or data to use for the against configuration. | |
-| `breaking_limit_to_input_files` | Only run breaking checks against the files in the input. | |
 | `push`                          | Whether to run the push step. | Runs on pushes |
 | `push_create`                   | Create the repository if it does not exist. | True |
 | `push_create_visibility`        | Repository visibility setting if created. | Unset is equivelent to "private" |

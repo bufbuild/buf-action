@@ -31,6 +31,7 @@ import { parseModuleNames, ModuleName } from "./config";
 // main is the entrypoint for the action.
 async function main() {
   const inputs = getInputs();
+  console.log("inputs", inputs);
   const github = getOctokit(core.getInput("github_token"));
   const [bufPath, bufVersion] = await installBuf(github, inputs.version);
   core.setOutput(Outputs.BufVersion, bufVersion);

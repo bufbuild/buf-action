@@ -67,10 +67,6 @@ inputs:
     description: |-
       Input for the buf command.
     required: false
-  config:
-    description: |-
-      Path to buf.yaml or data to use for configuration.
-    required: false
   paths:
     description: |-
       Limit to specific files or directories (separated by newlines).
@@ -115,23 +111,12 @@ inputs:
       Runs by default on pull requests if the "buf skip breaking" label is not applied.
     required: false
     default: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'buf skip breaking') }}
-  breaking_against:
-    description: |-
-      Input to compare against for breaking change detection.
-      Defaults to the base branch of the pull request or the commit before the push.
-    required: false
-    default: ${{ github.event.repository.clone_url }}#format=git,commit=${{ github.event.pull_request.base.sha || github.event.before }}
-  breaking_against_config:
-    description: |-
-      Path to buf.yaml or data to use for the against configuration.
-    required: false
-  breaking_limit_to_input_files:
-    description: |-
-      Only run breaking checks against the files in the input.
-      When set, the "breaking_against" input contains only the files in the input.
-      Overrides path.
-    required: false
-    default: "false"
+  #breaking_against:
+  #  description: |-
+  #    Input to compare against for breaking change detection.
+  #    Defaults to the base branch of the pull request or the commit before the push.
+  #  required: false
+  #  default: ${{ github.event.repository.clone_url }}#format=git,commit=${{ github.event.pull_request.base.sha || github.event.before }}
 
   push:
     description: |-
