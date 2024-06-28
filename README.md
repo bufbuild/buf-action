@@ -79,7 +79,7 @@ Add these inputs under the `with` section of the `uses` step in the workflow fil
 | `push`                          | Whether to run the push step. | Runs on Git pushes |
 | `push_disable_create`           | Disables repository creation if it does not exist. | False |
 | `setup_only`                    | Setup only the `buf` environment, optionally logging into the BSR, but without executing other commands. | |
-| `token`                         | API token for logging into the BSR. | |
+| `token`                         | API token for [logging into the BSR](https://buf.build/docs/bsr/authentication). | |
 | `username`                      | Username for [logging into the BSR](https://buf.build/docs/bsr/authentication). | |
 | `version`                       | Version of the `buf` CLI to use. | Latest [version][buf-releases] |
 
