@@ -68,17 +68,17 @@ Add these inputs under the `with` section of the `uses` step in the workflow fil
 | `archive`                       | Whether to run the archive step. | Runs on Git deletes |
 | `breaking`                      | Whether to run the breaking change detection step. | Runs on pushes to Git PR |
 | `breaking_against`              | [Input](https://buf.build/docs/reference/inputs) to compare against. | Base of the PR or the commit before the event |
-| `domain`                        | Domain for logging into the BSR, enterpise only.| `buf.build` |
+| `domain`                        | Domain for logging into the BSR, enterprise only.| `buf.build` |
 | `exclude_imports`               | Exclude imports. | |
 | `exclude_paths`                 | Exclude specific files or directories (separated by newlines). | |
 | `format`                        | Whether to run the formatting step. | Runs on pushes to Git PR |
-| `input`                         | [Input](https://buf.build/docs/reference/inputs) for the buf command. | |
+| `input`                         | [Input](https://buf.build/docs/reference/inputs) for the `buf` command. | |
 | `lint`                          | Whether to run the linting step. | Runs on pushes to Git PR |
 | `paths`                         | Limit to specific files or directories (separated by newlines). | |
 | `pr_comment`                    | Comment the results on the pull request. | Only on pull requests |
 | `push`                          | Whether to run the push step. | Runs on Git pushes |
 | `push_disable_create`           | Disables repository creation if it does not exist. | False |
-| `setup_only`                    | Setup only the buf environment, optionally logging into the BSR, but without executing other commands. | |
+| `setup_only`                    | Setup only the `buf` environment, optionally logging into the BSR, but without executing other commands. | |
 | `token`                         | API token for logging into the BSR. | |
 | `username`                      | Username for [logging into the BSR](https://buf.build/docs/bsr/authentication). | |
 | `version`                       | Version of the `buf` CLI to use. | Latest [version][buf-releases] |
@@ -92,7 +92,7 @@ To skip this step, add the label `buf skip breaking` to the PR.
 ![Skip breaking changes example](./static/img/skip-breaking-example.png "Skip breaking changes example")
 
 Ensure the workflow file includes the `pull_request` event types `labeled` and `unlabeled` so checks re-run on label changes.
-To disable this behaviour, override the action input `breaking`.
+To disable this behavior, override the action input `breaking`.
 
 See [examples/disable-skip/buf-ci.yaml](examples/disable-skip/buf-ci.yaml) for an example.
 
@@ -259,7 +259,7 @@ See [GitHub Actions job context](https://docs.github.com/en/actions/reference/co
 
 ### Only push on changes to APIs
 
-To push only on changes to when your module changes, restrict the push step for any changes to buf releated files.
+To push only on changes to when your module changes, restrict the push step for any changes to `buf` related files.
 This can be achieved by using the `paths` filter on the `push` event.
 
 ```yaml
