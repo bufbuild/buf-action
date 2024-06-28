@@ -44,13 +44,10 @@ jobs:
 
 ### Default behavior
 
-The default behavior of this action is the recommended workflow for a GitHub repository that contains Protobuf files.
-
-| GitHub action event | Default behavior | `buf` commands |
-| - | - | - |
-| [`push`][push-event] | Modules that are configured with a BSR name are [pushed to the BSR](https://buf.build/docs/bsr/module/publish) every time a new Git commit, tag, or branch is pushed to GitHub. | `buf push` |
-| [`pull_request`][pull-request-event] | Run all checks and post (or update) a [summary comment](#summary-comment) on the PR every time the PR is updated. Errors are added as annotations on the PR. | `buf build`<br>`buf lint`<br>`buf format`<br>`buf breaking` |
-| [`delete`][delete-event] | Archive the corresponding label on the BSR every time a Git branch or tag is deleted from GitHub. | `buf beta registry archive --label` |
+When you push a commit, tag, or branch to GitHub, the action will [push named modules to the BSR](https://buf.build/docs/bsr/module/publish).
+On a pull request, the action will run all checks and post a [summary comment](#summary-comment) on the PR.
+When you delete a branch or tag, the action will archive the corresponding label on the BSR.
+This behavior can be customized by setting the action inputs.
 
 ### Configuration
 
