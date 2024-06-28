@@ -123,14 +123,14 @@ If no version is specified in the workflow config, the action will resolve the v
 
 ### Authentication
 
-[Publishing schemas](https://buf.build/docs/bsr/module/publish) to the Buf Schema Registry (BSR) provides a seamless
+[Publishing schemas](https://buf.build/docs/bsr/module/publish) to the BSR provides a seamless
 way for consumers of your APIs to generate code.
 Authenticating with the BSR is required for both the push and archive label steps.
 
 To authenticate with the BSR, set the inputs `username` and `token`.
 The `username` and `token` values should be
 [stored as secrets in the repository settings](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions).
-The `token` value can be [generated from the Buf Schema Registry UI](https://buf.build/docs/bsr/authentication#create-an-api-token).
+The `token` value can be [generated from the BSR UI](https://buf.build/docs/bsr/authentication#create-an-api-token).
 
 ```yaml
 - uses: bufbuild/buf-action@v0.1
@@ -139,7 +139,7 @@ The `token` value can be [generated from the Buf Schema Registry UI](https://buf
     token: ${{ secrets.BUF_TOKEN }}
 ```
 
-For more information on authentication, see the [Buf Schema Registry Authentication Reference](https://buf.build/docs/bsr/authentication).
+For more information on authentication, see the [BSR Authentication Reference](https://buf.build/docs/bsr/authentication).
 
 ### Summary comment
 
@@ -282,7 +282,7 @@ If you're currently using any of our individual actions
 ([buf-setup-action][buf-setup], [buf-breaking-action][buf-breaking], [buf-lint-action][buf-lint], [buf-push-action][buf-push]),
 we recommend migrating to this consolidated action that has additional capabilities. Benefits to migrating include:
 - Less configuration and setup, with built-in best practices.
-- Enhanced integration with Git data when pushing to the Buf Schema Registry (BSR).
+- Enhanced integration with Git data when pushing to the BSR.
 - Status comments on pull requests.
 - Easy configuration for custom behavior.
 
