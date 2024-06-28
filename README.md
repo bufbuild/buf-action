@@ -267,27 +267,6 @@ push:
 
 See the [push-on-changes.yaml](examples/push-on-changes/buf-ci.yaml) example.
 
-### Verify generated files are up-to-date
-
-If your project uses local code generation, we recommend checking for diffs on pull requests.
-This isn't available as a built-in step because generating code may require manual setup, but can easily be added by invoking `buf`.
-
-To check that generated files match committed protobuf files, run the `buf generate` command and then `git diff`.
-If differences exist, `git diff` returns a non-zero exit code with the `--exit-code` flag.
-
-```yaml
-- name: Run buf generate
-  run: |
-    buf generate --error-format github-actions
-    git diff --exit-code gen
-```
-
-#### Builtin protoc plugins
-
-Some projects require the use of builtin `protoc` plugins, such as `protoc-gen-cpp`.
-To use these plugins, please additionaly install `protoc` such as with the action
-[`setup-protoc`](https://github.com/marketplace/actions/setup-protoc).
-
 ### Example workflows
 
 Check out the [examples](examples) directory for more detailed workflows.
