@@ -60,19 +60,19 @@ Add these inputs under the `with` section of the `uses` step in the workflow fil
 | Parameter                       | Description                                        | Default            |
 |:--------------------------------|:---------------------------------------------------|:-------------------|
 | `version`                       | Version of the `buf` CLI to use. | Latest [version][buf-releases] |
-| `username`                      | Username for logging into the BSR. | |
+| `username`                      | Username for [logging into the BSR](https://buf.build/docs/bsr/authentication). | |
 | `token`                         | API token for logging into the BSR. | |
 | `domain`                        | Domain for logging into the BSR, enterpise only.| `buf.build` |
 | `setup_only`                    | Setup only the buf environment, optionally logging into the BSR, but without executing other commands. | |
 | `pr_comment`                    | Comment the results on the pull request. | Only on pull requests |
-| `input`                         | Input for the buf command. | |
+| `input`                         | [Input](https://buf.build/docs/reference/inputs) for the buf command. | |
 | `paths`                         | Limit to specific files or directories (separated by newlines). | |
 | `exclude_paths`                 | Exclude specific files or directories (separated by newlines). | |
 | `exclude_imports`               | Exclude imports. | |
 | `lint`                          | Whether to run the linting step. | Runs on pushes to Git PR |
 | `format`                        | Whether to run the formatting step. | Runs on pushes to Git PR |
 | `breaking`                      | Whether to run the breaking change detection step. | Runs on pushes to Git PR |
-| `breaking_against`              | Input to compare against. | Base of the pull requests or the commit before the push event |
+| `breaking_against`              | [Input](https://buf.build/docs/reference/inputs) to compare against. | Base of the PR or the commit before the event |
 | `push`                          | Whether to run the push step. | Runs on Git pushes |
 | `push_disable_create`           | Disables repository creation if it does not exist. | False |
 | `archive`                       | Whether to run the archive step. | Runs on Git deletes |
@@ -170,24 +170,29 @@ jobs:
 +         comment: false
 ```
 
-### Specify input directory
+### Specify the input directory
 
-To run the action for inputs not specified at the root of the repository,
-set the input `input` to the path of your `buf.yaml` directory.
-
-Breaking change detection will also need to be configured with the correct value for `breaking_against`.
-If you are using a URL, add the `subdir` parameter to match `input`.
+To run the action for inputs not declared at the root of the repository,
+set the input `input` to the directory of your `buf.yaml` file.
 
 ```yaml
 - uses: bufbuild/buf-action@v0.1
   with:
-    input: protos
-    breaking_against: |
-      ${{ github.event.repository.clone_url }}#format=git,commit=${{ github.event.pull_request.base.sha }},subdir=protos
+    input: <path/to/module>
+```
+
+Breaking change detection by default will use the `input` value as a subdirectory for the breaking against value.
+To customize this behavior, set the input `breaking_against` to the desired input.
+
+```yaml
+- uses: bufbuild/buf-action@v0.1
+  with:
+    input: <path/to/module>
+    breaking_against: ${{ github.event.repository.clone_url }}#format=git,commit=${{ github.event.pull_request.base.sha }},subdir=<path/to/module>
 ```
 
 Alternatively, you can checkout the base for the breaking comparison to a local folder
-and then set the value of `breaking_against` to point to that local folder.
+and then set the value of `breaking_against` to the path of the base.
 
 ```yaml
 - uses: actions/checkout@v4
@@ -199,8 +204,8 @@ and then set the value of `breaking_against` to point to that local folder.
     ref: ${{ github.event.pull_request.base.sha }}
 - uses: bufbuild/buf-action@v0.1
   with:
-    input: head/protos
-    breaking_against: base/protos
+    input: head/<path/to/module>
+    breaking_against: base/<path/to/module>
 ```
 
 For more information on inputs, see the [Buf Inputs Reference](https://buf.build/docs/reference/inputs).
