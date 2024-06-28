@@ -57,6 +57,12 @@ The default behavior of this action is the recommended workflow for a GitHub rep
 To customize the behavior of the action, you can set the following inputs in the workflow file.
 Add these inputs under the `with` section of the `uses` step in the workflow file.
 
+```yaml
+- uses: bufbuild/buf-action@v0.1
+  with:
+    ...
+```
+
 | Parameter                       | Description                                        | Default            |
 |:--------------------------------|:---------------------------------------------------|:-------------------|
 | `version`                       | Version of the `buf` CLI to use. | Latest [version][buf-releases] |
