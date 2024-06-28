@@ -87,9 +87,7 @@ Add these inputs under the `with` section of the `uses` step in the workflow fil
 ### Skip the breaking change detection step
 
 By default, the action runs the breaking change detection step on every pull request.
-The input `breaking` is configued to allow skipping the breaking change detection step.
-Add the label `buf skip breaking` to the PR to skip breaking change detection.
-This can be overrided by setting the input `breaking` to `false`.
+To skip this step, add the label `buf skip breaking` to the PR.
 
 ![Skip breaking changes example](./static/img/skip-breaking-example.png "Skip breaking changes example")
 
