@@ -88,7 +88,7 @@ Add these inputs under the `with` section of the `uses` step in the workflow fil
 By default, the action runs the breaking change detection step on every pull request.
 To skip this step, add the label `buf skip breaking` to the PR.
 
-![Skip breaking changes example](./static/img/skip-breaking-example.png "Skip breaking changes example")
+![Skip breaking changes example](./static/img/skip-breaking-example2.png "Skip breaking changes example")
 
 Ensure the workflow file includes the `pull_request` event types `labeled` and `unlabeled` so checks re-run on label changes.
 
