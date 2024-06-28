@@ -44,10 +44,13 @@ jobs:
 
 ### Default behavior
 
-When you push a commit, tag, or branch to GitHub, the action will [push named modules to the BSR](https://buf.build/docs/bsr/module/publish).
-On a pull request, the action will run all checks and post a [summary comment](#summary-comment) on the PR.
-When you delete a branch or tag, the action will archive the corresponding label on the BSR.
-This behavior can be customized by setting the action inputs.
+When you push a Git commit, tag, or branch to GitHub, the action will [push named modules to the BSR](https://buf.build/docs/bsr/module/publish) using `buf push`.
+
+On a pull request, the action will run all checks and post a [summary comment](#summary-comment) on the PR using `buf build`, `buf lint`, `buf format`, and `buf breaking`.
+
+When you delete a Git branch or tag, the action will archive the corresponding label on the BSR.
+
+This behavior can be configured to fit your desired workflow.
 
 ### Configuration
 
