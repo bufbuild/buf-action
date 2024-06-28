@@ -92,8 +92,8 @@ To skip this step, add the label `buf skip breaking` to the PR.
 ![Skip breaking changes example](./static/img/skip-breaking-example.png "Skip breaking changes example")
 
 Ensure the workflow file includes the `pull_request` event types `labeled` and `unlabeled` so checks re-run on label changes.
-To disable this behavior, override the action input `breaking`.
 
+To disable the ability to skip breaking change checks via a label, set the `breaking` parameter to the value `${{ github.event_name == 'pull_request' }}` so it runs on all PRs.
 See [examples/disable-skip/buf-ci.yaml](examples/disable-skip/buf-ci.yaml) for an example.
 
 ### Disable steps
