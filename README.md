@@ -74,14 +74,6 @@ jobs:
 | `archive`                       | Whether to run the archive step. | Runs on deletes |
 | `archive_labels`                | Labels to archive (separated by newlines), | |
 
-See [action.yml](action.yml) for reference to all available inputs.
-
-### Ouputs 
-
-| Parameter      | Description                                        |
-|:---------------|:---------------------------------------------------|
-| `buf_version`  | Version of the `buf` CLI used. | 
-
 ### Default behavior
 
 The default behavior of this action is the recommended workflow for a GitHub repository that contains Protobuf files.
