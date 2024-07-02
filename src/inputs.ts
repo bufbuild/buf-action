@@ -46,7 +46,6 @@ export interface Inputs {
 
 // getInputs decodes the inputs from the environment variables.
 export function getInputs(): Inputs {
-  console.log("CONTEXT", github.context);
   const inputs: Inputs = {
     version: core.getInput("version"),
     username: core.getInput("username"),
@@ -75,7 +74,6 @@ export function getInputs(): Inputs {
     if (inputs.breaking_against === "") {
       inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.before}`;
     }
-    console.log("BREAKING AGAINST", inputs.breaking_against);
     inputs.archive_labels.push(github.context.ref);
   }
   if (github.context.eventName === "pull_request") {
@@ -84,7 +82,6 @@ export function getInputs(): Inputs {
     if (inputs.breaking_against === "") {
       inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.pull_request.base.sha}`;
     }
-    console.log("BREAKING AGAINST", inputs.breaking_against);
     inputs.archive_labels.push(github.context.ref);
   }
   if (github.context.eventName === "delete") {

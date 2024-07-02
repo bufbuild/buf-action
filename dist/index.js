@@ -53849,7 +53849,6 @@ const LabelService = {
 
 // getInputs decodes the inputs from the environment variables.
 function getInputs() {
-    console.log("CONTEXT", lib_github.context);
     const inputs = {
         version: core.getInput("version"),
         username: core.getInput("username"),
@@ -53878,7 +53877,6 @@ function getInputs() {
         if (inputs.breaking_against === "") {
             inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.before}`;
         }
-        console.log("BREAKING AGAINST", inputs.breaking_against);
         inputs.archive_labels.push(lib_github.context.ref);
     }
     if (lib_github.context.eventName === "pull_request") {
@@ -53887,7 +53885,6 @@ function getInputs() {
         if (inputs.breaking_against === "") {
             inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.pull_request.base.sha}`;
         }
-        console.log("BREAKING AGAINST", inputs.breaking_against);
         inputs.archive_labels.push(lib_github.context.ref);
     }
     if (lib_github.context.eventName === "delete") {
@@ -54200,7 +54197,6 @@ function parseModuleName(moduleName) {
 // main is the entrypoint for the action.
 async function main() {
     const inputs = getInputs();
-    console.log("inputs", inputs);
     const github = (0,lib_github.getOctokit)(core.getInput("github_token"));
     const [bufPath, bufVersion] = await installBuf(github, inputs.version);
     core.setOutput(Outputs.BufVersion, bufVersion);
@@ -54394,11 +54390,12 @@ async function push(bufPath, inputs, moduleNames) {
         "--error-format",
         "github-actions",
         "--exclude-unnamed",
-        "--create",
-        "--create-visibility",
         "private",
         "--git-metadata",
     ];
+    if (!inputs.push_disable_create) {
+        args.push("--create", "--create-visibility");
+    }
     if (inputs.input) {
         args.push(inputs.input);
     }

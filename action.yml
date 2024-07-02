@@ -124,9 +124,9 @@ inputs:
     default: ${{ github.event_name == 'push' }}
   push_disable_create:
     description: |-
-      Disables repository creation if it does not exist.
+      Disables repository creation if it does not exist. Defaults to false.
     required: false
-    default: "true"
+    default: "false"
 
   archive:
     description: |-
