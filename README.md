@@ -53,8 +53,8 @@ When you delete a Git branch or tag, the action will archive the corresponding l
 
 ### Configuration
 
-To customize the behavior of the action, you can set the following inputs in the workflow file.
-Add these inputs under the `with` section of the `uses` step in the workflow file.
+To customize the behavior of the action, you can set the following parameters in the workflow file.
+Add these parameters under the `with` section of the `uses` step in the workflow file.
 
 ```yaml
 - uses: bufbuild/buf-action@v0.1
@@ -97,8 +97,8 @@ See [examples/disable-skip/buf-ci.yaml](examples/disable-skip/buf-ci.yaml) for a
 
 ### Disable steps
 
-To disable parts of the workflow, each step corresponds to a boolean flag in the input.
-For example to disable formatting set the input `format` to `false`:
+To disable parts of the workflow, each step corresponds to a boolean flag in the parameters.
+For example to disable formatting set the parameter `format` to `false`:
 
 ```yaml
 - uses: bufbuild/buf-action@v0.1
@@ -106,7 +106,7 @@ For example to disable formatting set the input `format` to `false`:
     format: false
 ```
 
-See [action.yml](action.yml) for all available inputs.
+See [action.yml](action.yml) for all available parameters.
 
 ### Versioning
 
@@ -129,7 +129,7 @@ If no version is specified in the workflow config, the action will resolve the v
 way for consumers of your APIs to generate code.
 Authenticating with the BSR is required for both the push and archive label steps.
 
-To authenticate with the BSR, set the inputs `username` and `token`.
+To authenticate with the BSR, set the parameters `username` and `token`.
 The `username` and `token` values should be
 [stored as secrets in the repository settings](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions).
 The `token` value can be [generated from the BSR UI](https://buf.build/docs/bsr/authentication#create-an-api-token).
@@ -149,7 +149,7 @@ The action reports the status of the most recent checks in a comment on each pul
 
 ![Comment example showing the GitHub summary](./static/img/comment-example.png "Summary comment example")
 
-To disable the comment, set the input `comment` to `false` and remove the permission `pull_request: write` as this is no longer required.
+To disable the comment, set the parameter `comment` to `false` and remove the permission `pull_request: write` as this is no longer required.
 
 ```diff
 name: Buf CI
@@ -175,8 +175,8 @@ jobs:
 
 ### Specify the input directory
 
-To run the action for inputs not declared at the root of the repository,
-set the input `input` to the directory of your `buf.yaml` file.
+To run the action for parameters not declared at the root of the repository,
+set the parameter `input` to the directory of your `buf.yaml` file.
 
 ```yaml
 - uses: bufbuild/buf-action@v0.1
@@ -185,7 +185,7 @@ set the input `input` to the directory of your `buf.yaml` file.
 ```
 
 Breaking change detection by default will use the `input` value as a subdirectory for the breaking against value.
-To customize this behavior, set the input `breaking_against` to the desired input.
+To customize this behavior, set the parameter `breaking_against` to the desired input.
 
 ```yaml
 - uses: bufbuild/buf-action@v0.1
@@ -215,7 +215,7 @@ For more information on inputs, see the [Buf Inputs Reference](https://buf.build
 
 ### Setup only
 
-To only setup the action without running any commands, set the input `setup_only` to `true`.
+To only setup the action without running any commands, set the parameter `setup_only` to `true`.
 This will install `buf` and optionally login to the schema registry but no additional commands will be run.
 Subsequent steps will have `buf` available in their $PATH and can invoke `buf` directly.
 
@@ -231,7 +231,7 @@ See the [only-setup.yaml](examples/only-setup/buf-ci.yaml) example.
 ### Customize when steps run
 
 To trigger steps on different events use the GitHub action context to deduce the event type.
-For example to enable formatting checks on both pull requests and push create an expression for the input `format`:
+For example to enable formatting checks on both pull requests and push create an expression for the parameter `format`:
 
 ```yaml
 - uses: bufbuild/buf-action@v0.1
@@ -244,7 +244,7 @@ See [GitHub Actions expressions](https://docs.github.com/en/actions/learn-github
 ### Skip checks on commit messages
 
 To conditionally run checks based on user input, use the GitHub action context to check for the contents of the commit.
-For example to disable breaking change detection on commits, create an expression on the input `breaking` to check the contents of the commit message:
+For example to disable breaking change detection on commits, create an expression on the parameter `breaking` to check the contents of the commit message:
 
 ```yaml
 - uses: bufbuild/buf-action@v0.1
