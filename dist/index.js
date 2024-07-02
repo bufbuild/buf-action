@@ -54390,11 +54390,10 @@ async function push(bufPath, inputs, moduleNames) {
         "--error-format",
         "github-actions",
         "--exclude-unnamed",
-        "private",
         "--git-metadata",
     ];
     if (!inputs.push_disable_create) {
-        args.push("--create", "--create-visibility");
+        args.push("--create");
     }
     if (inputs.input) {
         args.push(inputs.input);
