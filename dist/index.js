@@ -53946,7 +53946,7 @@ var semver = __nccwpck_require__(1383);
 
 
 // requiredVersion is the minimum version of buf required.
-const requiredVersion = ">=1.32.0";
+const requiredVersion = ">=1.34.0";
 // installBuf installs the buf binary and returns the path to the binary. The
 // versionInput should be an explicit version of buf.
 async function installBuf(github, versionInput) {
@@ -54313,7 +54313,7 @@ async function build(bufPath, inputs) {
 // lint runs the "buf lint" step.
 async function lint(bufPath, inputs) {
     if (!inputs.lint) {
-        core.info("Skipping lint");
+        core.debug("Skipping lint");
         return skip();
     }
     const args = ["lint", "--error-format", "github-actions"];
@@ -54331,7 +54331,7 @@ async function lint(bufPath, inputs) {
 // format runs the "buf format" step.
 async function format(bufPath, inputs) {
     if (!inputs.format) {
-        core.info("Skipping format");
+        core.debug("Skipping format");
         return skip();
     }
     const args = [
@@ -54355,7 +54355,7 @@ async function format(bufPath, inputs) {
 // breaking runs the "buf breaking" step.
 async function breaking(bufPath, inputs) {
     if (!inputs.breaking) {
-        core.info("Skipping breaking");
+        core.debug("Skipping breaking");
         return skip();
     }
     const args = [
@@ -54382,11 +54382,11 @@ async function breaking(bufPath, inputs) {
 // push runs the "buf push" step.
 async function push(bufPath, inputs, moduleNames) {
     if (!inputs.push) {
-        core.info("Skipping push");
+        core.debug("Skipping push");
         return skip();
     }
     if (moduleNames.length == 0) {
-        core.info("Skipping push, no named modules detected");
+        core.debug("Skipping push, no named modules detected");
         return skip();
     }
     const args = [
@@ -54407,15 +54407,15 @@ async function push(bufPath, inputs, moduleNames) {
 // archive runs the "buf archive" step.
 async function archive(inputs, moduleNames) {
     if (!inputs.archive) {
-        core.info("Skipping archive");
+        core.debug("Skipping archive");
         return skip();
     }
     if (moduleNames.length == 0) {
-        core.info("Skipping archive, no named modules detected");
+        core.debug("Skipping archive, no named modules detected");
         return skip();
     }
     if (inputs.archive_labels.length == 0) {
-        core.info("Skipping archive, no labels provided");
+        core.debug("Skipping archive, no labels provided");
         return skip();
     }
     for (const moduleName of moduleNames) {

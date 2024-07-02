@@ -20,7 +20,7 @@ import * as semver from "semver";
 import { getEnv } from "./inputs";
 
 // requiredVersion is the minimum version of buf required.
-const requiredVersion = ">=1.32.0";
+const requiredVersion = ">=1.34.0";
 
 // installBuf installs the buf binary and returns the path to the binary. The
 // versionInput should be an explicit version of buf.

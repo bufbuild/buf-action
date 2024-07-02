@@ -164,7 +164,7 @@ async function build(bufPath: string, inputs: Inputs): Promise<Result> {
 // lint runs the "buf lint" step.
 async function lint(bufPath: string, inputs: Inputs): Promise<Result> {
   if (!inputs.lint) {
-    core.info("Skipping lint");
+    core.debug("Skipping lint");
     return skip();
   }
   const args = ["lint", "--error-format", "github-actions"];
@@ -183,7 +183,7 @@ async function lint(bufPath: string, inputs: Inputs): Promise<Result> {
 // format runs the "buf format" step.
 async function format(bufPath: string, inputs: Inputs): Promise<Result> {
   if (!inputs.format) {
-    core.info("Skipping format");
+    core.debug("Skipping format");
     return skip();
   }
   const args = [
@@ -208,7 +208,7 @@ async function format(bufPath: string, inputs: Inputs): Promise<Result> {
 // breaking runs the "buf breaking" step.
 async function breaking(bufPath: string, inputs: Inputs): Promise<Result> {
   if (!inputs.breaking) {
-    core.info("Skipping breaking");
+    core.debug("Skipping breaking");
     return skip();
   }
   const args = [
@@ -240,11 +240,11 @@ async function push(
   moduleNames: ModuleName[],
 ): Promise<Result> {
   if (!inputs.push) {
-    core.info("Skipping push");
+    core.debug("Skipping push");
     return skip();
   }
   if (moduleNames.length == 0) {
-    core.info("Skipping push, no named modules detected");
+    core.debug("Skipping push, no named modules detected");
     return skip();
   }
   const args = [
@@ -269,15 +269,15 @@ async function archive(
   moduleNames: ModuleName[],
 ): Promise<Result> {
   if (!inputs.archive) {
-    core.info("Skipping archive");
+    core.debug("Skipping archive");
     return skip();
   }
   if (moduleNames.length == 0) {
-    core.info("Skipping archive, no named modules detected");
+    core.debug("Skipping archive, no named modules detected");
     return skip();
   }
   if (inputs.archive_labels.length == 0) {
-    core.info("Skipping archive, no labels provided");
+    core.debug("Skipping archive, no labels provided");
     return skip();
   }
   for (const moduleName of moduleNames) {
