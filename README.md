@@ -118,7 +118,7 @@ For reproducible builds, you can pin to an explicit version of `buf` by setting 
     version: 1.34.0
 ```
 
-If no version is specified in the workflow config, the action will resolve the version in order of precendence:
+If no version is specified in the workflow config, the action will resolve the version in order of precedence:
 - A version specified in the environment variable `${BUF_VERSION}`.
 - The version of `buf` that is already installed on the runner (if it exists).
 - The latest version of the `buf` binary from the official releases on GitHub.
