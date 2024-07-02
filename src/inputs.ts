@@ -70,17 +70,21 @@ export function getInputs(): Inputs {
   };
   if (github.context.eventName === "push") {
     const event = github.context.payload as PushEvent;
-    core.info(`The head commit is: ${event.before}`);
     if (inputs.breaking_against === "") {
       inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.before}`;
+      if (inputs.input) {
+        inputs.breaking_against += `,subdir=${inputs.input}`;
+      }
     }
     inputs.archive_labels.push(github.context.ref);
   }
   if (github.context.eventName === "pull_request") {
     const event = github.context.payload as PullRequestEvent;
-    core.info(`The head commit is: ${event.pull_request.head.sha}`);
     if (inputs.breaking_against === "") {
       inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.pull_request.base.sha}`;
+      if (inputs.input) {
+        inputs.breaking_against += `,subdir=${inputs.input}`;
+      }
     }
     inputs.archive_labels.push(github.context.ref);
   }
