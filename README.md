@@ -64,23 +64,23 @@ Add these parameters under the `with` section of the `uses` step in the workflow
 
 | Parameter                       | Description                                        | Default            |
 |:--------------------------------|:---------------------------------------------------|:-------------------|
-| `archive`                       | Whether to run the archive step. | Runs on Git deletes |
-| `breaking`                      | Whether to run the breaking change detection step. | Runs on pushes to Git PR |
-| `breaking_against`              | [Input](https://buf.build/docs/reference/inputs) to compare against. | Base of the PR or the commit before the event |
+| `version`                       | Version of the `buf` CLI to use. | Latest [version][buf-releases] |
+| `username`                      | Username for [logging into the BSR](https://buf.build/docs/bsr/authentication). | |
+| `token`                         | API token for [logging into the BSR](https://buf.build/docs/bsr/authentication). | |
 | `domain`                        | Domain for logging into the BSR, enterprise only.| `buf.build` |
+| `input`                         | [Input](https://buf.build/docs/reference/inputs) for the `buf` command. | |
+| `paths`                         | Limit to specific files or directories (separated by newlines). | |
 | `exclude_imports`               | Exclude imports. | |
 | `exclude_paths`                 | Exclude specific files or directories (separated by newlines). | |
-| `format`                        | Whether to run the formatting step. | Runs on pushes to Git PR |
-| `input`                         | [Input](https://buf.build/docs/reference/inputs) for the `buf` command. | |
-| `lint`                          | Whether to run the linting step. | Runs on pushes to Git PR |
-| `paths`                         | Limit to specific files or directories (separated by newlines). | |
 | `pr_comment`                    | Comment the results on the pull request. | Only on pull requests |
+| `format`                        | Whether to run the formatting step. | Runs on pushes to Git PR |
+| `lint`                          | Whether to run the linting step. | Runs on pushes to Git PR |
+| `breaking`                      | Whether to run the breaking change detection step. | Runs on pushes to Git PR |
+| `breaking_against`              | [Input](https://buf.build/docs/reference/inputs) to compare against. | Base of the PR or the commit before the event |
 | `push`                          | Whether to run the push step. | Runs on Git pushes |
 | `push_disable_create`           | Disables repository creation if it does not exist. | False |
+| `archive`                       | Whether to run the archive step. | Runs on Git deletes |
 | `setup_only`                    | Setup only the `buf` environment, optionally logging into the BSR, but without executing other commands. | |
-| `token`                         | API token for [logging into the BSR](https://buf.build/docs/bsr/authentication). | |
-| `username`                      | Username for [logging into the BSR](https://buf.build/docs/bsr/authentication). | |
-| `version`                       | Version of the `buf` CLI to use. | Latest [version][buf-releases] |
 
 
 ### Skip the breaking change detection step
