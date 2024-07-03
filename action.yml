@@ -87,7 +87,7 @@ inputs:
     required: false
   exclude_imports:
     description: |-
-      Excludes imports.
+      Exclude files imported by the target modules.
     required: false
     default: "false"
 

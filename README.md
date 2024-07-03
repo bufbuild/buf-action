@@ -70,8 +70,8 @@ Add these parameters under the `with` section of the `uses` step in the workflow
 | `domain`                        | Domain for logging into the BSR, enterprise only.| `buf.build` |
 | `input`                         | [Input](https://buf.build/docs/reference/inputs) for the `buf` command. | |
 | `paths`                         | Limit to specific files or directories (separated by newlines). | |
-| `exclude_imports`               | Exclude imports. | |
-| `exclude_paths`                 | Exclude specific files or directories (separated by newlines). | |
+| `exclude_imports`               | Exclude files imported by the target modules. | False |
+| `exclude_paths`                 | Exclude specific files or directories, e.g. "proto/a/a.proto", "proto/a" (separated by newlines). | |
 | `pr_comment`                    | Comment the results on the pull request. | Only on pull requests |
 | `format`                        | Whether to run the formatting step. | Runs on pushes to Git PR |
 | `lint`                          | Whether to run the linting step. | Runs on pushes to Git PR |
@@ -170,7 +170,7 @@ jobs:
         with:
           username: ${{ secrets.BUF_USERNAME }}
           token: ${{ secrets.BUF_TOKEN }}
-+         comment: false
++         pr_comment: false
 ```
 
 ### Specify the input directory
@@ -241,7 +241,7 @@ For example to enable formatting checks on both pull requests and push create an
 
 See [GitHub Actions expressions](https://docs.github.com/en/actions/learn-github-actions/expressions) documentation.
 
-### Skip checks on commit messages
+### Skip checks if commit message matches a specific pattern
 
 To conditionally run checks based on user input, use the GitHub action context to check for the contents of the commit.
 For example to disable breaking change detection on commits, create an expression on the parameter `breaking` to check the contents of the commit message:
