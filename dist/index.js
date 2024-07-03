@@ -54239,13 +54239,10 @@ function createSummary(inputs, steps) {
             { data: "Status", header: true },
         ],
         ["build", message(steps.build?.status)],
+        ["lint", message(steps.lint?.status)],
+        ["format", message(steps.format?.status)],
+        ["breaking", message(steps.breaking?.status)],
     ];
-    if (inputs.lint)
-        table.push(["lint", message(steps.lint?.status)]);
-    if (inputs.format)
-        table.push(["format", message(steps.format?.status)]);
-    if (inputs.breaking)
-        table.push(["breaking", message(steps.breaking?.status)]);
     if (inputs.push)
         table.push(["push", message(steps.push?.status)]);
     if (inputs.archive)
