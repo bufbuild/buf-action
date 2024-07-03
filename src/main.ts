@@ -115,7 +115,7 @@ async function runWorkflow(bufPath: string, inputs: Inputs): Promise<Steps> {
   if (checks.some((result) => result.status == Status.Failed)) {
     return steps;
   }
-  const moduleNames = parseModuleNames(inputs.input);
+  const moduleNames = await parseModuleNames(bufPath, inputs.input);
   steps.push = await push(bufPath, inputs, moduleNames);
   steps.archive = await archive(inputs, moduleNames);
   return steps;

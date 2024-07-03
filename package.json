@@ -45,7 +45,6 @@
     "@connectrpc/connect": "^1.4.0",
     "@connectrpc/connect-web": "^1.4.0",
     "@octokit/webhooks-definitions": "^3.67.3",
-    "semver": "^7.6.1",
-    "yaml": "^2.4.5"
+    "semver": "^7.6.1"
   }
 }

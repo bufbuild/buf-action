@@ -369,3 +369,26 @@ jobs:
           archive: true
           pr_comment: false
           input: proto
+  test-archive-root:
+    # Check the archive command parses non-module names.
+    runs-on: ubuntu-latest
+    needs:
+      - test-archive
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
+        run: |
+          mkdir -p foo/v1
+          printf "version: v2\nname: ${BUF_MODULE}\n" > buf.yaml
+          printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > foo/v1/bar.proto
+      - uses: ./
+        with:
+          username: ${{ secrets.BUF_USERNAME }}
+          token: ${{ secrets.BUF_TOKEN }}
+          lint: false
+          format: false
+          breaking: false
+          push: true # Push to re-create.
+          archive: true # Archive the pushed module.
+          comment: false
