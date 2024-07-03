@@ -41,7 +41,7 @@
     "@actions/exec": "^1.1.1",
     "@actions/github": "^6.0.0",
     "@actions/tool-cache": "^2.0.1",
-    "@buf/bufbuild_registry.connectrpc_es": "^1.4.0-20240610164129-660609bc46d3.2",
+    "@buf/bufbuild_registry.connectrpc_es": "^1.4.0-20240626210909-c9e875a41f74.3",
     "@connectrpc/connect": "^1.4.0",
     "@connectrpc/connect-web": "^1.4.0",
     "@octokit/webhooks-definitions": "^3.67.3",
