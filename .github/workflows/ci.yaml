@@ -95,7 +95,7 @@ jobs:
           breaking: false
           push: false
           archive: false
-          comment: false
+          pr_comment: false
   test-format:
     runs-on: ubuntu-latest
     needs: build
@@ -112,7 +112,7 @@ jobs:
           breaking: false
           push: false
           archive: false
-          comment: false
+          pr_comment: false
   test-breaking:
     runs-on: ubuntu-latest
     needs: build
@@ -130,7 +130,7 @@ jobs:
           breaking_against: .
           push: false
           archive: false
-          comment: false
+          pr_comment: false
   test-comment:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
@@ -158,13 +158,13 @@ jobs:
           breaking_against: .
           push: false
           archive: false
-          comment: true
+          pr_comment: true
       - uses: actions/github-script@v7
         with:
           script: |
             const expectedComment = `The latest Buf updates on your PR.
 
-            <table><tr><th>Name</th><th>Status</th></tr><tr><td>build</td><td>✅ passed</td></tr><tr><td>format</td><td>❌ failed</td></tr><tr><td>breaking</td><td>✅ passed</td></tr></table>
+            <table><tr><th>Name</th><th>Status</th></tr><tr><td>build</td><td>✅ passed</td></tr><tr><td>lint</td><td>⏩ skipped</td></tr><tr><td>format</td><td>❌ failed</td></tr><tr><td>breaking</td><td>✅ passed</td></tr></table>
             <!-- Buf results -->`
             const commentTag = "<!-- Buf results -->";
             const { owner, repo } = context.repo;
@@ -231,7 +231,7 @@ jobs:
           breaking: false
           push: true
           archive: false
-          comment: false
+          pr_comment: false
   test-push-token-only:
     needs: build
     runs-on: ubuntu-latest
@@ -252,7 +252,7 @@ jobs:
           breaking: false
           push: true
           archive: false
-          comment: false
+          pr_comment: false
   test-push-unnamed:
     needs: build
     runs-on: ubuntu-latest
@@ -272,7 +272,7 @@ jobs:
           breaking: false
           push: true
           archive: false
-          comment: false
+          pr_comment: false
         # Test v1 buf.yaml config.
       - run: |
           rm -rf proto
@@ -287,7 +287,7 @@ jobs:
           breaking: false
           push: true
           archive: false
-          comment: false
+          pr_comment: false
           input: proto
         # Test v2 with multiple modules, one without a name.
       - env:
@@ -306,7 +306,7 @@ jobs:
           breaking: false
           push: true
           archive: false
-          comment: false
+          pr_comment: false
   test-archive:
     if: github.event_name == 'push' && github.ref_name != github.event.repository.default_branch
     runs-on: ubuntu-latest
@@ -331,76 +331,7 @@ jobs:
           breaking: false
           push: false
           archive: true
-          # On push github.ref_name, on delete github.event.ref_name.
-          archive_labels: ${{ github.ref_name }}
-          comment: false
-  test-archive-name:
-    # Check the archive command parses non-module names.
-    runs-on: ubuntu-latest
-    needs:
-      - test-push
-      - test-push-token-only
-      - test-push-unnamed
-    steps:
-      - uses: actions/checkout@v4
-      - env:
-          BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
-        run: |
-          mkdir -p foo/v1
-          printf "version: v2\nname: ${BUF_MODULE}\n" > buf.yaml
-          printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > foo/v1/bar.proto
-      - uses: ./
-        with:
-          username: ${{ secrets.BUF_USERNAME }}
-          token: ${{ secrets.BUF_TOKEN }}
-          lint: false
-          format: false
-          breaking: false
-          push: true # Push to re-create.
-          push_git_metadata: false
-          push_labels: ${{ github.event.ref }}-root-name
-          archive: true # Archive the pushed module.
-          archive_labels: ${{ github.event.ref }}-root-name
-          comment: false
-  test-archive-not-exists:
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    needs:
-      - test-push
-      - test-push-token-only
-      - test-push-unnamed
-    steps:
-      - uses: actions/checkout@v4
-      - env:
-          BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
-        run: |
-          mkdir -p proto/foo/v1
-          printf "version: v2\nmodules:\n  - path: proto\n    name: ${BUF_MODULE}\n" > buf.yaml
-          printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > proto/foo/v1/bar.proto
-      - uses: ./
-        with:
-          username: ${{ secrets.BUF_USERNAME }}
-          token: ${{ secrets.BUF_TOKEN }}
-          lint: false
-          format: false
-          breaking: false
-          push: false
-          archive: true
-          archive_labels: label_does_not_exist
-          comment: false
-      - uses: ./
-        with:
-          username: ${{ secrets.BUF_USERNAME }}
-          token: ${{ secrets.BUF_TOKEN }}
-          lint: false
-          format: false
-          breaking: false
-          push: false
-          archive: true
-          archive_labels: |
-            label_does_not_exist
-            label_does_not_exist_either
-          comment: false
+          pr_comment: false
   test-archive-unnamed:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -422,7 +353,7 @@ jobs:
           breaking: false
           push: false
           archive: true
-          comment: false
+          pr_comment: false
       - run: |
           rm -rf proto
           mkdir -p proto/foo/v1
@@ -436,5 +367,28 @@ jobs:
           breaking: false
           push: false
           archive: true
-          comment: false
+          pr_comment: false
           input: proto
+  test-archive-root:
+    # Check the archive command parses non-module names.
+    runs-on: ubuntu-latest
+    needs:
+      - test-archive
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
+        run: |
+          mkdir -p foo/v1
+          printf "version: v2\nname: ${BUF_MODULE}\n" > buf.yaml
+          printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > foo/v1/bar.proto
+      - uses: ./
+        with:
+          username: ${{ secrets.BUF_USERNAME }}
+          token: ${{ secrets.BUF_TOKEN }}
+          lint: false
+          format: false
+          breaking: false
+          push: true # Push to re-create.
+          archive: true # Archive the pushed module.
+          comment: false

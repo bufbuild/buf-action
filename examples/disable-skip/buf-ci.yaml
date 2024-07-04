@@ -19,6 +19,4 @@ jobs:
         with:
           username: ${{ secrets.BUF_USERNAME }}
           token: ${{ secrets.BUF_TOKEN }}
-          lint: ${{ github.event_name == 'pull_request' }}
-          format: ${{ github.event_name == 'pull_request' }}
           breaking: ${{ github.event_name == 'pull_request' }}
