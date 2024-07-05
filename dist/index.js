@@ -45610,8 +45610,7 @@ async function downloadBuf(version) {
 const commentTag = "<!-- Buf results -->";
 // findCommentOnPR finds the comment on the PR that contains the Buf results.
 // If the comment is found, it returns the comment ID. If the comment is not
-// found, it returns undefined. On failure, it returns undefined but does not
-// throw an error.
+// found, it returns undefined.
 async function findCommentOnPR(context, github) {
     const { owner, repo } = context.repo;
     const prNumber = context.payload.pull_request?.number;
@@ -45633,8 +45632,7 @@ async function findCommentOnPR(context, github) {
 }
 // commentOnPR comments on the PR with the summary of the Buf results. The
 // summary should be a markdown formatted string. This function returns true if
-// the comment was successfully created or updated. On failure, it returns
-// false but does not throw an error.
+// the comment was successfully created or updated.
 async function commentOnPR(context, github, commentID, body) {
     const { owner, repo } = context.repo;
     const prNumber = context.payload.pull_request?.number;
