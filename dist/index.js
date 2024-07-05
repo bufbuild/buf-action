@@ -45768,6 +45768,12 @@ function parseModuleName(moduleName) {
 async function main() {
     const inputs = getInputs();
     const github = (0,lib_github.getOctokit)(core.getInput("github_token"));
+    // Find the comment on the PR, and update it with a running message.
+    let commentID;
+    if (inputs.pr_comment) {
+        commentID = await findCommentOnPR(lib_github.context, github);
+        commentID = await commentOnPR(lib_github.context, github, commentID, "Running...");
+    }
     const [bufPath, bufVersion] = await installBuf(github, inputs.version);
     core.setOutput(Outputs.BufVersion, bufVersion);
     await login(bufPath, inputs);
@@ -45775,19 +45781,13 @@ async function main() {
         core.info("Setup only, skipping steps");
         return;
     }
-    // Find the comment on the PR, and update it with a running message.
-    let commentID;
-    if (inputs.pr_comment) {
-        commentID = await findCommentOnPR(lib_github.context, github);
-        commentID = await commentOnPR(lib_github.context, github, commentID, "Running...");
-    }
     // Run the buf workflow.
     const steps = await runWorkflow(bufPath, inputs);
     // Create a summary of the steps.
     const summary = createSummary(inputs, steps);
     // Comment on the PR with the summary, if requested.
     if (inputs.pr_comment) {
-        await commentOnPR(lib_github.context, github, commentID, summary.stringify());
+        await commentOnPR(lib_github.context, github, commentID, `The latest Buf updates on your PR.\n\n${summary.stringify()}`);
     }
     // Write the summary to a file defined by GITHUB_STEP_SUMMARY.
     // NB: Write empties the buffer and must be after the comment.
