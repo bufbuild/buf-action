@@ -45945,13 +45945,7 @@ async function format(bufPath, inputs) {
         result.stdout = ""; // Clear the stdout.
         console.log("diff", diff);
         for (const file of diff) {
-            for (const chunk of file.chunks) {
-                for (const change of chunk.changes) {
-                    // TODO: Write annotations.
-                    console.log("change", change);
-                    //result.stdout += `::error file=${name},line=${line},title=${title}::${message}\n`;
-                }
-            }
+            result.stdout += `::error file=${file.to}::Format failed -${file.deletions} +${file.additions} changes.\n`;
         }
     }
     return result;
