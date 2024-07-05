@@ -46080,7 +46080,7 @@ function message(result) {
         case Status.Passed:
             return "✅ passed";
         case Status.Failed:
-            return `❌ failed (${result.stdout.split("\n").length})`;
+            return `❌ failed (${result.stdout.split("\n").length - 1})`;
         case Status.Skipped:
             return "⏩ skipped";
         default:
