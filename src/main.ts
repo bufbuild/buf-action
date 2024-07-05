@@ -98,7 +98,8 @@ function createSummary(inputs: Inputs, steps: Steps): typeof core.summary {
       message(steps.format?.status),
       message(steps.breaking?.status),
       message(steps.lint?.status),
-      `<a href={"${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}">${context.runId}</a>`,
+      `[${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
       new Date().toISOString(),
     ],
   ];

@@ -45814,7 +45814,8 @@ function createSummary(inputs, steps) {
             message(steps.format?.status),
             message(steps.breaking?.status),
             message(steps.lint?.status),
-            `<a href={"${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}">${lib_github.context.runId}</a>`,
+            `[${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}](${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId})
+${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}`,
             new Date().toISOString(),
         ],
     ];
