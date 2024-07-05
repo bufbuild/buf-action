@@ -45839,7 +45839,16 @@ function createSummary(inputs, steps, moduleNames) {
     // If push or archive is enabled add a link to the registry.
     //if (inputs.push) table.push(["push", message(steps.push?.status)]);
     //if (inputs.archive) table.push(["archive", message(steps.archive?.status)]);
-    return core.summary.addTable(table);
+    const output = core.summary.addTable(table);
+    if (inputs.push && moduleNames.length > 0) {
+        const modules = moduleNames.map((moduleName) => `<a href="https://${moduleName.name}">${moduleName.name}</a>`);
+        output.addRaw(`Pushed ${modules.join(", ")} to registry.`, true);
+    }
+    if (inputs.archive && moduleNames.length > 0) {
+        const modules = moduleNames.map((moduleName) => `<a href="https://${moduleName.name}">${moduleName.name}</a>`);
+        output.addRaw(`Archived ${modules.join(", ")} with ${inputs.archive_labels.join(", ")} labels.`, true);
+    }
+    return output;
 }
 // runWorkflow runs the buf workflow. It returns the results of each step.
 // First, it builds the input. If the build fails, the workflow stops.
@@ -45944,7 +45953,7 @@ async function format(bufPath, inputs) {
         const diff = parse_diff(result.stdout);
         result.stdout = ""; // Clear the stdout to count the number of changes.
         for (const file of diff) {
-            result.stdout += `::error file=${file.to},title=Buf format::Diff -${file.deletions}/+${file.additions}.\n`;
+            result.stdout += `::error file=${file.to}::Format diff -${file.deletions}/+${file.additions}.\n`;
         }
         console.log(result.stdout);
     }
