@@ -45814,15 +45814,15 @@ function createSummary(inputs, steps) {
             message(steps.format?.status),
             message(steps.breaking?.status),
             message(steps.lint?.status),
-            `[${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}](${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId})
-${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}`,
+            `<a href="${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}">View</a>`,
             new Date().toISOString(),
         ],
     ];
     // If push or archive is enabled add a link to the registry.
     //if (inputs.push) table.push(["push", message(steps.push?.status)]);
     //if (inputs.archive) table.push(["archive", message(steps.archive?.status)]);
-    return core.summary.addTable(table);
+    return core.summary.addTable(table)
+        .addLink("View run", `${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}`);
 }
 // runWorkflow runs the buf workflow. It returns the results of each step.
 // First, it builds the input. If the build fails, the workflow stops.

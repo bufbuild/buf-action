@@ -98,15 +98,19 @@ function createSummary(inputs: Inputs, steps: Steps): typeof core.summary {
       message(steps.format?.status),
       message(steps.breaking?.status),
       message(steps.lint?.status),
-      `[${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
-${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+      `<a href="${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}">View</a>`,
       new Date().toISOString(),
     ],
   ];
   // If push or archive is enabled add a link to the registry.
   //if (inputs.push) table.push(["push", message(steps.push?.status)]);
   //if (inputs.archive) table.push(["archive", message(steps.archive?.status)]);
-  return core.summary.addTable(table);
+  return core.summary
+    .addTable(table)
+    .addLink(
+      "View run",
+      `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+    );
 }
 
 // runWorkflow runs the buf workflow. It returns the results of each step.
