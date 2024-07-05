@@ -229,7 +229,7 @@ async function format(bufPath: string, inputs: Inputs): Promise<Result> {
     args.push("--exclude-path", path);
   }
   const result = await run(bufPath, args);
-  if (result.status == Status.Failed) {
+  if (result.status == Status.Failed && result.stdout.startsWith("diff")) {
     // If the format step fails, parse the diff and write github annotations.
     const diff = parseDiff(result.stdout);
     result.stdout = ""; // Clear the stdout.
@@ -237,6 +237,7 @@ async function format(bufPath: string, inputs: Inputs): Promise<Result> {
     for (const file of diff) {
       result.stdout += `::error file=${file.to}::Format failed -${file.deletions} +${file.additions} changes.\n`;
     }
+    console.log(result.stdout);
   }
   return result;
 }
