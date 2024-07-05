@@ -45601,47 +45601,97 @@ const commentTag = "<!-- Buf results -->";
 // summary should be a markdown formatted string. This function returns true if
 // the comment was successfully created or updated. On failure, it returns
 // false but does not throw an error.
-async function commentOnPR(context, github, summary) {
-    const comment = `The latest Buf updates on your PR.\n\n${summary}`;
-    try {
-        const { owner, repo } = context.repo;
-        const prNumber = context.payload.pull_request?.number;
-        if (!prNumber) {
-            core.info("This is not a PR, skipping commenting");
-            return false;
-        }
-        const content = {
-            owner: owner,
-            repo: repo,
-            body: comment + commentTag,
-        };
-        // Check if a comment already exists and update it.
-        const comments = await github.paginate(github.rest.issues.listComments, {
-            owner: owner,
-            repo: repo,
-            issue_number: prNumber,
+/*export async function commentOnPR(
+  context: Context,
+  github: InstanceType<typeof GitHub>,
+  summary: string,
+): Promise<boolean> {
+  const comment = `The latest Buf updates on your PR.\n\n${summary}`;
+  try {
+    const { owner, repo } = context.repo;
+    const prNumber = context.payload.pull_request?.number;
+    if (!prNumber) {
+      core.info("This is not a PR, skipping commenting");
+      return false;
+    }
+    const content = {
+      owner: owner,
+      repo: repo,
+      body: comment + commentTag,
+    };
+    // Check if a comment already exists and update it.
+    const comments = await github.paginate(github.rest.issues.listComments, {
+      owner: owner,
+      repo: repo,
+      issue_number: prNumber,
+    });
+    const previousComment = comments.find((comment) =>
+      comment.body?.includes(commentTag),
+    );
+    if (previousComment) {
+      await github.rest.issues.updateComment({
+        ...content,
+        comment_id: previousComment.id,
+      });
+      core.info(`Updated comment ${previousComment.id} on PR #${prNumber}`);
+    } else {
+      await github.rest.issues.createComment({
+        ...content,
+        issue_number: prNumber,
+      });
+      core.info(`Commented on PR #${prNumber}`);
+    }
+    return true;
+  } catch (error) {
+    core.info(`Error occurred while commenting on PR: ${error}`);
+    return false;
+  }
+}*/
+async function findCommentOnPR(context, github) {
+    const { owner, repo } = context.repo;
+    const prNumber = context.payload.pull_request?.number;
+    if (!prNumber) {
+        core.info("This is not a PR, skipping finding comment");
+        return undefined;
+    }
+    const comments = await github.paginate(github.rest.issues.listComments, {
+        owner: owner,
+        repo: repo,
+        issue_number: prNumber,
+    });
+    const previousComment = comments.find((comment) => comment.body?.includes(commentTag));
+    if (previousComment) {
+        core.info(`Found previous comment ${previousComment.id}`);
+        return previousComment.id;
+    }
+    return undefined;
+}
+async function commentOnPR(context, github, commentID, body) {
+    const { owner, repo } = context.repo;
+    const prNumber = context.payload.pull_request?.number;
+    if (!prNumber) {
+        core.info("This is not a PR, skipping commenting");
+        return undefined;
+    }
+    const content = {
+        owner: owner,
+        repo: repo,
+        body: body + commentTag,
+    };
+    if (commentID) {
+        await github.rest.issues.updateComment({
+            ...content,
+            comment_id: commentID,
         });
-        const previousComment = comments.find((comment) => comment.body?.includes(commentTag));
-        if (previousComment) {
-            await github.rest.issues.updateComment({
-                ...content,
-                comment_id: previousComment.id,
-            });
-            core.info(`Updated comment ${previousComment.id} on PR #${prNumber}`);
-        }
-        else {
-            await github.rest.issues.createComment({
-                ...content,
-                issue_number: prNumber,
-            });
-            core.info(`Commented on PR #${prNumber}`);
-        }
-        return true;
+        core.info(`Updated comment ${commentID} on PR #${prNumber}`);
+        return commentID;
     }
-    catch (error) {
-        core.info(`Error occurred while commenting on PR: ${error}`);
-        return false;
-    }
+    const comment = await github.rest.issues.createComment({
+        ...content,
+        issue_number: prNumber,
+    });
+    core.info(`Commented ${comment.data.id} on PR #${prNumber}`);
+    return comment.data.id;
 }
 
 ;// CONCATENATED MODULE: ./src/config.ts
@@ -45725,13 +45775,19 @@ async function main() {
         core.info("Setup only, skipping steps");
         return;
     }
+    // Find the comment on the PR, and update it with a running message.
+    let commentID;
+    if (inputs.pr_comment) {
+        commentID = await findCommentOnPR(lib_github.context, github);
+        commentID = await commentOnPR(lib_github.context, github, commentID, "Running...");
+    }
     // Run the buf workflow.
     const steps = await runWorkflow(bufPath, inputs);
     // Create a summary of the steps.
     const summary = createSummary(inputs, steps);
     // Comment on the PR with the summary, if requested.
     if (inputs.pr_comment) {
-        await commentOnPR(lib_github.context, github, summary.stringify());
+        await commentOnPR(lib_github.context, github, commentID, summary.stringify());
     }
     // Write the summary to a file defined by GITHUB_STEP_SUMMARY.
     // NB: Write empties the buffer and must be after the comment.

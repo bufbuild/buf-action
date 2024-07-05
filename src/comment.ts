@@ -24,7 +24,7 @@ const commentTag = "<!-- Buf results -->";
 // summary should be a markdown formatted string. This function returns true if
 // the comment was successfully created or updated. On failure, it returns
 // false but does not throw an error.
-export async function commentOnPR(
+/*export async function commentOnPR(
   context: Context,
   github: InstanceType<typeof GitHub>,
   summary: string,
@@ -69,4 +69,62 @@ export async function commentOnPR(
     core.info(`Error occurred while commenting on PR: ${error}`);
     return false;
   }
+}*/
+
+export async function findCommentOnPR(
+  context: Context,
+  github: InstanceType<typeof GitHub>,
+): Promise<number | undefined> {
+  const { owner, repo } = context.repo;
+  const prNumber = context.payload.pull_request?.number;
+  if (!prNumber) {
+    core.info("This is not a PR, skipping finding comment");
+    return undefined;
+  }
+  const comments = await github.paginate(github.rest.issues.listComments, {
+    owner: owner,
+    repo: repo,
+    issue_number: prNumber,
+  });
+  const previousComment = comments.find((comment) =>
+    comment.body?.includes(commentTag),
+  );
+  if (previousComment) {
+    core.info(`Found previous comment ${previousComment.id}`);
+    return previousComment.id;
+  }
+  return undefined;
+}
+
+export async function commentOnPR(
+  context: Context,
+  github: InstanceType<typeof GitHub>,
+  commentID: number | undefined,
+  body: string,
+): Promise<number | undefined> {
+  const { owner, repo } = context.repo;
+  const prNumber = context.payload.pull_request?.number;
+  if (!prNumber) {
+    core.info("This is not a PR, skipping commenting");
+    return undefined;
+  }
+  const content = {
+    owner: owner,
+    repo: repo,
+    body: body + commentTag,
+  };
+  if (commentID) {
+    await github.rest.issues.updateComment({
+      ...content,
+      comment_id: commentID,
+    });
+    core.info(`Updated comment ${commentID} on PR #${prNumber}`);
+    return commentID;
+  }
+  const comment = await github.rest.issues.createComment({
+    ...content,
+    issue_number: prNumber,
+  });
+  core.info(`Commented ${comment.data.id} on PR #${prNumber}`);
+  return comment.data.id;
 }

@@ -24,7 +24,7 @@ import { LabelRef } from "@buf/bufbuild_registry.bufbuild_es/buf/registry/module
 import { getInputs, Inputs, getEnv } from "./inputs";
 import { Outputs } from "./outputs";
 import { installBuf } from "./installer";
-import { commentOnPR } from "./comment";
+import { findCommentOnPR, commentOnPR } from "./comment";
 import { parseModuleNames, ModuleName } from "./config";
 
 // main is the entrypoint for the action.
@@ -34,10 +34,15 @@ async function main() {
   const [bufPath, bufVersion] = await installBuf(github, inputs.version);
   core.setOutput(Outputs.BufVersion, bufVersion);
   await login(bufPath, inputs);
-
   if (inputs.setup_only) {
     core.info("Setup only, skipping steps");
     return;
+  }
+  // Find the comment on the PR, and update it with a running message.
+  let commentID;
+  if (inputs.pr_comment) {
+    commentID = await findCommentOnPR(context, github);
+    commentID = await commentOnPR(context, github, commentID, "Running...");
   }
   // Run the buf workflow.
   const steps = await runWorkflow(bufPath, inputs);
@@ -45,7 +50,7 @@ async function main() {
   const summary = createSummary(inputs, steps);
   // Comment on the PR with the summary, if requested.
   if (inputs.pr_comment) {
-    await commentOnPR(context, github, summary.stringify());
+    await commentOnPR(context, github, commentID, summary.stringify());
   }
   // Write the summary to a file defined by GITHUB_STEP_SUMMARY.
   // NB: Write empties the buffer and must be after the comment.
