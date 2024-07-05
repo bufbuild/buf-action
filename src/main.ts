@@ -232,10 +232,9 @@ async function format(bufPath: string, inputs: Inputs): Promise<Result> {
   if (result.status == Status.Failed && result.stdout.startsWith("diff")) {
     // If the format step fails, parse the diff and write github annotations.
     const diff = parseDiff(result.stdout);
-    result.stdout = ""; // Clear the stdout.
-    console.log("diff", diff);
+    result.stdout = ""; // Clear the stdout to count the number of changes.
     for (const file of diff) {
-      result.stdout += `::error file=${file.to}::Format failed -${file.deletions} +${file.additions} changes.\n`;
+      result.stdout += `::error file=${file.to},title=Buf format::Diff -${file.deletions}/+${file.additions}.\n`;
     }
     console.log(result.stdout);
   }
