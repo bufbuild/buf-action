@@ -45806,7 +45806,7 @@ function createSummary(inputs, steps) {
             { data: "Format", header: true },
             { data: "Breaking", header: true },
             { data: "Lint", header: true },
-            { data: "Job", header: true },
+            { data: "Run", header: true },
             { data: "Updated (UTC)", header: true },
         ],
         [
@@ -45814,10 +45814,9 @@ function createSummary(inputs, steps) {
             message(steps.format),
             message(steps.breaking),
             message(steps.lint),
-            `<a href="${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}/job/${lib_github.context.job}">View</a>`,
+            `<a href="${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}">View</a>`,
             new Date().toLocaleString("en-US", {
-                hour: "numeric",
-                minute: "numeric",
+                timeZone: "UTC",
                 hour12: true,
             }),
         ],

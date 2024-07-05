@@ -90,7 +90,7 @@ function createSummary(inputs: Inputs, steps: Steps): typeof core.summary {
       { data: "Format", header: true },
       { data: "Breaking", header: true },
       { data: "Lint", header: true },
-      { data: "Job", header: true },
+      { data: "Run", header: true },
       { data: "Updated (UTC)", header: true },
     ],
     [
@@ -98,10 +98,9 @@ function createSummary(inputs: Inputs, steps: Steps): typeof core.summary {
       message(steps.format),
       message(steps.breaking),
       message(steps.lint),
-      `<a href="${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/job/${context.job}">View</a>`,
+      `<a href="${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}">View</a>`,
       new Date().toLocaleString("en-US", {
-        hour: "numeric",
-        minute: "numeric",
+        timeZone: "UTC",
         hour12: true,
       }),
     ],
