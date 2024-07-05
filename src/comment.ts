@@ -20,57 +20,10 @@ import { GitHub } from "@actions/github/lib/utils";
 // string injected into the comment body.
 const commentTag = "<!-- Buf results -->";
 
-// commentOnPR comments on the PR with the summary of the Buf results. The
-// summary should be a markdown formatted string. This function returns true if
-// the comment was successfully created or updated. On failure, it returns
-// false but does not throw an error.
-/*export async function commentOnPR(
-  context: Context,
-  github: InstanceType<typeof GitHub>,
-  summary: string,
-): Promise<boolean> {
-  const comment = `The latest Buf updates on your PR.\n\n${summary}`;
-  try {
-    const { owner, repo } = context.repo;
-    const prNumber = context.payload.pull_request?.number;
-    if (!prNumber) {
-      core.info("This is not a PR, skipping commenting");
-      return false;
-    }
-    const content = {
-      owner: owner,
-      repo: repo,
-      body: comment + commentTag,
-    };
-    // Check if a comment already exists and update it.
-    const comments = await github.paginate(github.rest.issues.listComments, {
-      owner: owner,
-      repo: repo,
-      issue_number: prNumber,
-    });
-    const previousComment = comments.find((comment) =>
-      comment.body?.includes(commentTag),
-    );
-    if (previousComment) {
-      await github.rest.issues.updateComment({
-        ...content,
-        comment_id: previousComment.id,
-      });
-      core.info(`Updated comment ${previousComment.id} on PR #${prNumber}`);
-    } else {
-      await github.rest.issues.createComment({
-        ...content,
-        issue_number: prNumber,
-      });
-      core.info(`Commented on PR #${prNumber}`);
-    }
-    return true;
-  } catch (error) {
-    core.info(`Error occurred while commenting on PR: ${error}`);
-    return false;
-  }
-}*/
-
+// findCommentOnPR finds the comment on the PR that contains the Buf results.
+// If the comment is found, it returns the comment ID. If the comment is not
+// found, it returns undefined. On failure, it returns undefined but does not
+// throw an error.
 export async function findCommentOnPR(
   context: Context,
   github: InstanceType<typeof GitHub>,
@@ -96,6 +49,10 @@ export async function findCommentOnPR(
   return undefined;
 }
 
+// commentOnPR comments on the PR with the summary of the Buf results. The
+// summary should be a markdown formatted string. This function returns true if
+// the comment was successfully created or updated. On failure, it returns
+// false but does not throw an error.
 export async function commentOnPR(
   context: Context,
   github: InstanceType<typeof GitHub>,
