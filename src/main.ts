@@ -20,6 +20,7 @@ import { createConnectTransport } from "@connectrpc/connect-web";
 import { createPromiseClient, ConnectError, Code } from "@connectrpc/connect";
 import { LabelService } from "@buf/bufbuild_registry.connectrpc_es/buf/registry/module/v1/label_service_connect";
 import { LabelRef } from "@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/label_pb";
+import * as parseDiff from "parse-diff";
 
 import { getInputs, Inputs, getEnv } from "./inputs";
 import { Outputs } from "./outputs";
@@ -38,10 +39,12 @@ async function main() {
     core.info("Setup only, skipping steps");
     return;
   }
+  // Parse the module names from the input.
+  const moduleNames = await parseModuleNames(bufPath, inputs.input);
   // Run the buf workflow.
-  const steps = await runWorkflow(bufPath, inputs);
+  const steps = await runWorkflow(bufPath, inputs, moduleNames);
   // Create a summary of the steps.
-  const summary = createSummary(inputs, steps);
+  const summary = createSummary(inputs, steps, moduleNames);
   // Comment on the PR with the summary, if requested.
   if (inputs.pr_comment) {
     const commentID = await findCommentOnPR(context, github);
@@ -83,7 +86,11 @@ interface Steps {
 
 // createSummary creates a GitHub summary of the steps. The summary is a table
 // with the name and status of each step.
-function createSummary(inputs: Inputs, steps: Steps): typeof core.summary {
+function createSummary(
+  inputs: Inputs,
+  steps: Steps,
+  moduleNames: ModuleName[],
+): typeof core.summary {
   const table = [
     [
       { data: "Build", header: true },
@@ -105,6 +112,7 @@ function createSummary(inputs: Inputs, steps: Steps): typeof core.summary {
       }),
     ],
   ];
+  console.log("moduleNames", moduleNames);
   // If push or archive is enabled add a link to the registry.
   //if (inputs.push) table.push(["push", message(steps.push?.status)]);
   //if (inputs.archive) table.push(["archive", message(steps.archive?.status)]);
@@ -115,7 +123,11 @@ function createSummary(inputs: Inputs, steps: Steps): typeof core.summary {
 // First, it builds the input. If the build fails, the workflow stops.
 // Next, it runs lint, format, and breaking checks. If any of these fail, the workflow stops.
 // Finally, it pushes or archives the label to the registry.
-async function runWorkflow(bufPath: string, inputs: Inputs): Promise<Steps> {
+async function runWorkflow(
+  bufPath: string,
+  inputs: Inputs,
+  moduleNames: ModuleName[],
+): Promise<Steps> {
   const steps: Steps = {};
   steps.build = await build(bufPath, inputs);
   if (steps.build.status == Status.Failed) {
@@ -132,7 +144,6 @@ async function runWorkflow(bufPath: string, inputs: Inputs): Promise<Steps> {
   if (checks.some((result) => result.status == Status.Failed)) {
     return steps;
   }
-  const moduleNames = await parseModuleNames(bufPath, inputs.input);
   steps.push = await push(bufPath, inputs, moduleNames);
   steps.archive = await archive(inputs, moduleNames);
   return steps;
@@ -217,7 +228,23 @@ async function format(bufPath: string, inputs: Inputs): Promise<Result> {
   for (const path of inputs.exclude_paths) {
     args.push("--exclude-path", path);
   }
-  return run(bufPath, args);
+  const result = await run(bufPath, args);
+  if (result.status == Status.Failed) {
+    // If the format step fails, parse the diff and write github annotations.
+    const diff = parseDiff(result.stdout);
+    result.stdout = ""; // Clear the stdout.
+    console.log("diff", diff);
+    for (const file of diff) {
+      for (const chunk of file.chunks) {
+        for (const change of chunk.changes) {
+          // TODO: Write annotations.
+          console.log("change", change);
+          //result.stdout += `::error file=${name},line=${line},title=${title}::${message}\n`;
+        }
+      }
+    }
+  }
+  return result;
 }
 
 // breaking runs the "buf breaking" step.
