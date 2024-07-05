@@ -45806,7 +45806,7 @@ function createSummary(inputs, steps) {
             { data: "Format", header: true },
             { data: "Breaking", header: true },
             { data: "Lint", header: true },
-            { data: "Job", header: true },
+            { data: "Run", header: true },
             { data: "Updated (UTC)", header: true },
         ],
         [
@@ -45814,7 +45814,7 @@ function createSummary(inputs, steps) {
             message(steps.format?.status),
             message(steps.breaking?.status),
             message(steps.lint?.status),
-            `${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}`,
+            `<a href={"${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}">${lib_github.context.runId}</a>`,
             new Date().toISOString(),
         ],
     ];
