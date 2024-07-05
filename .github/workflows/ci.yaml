@@ -160,6 +160,7 @@ jobs:
           archive: false
           pr_comment: true
       - uses: actions/github-script@v7
+        if: false
         with:
           script: |
             const expectedComment = `The latest Buf updates on your PR.

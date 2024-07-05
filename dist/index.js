@@ -45768,12 +45768,6 @@ function parseModuleName(moduleName) {
 async function main() {
     const inputs = getInputs();
     const github = (0,lib_github.getOctokit)(core.getInput("github_token"));
-    // Find the comment on the PR, and update it with a running message.
-    let commentID;
-    if (inputs.pr_comment) {
-        commentID = await findCommentOnPR(lib_github.context, github);
-        commentID = await commentOnPR(lib_github.context, github, commentID, "Running...");
-    }
     const [bufPath, bufVersion] = await installBuf(github, inputs.version);
     core.setOutput(Outputs.BufVersion, bufVersion);
     await login(bufPath, inputs);
@@ -45787,6 +45781,7 @@ async function main() {
     const summary = createSummary(inputs, steps);
     // Comment on the PR with the summary, if requested.
     if (inputs.pr_comment) {
+        const commentID = await findCommentOnPR(lib_github.context, github);
         await commentOnPR(lib_github.context, github, commentID, `The latest Buf updates on your PR.\n\n${summary.stringify()}`);
     }
     // Write the summary to a file defined by GITHUB_STEP_SUMMARY.
@@ -45807,18 +45802,25 @@ main()
 function createSummary(inputs, steps) {
     const table = [
         [
-            { data: "Name", header: true },
-            { data: "Status", header: true },
+            { data: "Build", header: true },
+            { data: "Format", header: true },
+            { data: "Breaking", header: true },
+            { data: "Lint", header: true },
+            { data: "Job", header: true },
+            { data: "Updated (UTC)", header: true },
         ],
-        ["build", message(steps.build?.status)],
-        ["lint", message(steps.lint?.status)],
-        ["format", message(steps.format?.status)],
-        ["breaking", message(steps.breaking?.status)],
+        [
+            message(steps.build?.status),
+            message(steps.format?.status),
+            message(steps.breaking?.status),
+            message(steps.lint?.status),
+            `${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}`,
+            new Date().toISOString(),
+        ],
     ];
-    if (inputs.push)
-        table.push(["push", message(steps.push?.status)]);
-    if (inputs.archive)
-        table.push(["archive", message(steps.archive?.status)]);
+    // If push or archive is enabled add a link to the registry.
+    //if (inputs.push) table.push(["push", message(steps.push?.status)]);
+    //if (inputs.archive) table.push(["archive", message(steps.archive?.status)]);
     return core.summary.addTable(table);
 }
 // runWorkflow runs the buf workflow. It returns the results of each step.

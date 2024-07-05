@@ -31,12 +31,6 @@ import { parseModuleNames, ModuleName } from "./config";
 async function main() {
   const inputs = getInputs();
   const github = getOctokit(core.getInput("github_token"));
-  // Find the comment on the PR, and update it with a running message.
-  let commentID;
-  if (inputs.pr_comment) {
-    commentID = await findCommentOnPR(context, github);
-    commentID = await commentOnPR(context, github, commentID, "Running...");
-  }
   const [bufPath, bufVersion] = await installBuf(github, inputs.version);
   core.setOutput(Outputs.BufVersion, bufVersion);
   await login(bufPath, inputs);
@@ -50,6 +44,7 @@ async function main() {
   const summary = createSummary(inputs, steps);
   // Comment on the PR with the summary, if requested.
   if (inputs.pr_comment) {
+    const commentID = await findCommentOnPR(context, github);
     await commentOnPR(
       context,
       github,
@@ -91,16 +86,25 @@ interface Steps {
 function createSummary(inputs: Inputs, steps: Steps): typeof core.summary {
   const table = [
     [
-      { data: "Name", header: true },
-      { data: "Status", header: true },
+      { data: "Build", header: true },
+      { data: "Format", header: true },
+      { data: "Breaking", header: true },
+      { data: "Lint", header: true },
+      { data: "Job", header: true },
+      { data: "Updated (UTC)", header: true },
     ],
-    ["build", message(steps.build?.status)],
-    ["lint", message(steps.lint?.status)],
-    ["format", message(steps.format?.status)],
-    ["breaking", message(steps.breaking?.status)],
+    [
+      message(steps.build?.status),
+      message(steps.format?.status),
+      message(steps.breaking?.status),
+      message(steps.lint?.status),
+      `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+      new Date().toISOString(),
+    ],
   ];
-  if (inputs.push) table.push(["push", message(steps.push?.status)]);
-  if (inputs.archive) table.push(["archive", message(steps.archive?.status)]);
+  // If push or archive is enabled add a link to the registry.
+  //if (inputs.push) table.push(["push", message(steps.push?.status)]);
+  //if (inputs.archive) table.push(["archive", message(steps.archive?.status)]);
   return core.summary.addTable(table);
 }
 
