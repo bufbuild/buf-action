@@ -34,6 +34,7 @@ permissions:
 jobs:
   buf:
     runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v4
       - uses: bufbuild/buf-action@v0.2
@@ -164,6 +165,7 @@ permissions:
 jobs:
   buf:
     runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v4
       - uses: bufbuild/buf-action@v0.2
