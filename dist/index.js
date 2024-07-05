@@ -45807,16 +45807,13 @@ function createSummary(inputs, steps) {
             { data: "Breaking", header: true },
             { data: "Lint", header: true },
             { data: "Job", header: true },
-            { data: "Commit", header: true },
-            { data: "Updated (UTC)", header: true },
         ],
         [
-            message(steps.build?.status),
-            message(steps.format?.status),
-            message(steps.breaking?.status),
-            message(steps.lint?.status),
+            message(steps.build),
+            message(steps.format),
+            message(steps.breaking),
+            message(steps.lint),
             `<a href="${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}/job/${lib_github.context.job}">View</a>`,
-            new Date().toISOString(),
         ],
     ];
     // If push or archive is enabled add a link to the registry.
@@ -46074,12 +46071,12 @@ function pass() {
 }
 // message returns a human-readable message for the status. An undefined status
 // is considered cancelled.
-function message(status) {
-    switch (status) {
+function message(result) {
+    switch (result?.status) {
         case Status.Passed:
             return "✅ passed";
         case Status.Failed:
-            return "❌ failed";
+            return `❌ failed (${result.stderr.split("\n").length})`;
         case Status.Skipped:
             return "⏩ skipped";
         default:

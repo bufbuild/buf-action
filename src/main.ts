@@ -91,16 +91,13 @@ function createSummary(inputs: Inputs, steps: Steps): typeof core.summary {
       { data: "Breaking", header: true },
       { data: "Lint", header: true },
       { data: "Job", header: true },
-      { data: "Commit", header: true },
-      { data: "Updated (UTC)", header: true },
     ],
     [
-      message(steps.build?.status),
-      message(steps.format?.status),
-      message(steps.breaking?.status),
-      message(steps.lint?.status),
+      message(steps.build),
+      message(steps.format),
+      message(steps.breaking),
+      message(steps.lint),
       `<a href="${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/job/${context.job}">View</a>`,
-      new Date().toISOString(),
     ],
   ];
   // If push or archive is enabled add a link to the registry.
@@ -399,12 +396,12 @@ function pass(): Result {
 
 // message returns a human-readable message for the status. An undefined status
 // is considered cancelled.
-function message(status: Status | undefined): string {
-  switch (status) {
+function message(result: Result | undefined): string {
+  switch (result?.status) {
     case Status.Passed:
       return "✅ passed";
     case Status.Failed:
-      return "❌ failed";
+      return `❌ failed (${result.stderr.split("\n").length})`;
     case Status.Skipped:
       return "⏩ skipped";
     default:
