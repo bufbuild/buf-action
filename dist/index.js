@@ -45818,16 +45818,16 @@ function createSummary(inputs, steps, moduleNames) {
         [
             { data: "Build", header: true },
             { data: "Format", header: true },
-            { data: "Breaking", header: true },
             { data: "Lint", header: true },
+            { data: "Breaking", header: true },
             { data: "Run", header: true },
             { data: "Updated (UTC)", header: true },
         ],
         [
             message(steps.build),
             message(steps.format),
-            message(steps.breaking),
             message(steps.lint),
+            message(steps.breaking),
             `<a href="${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}">view</a>`,
             new Date().toLocaleString("en-US", {
                 timeZone: "UTC",

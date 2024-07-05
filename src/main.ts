@@ -95,16 +95,16 @@ function createSummary(
     [
       { data: "Build", header: true },
       { data: "Format", header: true },
-      { data: "Breaking", header: true },
       { data: "Lint", header: true },
+      { data: "Breaking", header: true },
       { data: "Run", header: true },
       { data: "Updated (UTC)", header: true },
     ],
     [
       message(steps.build),
       message(steps.format),
-      message(steps.breaking),
       message(steps.lint),
+      message(steps.breaking),
       `<a href="${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}">view</a>`,
       new Date().toLocaleString("en-US", {
         timeZone: "UTC",
