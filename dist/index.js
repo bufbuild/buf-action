@@ -45807,6 +45807,7 @@ function createSummary(inputs, steps) {
             { data: "Breaking", header: true },
             { data: "Lint", header: true },
             { data: "Job", header: true },
+            { data: "Updated (UTC)", header: true },
         ],
         [
             message(steps.build),
@@ -45814,13 +45815,17 @@ function createSummary(inputs, steps) {
             message(steps.breaking),
             message(steps.lint),
             `<a href="${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}/job/${lib_github.context.job}">View</a>`,
+            new Date().toLocaleString("en-US", {
+                hour: "numeric",
+                minute: "numeric",
+                hour12: true,
+            }),
         ],
     ];
     // If push or archive is enabled add a link to the registry.
     //if (inputs.push) table.push(["push", message(steps.push?.status)]);
     //if (inputs.archive) table.push(["archive", message(steps.archive?.status)]);
-    return core.summary.addTable(table)
-        .addLink("View run", `${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}`);
+    return core.summary.addTable(table);
 }
 // runWorkflow runs the buf workflow. It returns the results of each step.
 // First, it builds the input. If the build fails, the workflow stops.
