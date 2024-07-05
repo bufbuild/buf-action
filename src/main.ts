@@ -98,7 +98,7 @@ function createSummary(inputs: Inputs, steps: Steps): typeof core.summary {
       message(steps.format),
       message(steps.breaking),
       message(steps.lint),
-      `<a href="${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}">View</a>`,
+      `<a href="${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}">view</a>`,
       new Date().toLocaleString("en-US", {
         timeZone: "UTC",
         hour12: true,
@@ -401,7 +401,7 @@ function message(result: Result | undefined): string {
     case Status.Passed:
       return "✅ passed";
     case Status.Failed:
-      return `❌ failed (${result.stderr.split("\n").length})`;
+      return `❌ failed (${result.stdout.split("\n").length})`;
     case Status.Skipped:
       return "⏩ skipped";
     default:

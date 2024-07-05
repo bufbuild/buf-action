@@ -45814,7 +45814,7 @@ function createSummary(inputs, steps) {
             message(steps.format),
             message(steps.breaking),
             message(steps.lint),
-            `<a href="${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}">View</a>`,
+            `<a href="${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}">view</a>`,
             new Date().toLocaleString("en-US", {
                 timeZone: "UTC",
                 hour12: true,
@@ -46080,7 +46080,7 @@ function message(result) {
         case Status.Passed:
             return "✅ passed";
         case Status.Failed:
-            return `❌ failed (${result.stderr.split("\n").length})`;
+            return `❌ failed (${result.stdout.split("\n").length})`;
         case Status.Skipped:
             return "⏩ skipped";
         default:
