@@ -45839,14 +45839,14 @@ function createSummary(inputs, steps, moduleNames) {
     // If push or archive is enabled add a link to the registry.
     //if (inputs.push) table.push(["push", message(steps.push?.status)]);
     //if (inputs.archive) table.push(["archive", message(steps.archive?.status)]);
-    const output = core.summary.addTable(table);
+    let output = core.summary.addTable(table);
     if (inputs.push && moduleNames.length > 0) {
         const modules = moduleNames.map((moduleName) => `<a href="https://${moduleName.name}">${moduleName.name}</a>`);
-        output.addRaw(`Pushed ${modules.join(", ")} to registry.`, true);
+        output = output.addRaw(`Pushed ${modules.join(", ")} to registry.`, true);
     }
     if (inputs.archive && moduleNames.length > 0) {
         const modules = moduleNames.map((moduleName) => `<a href="https://${moduleName.name}">${moduleName.name}</a>`);
-        output.addRaw(`Archived ${modules.join(", ")} with ${inputs.archive_labels.join(", ")} labels.`, true);
+        output = output.addRaw(`Archived ${modules.join(", ")} with ${inputs.archive_labels.join(", ")} labels.`, true);
     }
     return output;
 }
