@@ -112,17 +112,14 @@ function createSummary(
       }),
     ],
   ];
-  console.log("moduleNames", moduleNames);
   // If push or archive is enabled add a link to the registry.
-  //if (inputs.push) table.push(["push", message(steps.push?.status)]);
-  //if (inputs.archive) table.push(["archive", message(steps.archive?.status)]);
   let output = core.summary.addTable(table);
   if (inputs.push && moduleNames.length > 0) {
     const modules = moduleNames.map(
       (moduleName) =>
         `<a href="https://${moduleName.name}">${moduleName.name}</a>`,
     );
-    output = output.addRaw(`Pushed ${modules.join(", ")} to registry.`, true);
+    output = output.addRaw(`Pushed to ${modules.join(", ")}.`, true);
   }
   if (inputs.archive && moduleNames.length > 0) {
     const modules = moduleNames.map(
@@ -130,7 +127,7 @@ function createSummary(
         `<a href="https://${moduleName.name}">${moduleName.name}</a>`,
     );
     output = output.addRaw(
-      `Archived ${modules.join(", ")} with ${inputs.archive_labels.join(", ")} labels.`,
+      `Archived labels ${inputs.archive_labels.join(", ")} to ${modules.join(", ")}.`,
       true,
     );
   }
@@ -438,12 +435,12 @@ function pass(): Result {
 function message(result: Result | undefined): string {
   switch (result?.status) {
     case Status.Passed:
-      return "✅ passed";
+      return "<code>✅ passed</code>";
     case Status.Failed:
-      return `❌ failed (${result.stdout.split("\n").length - 1})`;
+      return `<code>❌ failed (${result.stdout.split("\n").length - 1})</code>`;
     case Status.Skipped:
-      return "⏩ skipped";
+      return "<code>⏩ skipped</code>";
     default:
-      return "🚫 cancelled";
+      return "<code>🚫 cancelled</code>";
   }
 }
