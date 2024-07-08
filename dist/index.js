@@ -45785,7 +45785,7 @@ function createSummary(inputs, steps, moduleNames) {
             message(steps.lint),
             message(steps.breaking),
             `<a href="${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}">view</a>`,
-            new Date().toLocaleString("en-GB", {
+            new Date().toLocaleString("en-US", {
                 day: "numeric",
                 month: "short",
                 year: "numeric",

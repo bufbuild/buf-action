@@ -106,7 +106,7 @@ function createSummary(
       message(steps.lint),
       message(steps.breaking),
       `<a href="${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}">view</a>`,
-      new Date().toLocaleString("en-GB", {
+      new Date().toLocaleString("en-US", {
         day: "numeric",
         month: "short",
         year: "numeric",
