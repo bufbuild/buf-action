@@ -52,7 +52,13 @@ async function main() {
       context,
       github,
       commentID,
-      `The latest Buf updates on your PR.\n\n${summary.stringify()}`,
+      `The latest Buf updates on your PR. ${linkToRun("View")} the run, last updated ${new Date().toLocaleString(
+        "en-US",
+        {
+          timeZone: "UTC",
+          hour12: true,
+        },
+      )}.\n\n${summary.stringify()}`,
     );
   }
   // Write the summary to a file defined by GITHUB_STEP_SUMMARY.
@@ -93,24 +99,13 @@ function createSummary(
 ): typeof core.summary {
   const table = [
     [
-      { data: "Build", header: true },
-      { data: "Format", header: true },
-      { data: "Lint", header: true },
-      { data: "Breaking", header: true },
-      { data: "Run", header: true },
-      { data: "Updated (UTC)", header: true },
+      { data: "Name", header: true },
+      { data: "Status", header: true },
     ],
-    [
-      message(steps.build),
-      message(steps.format),
-      message(steps.lint),
-      message(steps.breaking),
-      `<a href="${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}">view</a>`,
-      new Date().toLocaleString("en-US", {
-        timeZone: "UTC",
-        hour12: true,
-      }),
-    ],
+    ["build", message(steps.build)],
+    ["lint", message(steps.lint)],
+    ["format", message(steps.format)],
+    ["breaking", message(steps.breaking)],
   ];
   // If push or archive is enabled add a link to the registry.
   let output = core.summary.addTable(table);
@@ -443,4 +438,8 @@ function message(result: Result | undefined): string {
     default:
       return "<code>🚫 cancelled</code>";
   }
+}
+
+function linkToRun(message: string): string {
+  return `<a href="${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}">${message}</a>`;
 }
