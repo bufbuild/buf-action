@@ -106,9 +106,14 @@ function createSummary(
       message(steps.lint),
       message(steps.breaking),
       `<a href="${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}">view</a>`,
-      new Date().toLocaleString("en-US", {
-        timeZone: "UTC",
+      new Date().toLocaleString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "numeric",
+        minute: "numeric",
         hour12: true,
+        timeZone: "UTC",
       }),
     ],
   ];
