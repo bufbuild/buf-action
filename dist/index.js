@@ -9898,6 +9898,15 @@ function onceStrict (fn) {
 
 /***/ }),
 
+/***/ 4833:
+/***/ ((module) => {
+
+"use strict";
+function _typeof(obj){"@babel/helpers - typeof";return _typeof="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(obj){return typeof obj}:function(obj){return obj&&"function"==typeof Symbol&&obj.constructor===Symbol&&obj!==Symbol.prototype?"symbol":typeof obj},_typeof(obj)}function _createForOfIteratorHelper(o,allowArrayLike){var it=typeof Symbol!=="undefined"&&o[Symbol.iterator]||o["@@iterator"];if(!it){if(Array.isArray(o)||(it=_unsupportedIterableToArray(o))||allowArrayLike&&o&&typeof o.length==="number"){if(it)o=it;var i=0;var F=function F(){};return{s:F,n:function n(){if(i>=o.length)return{done:true};return{done:false,value:o[i++]}},e:function e(_e2){throw _e2},f:F}}throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.")}var normalCompletion=true,didErr=false,err;return{s:function s(){it=it.call(o)},n:function n(){var step=it.next();normalCompletion=step.done;return step},e:function e(_e3){didErr=true;err=_e3},f:function f(){try{if(!normalCompletion&&it["return"]!=null)it["return"]()}finally{if(didErr)throw err}}}}function _defineProperty(obj,key,value){key=_toPropertyKey(key);if(key in obj){Object.defineProperty(obj,key,{value:value,enumerable:true,configurable:true,writable:true})}else{obj[key]=value}return obj}function _toPropertyKey(arg){var key=_toPrimitive(arg,"string");return _typeof(key)==="symbol"?key:String(key)}function _toPrimitive(input,hint){if(_typeof(input)!=="object"||input===null)return input;var prim=input[Symbol.toPrimitive];if(prim!==undefined){var res=prim.call(input,hint||"default");if(_typeof(res)!=="object")return res;throw new TypeError("@@toPrimitive must return a primitive value.")}return(hint==="string"?String:Number)(input)}function _slicedToArray(arr,i){return _arrayWithHoles(arr)||_iterableToArrayLimit(arr,i)||_unsupportedIterableToArray(arr,i)||_nonIterableRest()}function _nonIterableRest(){throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.")}function _unsupportedIterableToArray(o,minLen){if(!o)return;if(typeof o==="string")return _arrayLikeToArray(o,minLen);var n=Object.prototype.toString.call(o).slice(8,-1);if(n==="Object"&&o.constructor)n=o.constructor.name;if(n==="Map"||n==="Set")return Array.from(o);if(n==="Arguments"||/^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n))return _arrayLikeToArray(o,minLen)}function _arrayLikeToArray(arr,len){if(len==null||len>arr.length)len=arr.length;for(var i=0,arr2=new Array(len);i<len;i++){arr2[i]=arr[i]}return arr2}function _iterableToArrayLimit(arr,i){var _i=null==arr?null:"undefined"!=typeof Symbol&&arr[Symbol.iterator]||arr["@@iterator"];if(null!=_i){var _s,_e,_x,_r,_arr=[],_n=!0,_d=!1;try{if(_x=(_i=_i.call(arr)).next,0===i){if(Object(_i)!==_i)return;_n=!1}else for(;!(_n=(_s=_x.call(_i)).done)&&(_arr.push(_s.value),_arr.length!==i);_n=!0){;}}catch(err){_d=!0,_e=err}finally{try{if(!_n&&null!=_i["return"]&&(_r=_i["return"](),Object(_r)!==_r))return}finally{if(_d)throw _e}}return _arr}}function _arrayWithHoles(arr){if(Array.isArray(arr))return arr}module.exports=function(input){if(!input)return[];if(typeof input!=="string"||input.match(/^\s+$/))return[];var lines=input.split("\n");if(lines.length===0)return[];var files=[];var currentFile=null;var currentChunk=null;var deletedLineCounter=0;var addedLineCounter=0;var currentFileChanges=null;var normal=function normal(line){var _currentChunk;(_currentChunk=currentChunk)===null||_currentChunk===void 0?void 0:_currentChunk.changes.push({type:"normal",normal:true,ln1:deletedLineCounter++,ln2:addedLineCounter++,content:line});currentFileChanges.oldLines--;currentFileChanges.newLines--};var start=function start(line){var _parseFiles;var _ref=(_parseFiles=parseFiles(line))!==null&&_parseFiles!==void 0?_parseFiles:[],_ref2=_slicedToArray(_ref,2),fromFileName=_ref2[0],toFileName=_ref2[1];currentFile={chunks:[],deletions:0,additions:0,from:fromFileName,to:toFileName};files.push(currentFile)};var restart=function restart(){if(!currentFile||currentFile.chunks.length)start()};var newFile=function newFile(_,match){restart();currentFile["new"]=true;currentFile.newMode=match[1];currentFile.from="/dev/null"};var deletedFile=function deletedFile(_,match){restart();currentFile.deleted=true;currentFile.oldMode=match[1];currentFile.to="/dev/null"};var oldMode=function oldMode(_,match){restart();currentFile.oldMode=match[1]};var newMode=function newMode(_,match){restart();currentFile.newMode=match[1]};var index=function index(line,match){restart();currentFile.index=line.split(" ").slice(1);if(match[1]){currentFile.oldMode=currentFile.newMode=match[1].trim()}};var fromFile=function fromFile(line){restart();currentFile.from=parseOldOrNewFile(line)};var toFile=function toFile(line){restart();currentFile.to=parseOldOrNewFile(line)};var toNumOfLines=function toNumOfLines(number){return+(number||1)};var chunk=function chunk(line,match){if(!currentFile){start(line)}var _match$slice=match.slice(1),_match$slice2=_slicedToArray(_match$slice,4),oldStart=_match$slice2[0],oldNumLines=_match$slice2[1],newStart=_match$slice2[2],newNumLines=_match$slice2[3];deletedLineCounter=+oldStart;addedLineCounter=+newStart;currentChunk={content:line,changes:[],oldStart:+oldStart,oldLines:toNumOfLines(oldNumLines),newStart:+newStart,newLines:toNumOfLines(newNumLines)};currentFileChanges={oldLines:toNumOfLines(oldNumLines),newLines:toNumOfLines(newNumLines)};currentFile.chunks.push(currentChunk)};var del=function del(line){if(!currentChunk)return;currentChunk.changes.push({type:"del",del:true,ln:deletedLineCounter++,content:line});currentFile.deletions++;currentFileChanges.oldLines--};var add=function add(line){if(!currentChunk)return;currentChunk.changes.push({type:"add",add:true,ln:addedLineCounter++,content:line});currentFile.additions++;currentFileChanges.newLines--};var eof=function eof(line){var _currentChunk$changes3;if(!currentChunk)return;var _currentChunk$changes=currentChunk.changes.slice(-1),_currentChunk$changes2=_slicedToArray(_currentChunk$changes,1),mostRecentChange=_currentChunk$changes2[0];currentChunk.changes.push((_currentChunk$changes3={type:mostRecentChange.type},_defineProperty(_currentChunk$changes3,mostRecentChange.type,true),_defineProperty(_currentChunk$changes3,"ln1",mostRecentChange.ln1),_defineProperty(_currentChunk$changes3,"ln2",mostRecentChange.ln2),_defineProperty(_currentChunk$changes3,"ln",mostRecentChange.ln),_defineProperty(_currentChunk$changes3,"content",line),_currentChunk$changes3))};var schemaHeaders=[[/^diff\s/,start],[/^new file mode (\d+)$/,newFile],[/^deleted file mode (\d+)$/,deletedFile],[/^old mode (\d+)$/,oldMode],[/^new mode (\d+)$/,newMode],[/^index\s[\da-zA-Z]+\.\.[\da-zA-Z]+(\s(\d+))?$/,index],[/^---\s/,fromFile],[/^\+\+\+\s/,toFile],[/^@@\s+-(\d+),?(\d+)?\s+\+(\d+),?(\d+)?\s@@/,chunk],[/^\\ No newline at end of file$/,eof]];var schemaContent=[[/^\\ No newline at end of file$/,eof],[/^-/,del],[/^\+/,add],[/^\s+/,normal]];var parseContentLine=function parseContentLine(line){for(var _i2=0,_schemaContent=schemaContent;_i2<_schemaContent.length;_i2++){var _schemaContent$_i=_slicedToArray(_schemaContent[_i2],2),pattern=_schemaContent$_i[0],handler=_schemaContent$_i[1];var match=line.match(pattern);if(match){handler(line,match);break}}if(currentFileChanges.oldLines===0&&currentFileChanges.newLines===0){currentFileChanges=null}};var parseHeaderLine=function parseHeaderLine(line){for(var _i3=0,_schemaHeaders=schemaHeaders;_i3<_schemaHeaders.length;_i3++){var _schemaHeaders$_i=_slicedToArray(_schemaHeaders[_i3],2),pattern=_schemaHeaders$_i[0],handler=_schemaHeaders$_i[1];var match=line.match(pattern);if(match){handler(line,match);break}}};var parseLine=function parseLine(line){if(currentFileChanges){parseContentLine(line)}else{parseHeaderLine(line)}return};var _iterator=_createForOfIteratorHelper(lines),_step;try{for(_iterator.s();!(_step=_iterator.n()).done;){var line=_step.value;parseLine(line)}}catch(err){_iterator.e(err)}finally{_iterator.f()}return files};var fileNameDiffRegex=/(a|i|w|c|o|1|2)\/.*(?=["']? ["']?(b|i|w|c|o|1|2)\/)|(b|i|w|c|o|1|2)\/.*$/g;var gitFileHeaderRegex=/^(a|b|i|w|c|o|1|2)\//;var parseFiles=function parseFiles(line){var fileNames=line===null||line===void 0?void 0:line.match(fileNameDiffRegex);return fileNames===null||fileNames===void 0?void 0:fileNames.map(function(fileName){return fileName.replace(gitFileHeaderRegex,"").replace(/("|')$/,"")})};var qoutedFileNameRegex=/^\\?['"]|\\?['"]$/g;var parseOldOrNewFile=function parseOldOrNewFile(line){var fileName=leftTrimChars(line,"-+").trim();fileName=removeTimeStamp(fileName);return fileName.replace(qoutedFileNameRegex,"").replace(gitFileHeaderRegex,"")};var leftTrimChars=function leftTrimChars(string,trimmingChars){string=makeString(string);if(!trimmingChars&&String.prototype.trimLeft)return string.trimLeft();var trimmingString=formTrimmingString(trimmingChars);return string.replace(new RegExp("^".concat(trimmingString,"+")),"")};var timeStampRegex=/\t.*|\d{4}-\d\d-\d\d\s\d\d:\d\d:\d\d(.\d+)?\s(\+|-)\d\d\d\d/;var removeTimeStamp=function removeTimeStamp(string){var timeStamp=timeStampRegex.exec(string);if(timeStamp){string=string.substring(0,timeStamp.index).trim()}return string};var formTrimmingString=function formTrimmingString(trimmingChars){if(trimmingChars===null||trimmingChars===undefined)return"\\s";else if(trimmingChars instanceof RegExp)return trimmingChars.source;return"[".concat(makeString(trimmingChars).replace(/([.*+?^=!:${}()|[\]/\\])/g,"\\$1"),"]")};var makeString=function makeString(itemToConvert){return(itemToConvert!==null&&itemToConvert!==void 0?itemToConvert:"")+""};
+
+
+/***/ }),
+
 /***/ 1532:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -45360,6 +45369,8 @@ const LabelService = {
 };
 
 
+// EXTERNAL MODULE: ./node_modules/parse-diff/index.js
+var parse_diff = __nccwpck_require__(4833);
 ;// CONCATENATED MODULE: ./src/inputs.ts
 // Copyright 2024 Buf Technologies, Inc.
 //
@@ -45597,51 +45608,57 @@ async function downloadBuf(version) {
 // commentTag is the tag used to identify the comment. This is a non-visible
 // string injected into the comment body.
 const commentTag = "<!-- Buf results -->";
+// findCommentOnPR finds the comment on the PR that contains the Buf results.
+// If the comment is found, it returns the comment ID. If the comment is not
+// found, it returns undefined.
+async function findCommentOnPR(context, github) {
+    const { owner, repo } = context.repo;
+    const prNumber = context.payload.pull_request?.number;
+    if (!prNumber) {
+        core.info("This is not a PR, skipping finding comment");
+        return undefined;
+    }
+    const comments = await github.paginate(github.rest.issues.listComments, {
+        owner: owner,
+        repo: repo,
+        issue_number: prNumber,
+    });
+    const previousComment = comments.find((comment) => comment.body?.includes(commentTag));
+    if (previousComment) {
+        core.info(`Found previous comment ${previousComment.id}`);
+        return previousComment.id;
+    }
+    return undefined;
+}
 // commentOnPR comments on the PR with the summary of the Buf results. The
 // summary should be a markdown formatted string. This function returns true if
-// the comment was successfully created or updated. On failure, it returns
-// false but does not throw an error.
-async function commentOnPR(context, github, summary) {
-    const comment = `The latest Buf updates on your PR.\n\n${summary}`;
-    try {
-        const { owner, repo } = context.repo;
-        const prNumber = context.payload.pull_request?.number;
-        if (!prNumber) {
-            core.info("This is not a PR, skipping commenting");
-            return false;
-        }
-        const content = {
-            owner: owner,
-            repo: repo,
-            body: comment + commentTag,
-        };
-        // Check if a comment already exists and update it.
-        const comments = await github.paginate(github.rest.issues.listComments, {
-            owner: owner,
-            repo: repo,
-            issue_number: prNumber,
+// the comment was successfully created or updated.
+async function commentOnPR(context, github, commentID, body) {
+    const { owner, repo } = context.repo;
+    const prNumber = context.payload.pull_request?.number;
+    if (!prNumber) {
+        core.info("This is not a PR, skipping commenting");
+        return undefined;
+    }
+    const content = {
+        owner: owner,
+        repo: repo,
+        body: body + commentTag,
+    };
+    if (commentID) {
+        await github.rest.issues.updateComment({
+            ...content,
+            comment_id: commentID,
         });
-        const previousComment = comments.find((comment) => comment.body?.includes(commentTag));
-        if (previousComment) {
-            await github.rest.issues.updateComment({
-                ...content,
-                comment_id: previousComment.id,
-            });
-            core.info(`Updated comment ${previousComment.id} on PR #${prNumber}`);
-        }
-        else {
-            await github.rest.issues.createComment({
-                ...content,
-                issue_number: prNumber,
-            });
-            core.info(`Commented on PR #${prNumber}`);
-        }
-        return true;
+        core.info(`Updated comment ${commentID} on PR #${prNumber}`);
+        return commentID;
     }
-    catch (error) {
-        core.info(`Error occurred while commenting on PR: ${error}`);
-        return false;
-    }
+    const comment = await github.rest.issues.createComment({
+        ...content,
+        issue_number: prNumber,
+    });
+    core.info(`Commented ${comment.data.id} on PR #${prNumber}`);
+    return comment.data.id;
 }
 
 ;// CONCATENATED MODULE: ./src/config.ts
@@ -45714,6 +45731,7 @@ function parseModuleName(moduleName) {
 
 
 
+
 // main is the entrypoint for the action.
 async function main() {
     const inputs = getInputs();
@@ -45725,13 +45743,16 @@ async function main() {
         core.info("Setup only, skipping steps");
         return;
     }
+    // Parse the module names from the input.
+    const moduleNames = await parseModuleNames(bufPath, inputs.input);
     // Run the buf workflow.
-    const steps = await runWorkflow(bufPath, inputs);
+    const steps = await runWorkflow(bufPath, inputs, moduleNames);
     // Create a summary of the steps.
-    const summary = createSummary(inputs, steps);
+    const summary = createSummary(inputs, steps, moduleNames);
     // Comment on the PR with the summary, if requested.
     if (inputs.pr_comment) {
-        await commentOnPR(lib_github.context, github, summary.stringify());
+        const commentID = await findCommentOnPR(lib_github.context, github);
+        await commentOnPR(lib_github.context, github, commentID, `The latest Buf updates on your PR.\n\n${summary.stringify()}`);
     }
     // Write the summary to a file defined by GITHUB_STEP_SUMMARY.
     // NB: Write empties the buffer and must be after the comment.
@@ -45748,28 +45769,50 @@ main()
     .then(() => core.debug(`done in ${process.uptime()} s`));
 // createSummary creates a GitHub summary of the steps. The summary is a table
 // with the name and status of each step.
-function createSummary(inputs, steps) {
+function createSummary(inputs, steps, moduleNames) {
     const table = [
         [
-            { data: "Name", header: true },
-            { data: "Status", header: true },
+            { data: "Build", header: true },
+            { data: "Format", header: true },
+            { data: "Lint", header: true },
+            { data: "Breaking", header: true },
+            { data: "Run", header: true },
+            { data: "Updated (UTC)", header: true },
         ],
-        ["build", message(steps.build?.status)],
-        ["lint", message(steps.lint?.status)],
-        ["format", message(steps.format?.status)],
-        ["breaking", message(steps.breaking?.status)],
+        [
+            message(steps.build),
+            message(steps.format),
+            message(steps.lint),
+            message(steps.breaking),
+            `<a href="${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}">view</a>`,
+            new Date().toLocaleString("en-US", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+                hour: "numeric",
+                minute: "numeric",
+                hour12: true,
+                timeZone: "UTC",
+            }),
+        ],
     ];
-    if (inputs.push)
-        table.push(["push", message(steps.push?.status)]);
-    if (inputs.archive)
-        table.push(["archive", message(steps.archive?.status)]);
-    return core.summary.addTable(table);
+    // If push or archive is enabled add a link to the registry.
+    let output = core.summary.addTable(table);
+    if (inputs.push && moduleNames.length > 0) {
+        const modules = moduleNames.map((moduleName) => `<a href="https://${moduleName.name}">${moduleName.name}</a>`);
+        output = output.addRaw(`Pushed to ${modules.join(", ")}.`, true);
+    }
+    if (inputs.archive && moduleNames.length > 0) {
+        const modules = moduleNames.map((moduleName) => `<a href="https://${moduleName.name}">${moduleName.name}</a>`);
+        output = output.addRaw(`Archived labels ${inputs.archive_labels.join(", ")} to ${modules.join(", ")}.`, true);
+    }
+    return output;
 }
 // runWorkflow runs the buf workflow. It returns the results of each step.
 // First, it builds the input. If the build fails, the workflow stops.
 // Next, it runs lint, format, and breaking checks. If any of these fail, the workflow stops.
 // Finally, it pushes or archives the label to the registry.
-async function runWorkflow(bufPath, inputs) {
+async function runWorkflow(bufPath, inputs, moduleNames) {
     const steps = {};
     steps.build = await build(bufPath, inputs);
     if (steps.build.status == Status.Failed) {
@@ -45786,7 +45829,6 @@ async function runWorkflow(bufPath, inputs) {
     if (checks.some((result) => result.status == Status.Failed)) {
         return steps;
     }
-    const moduleNames = await parseModuleNames(bufPath, inputs.input);
     steps.push = await push(bufPath, inputs, moduleNames);
     steps.archive = await archive(inputs, moduleNames);
     return steps;
@@ -45863,7 +45905,17 @@ async function format(bufPath, inputs) {
     for (const path of inputs.exclude_paths) {
         args.push("--exclude-path", path);
     }
-    return run(bufPath, args);
+    const result = await run(bufPath, args);
+    if (result.status == Status.Failed && result.stdout.startsWith("diff")) {
+        // If the format step fails, parse the diff and write github annotations.
+        const diff = parse_diff(result.stdout);
+        result.stdout = ""; // Clear the stdout to count the number of changes.
+        for (const file of diff) {
+            result.stdout += `::error file=${file.to}::Format diff -${file.deletions}/+${file.additions}.\n`;
+        }
+        console.log(result.stdout);
+    }
+    return result;
 }
 // breaking runs the "buf breaking" step.
 async function breaking(bufPath, inputs) {
@@ -46014,16 +46066,16 @@ function pass() {
 }
 // message returns a human-readable message for the status. An undefined status
 // is considered cancelled.
-function message(status) {
-    switch (status) {
+function message(result) {
+    switch (result?.status) {
         case Status.Passed:
-            return "✅ passed";
+            return "<code>✅ passed</code>";
         case Status.Failed:
-            return "❌ failed";
+            return `<code>❌ failed (${result.stdout.split("\n").length - 1})</code>`;
         case Status.Skipped:
-            return "⏩ skipped";
+            return "<code>⏩ skipped</code>";
         default:
-            return "🚫 cancelled";
+            return "<code>🚫 cancelled</code>";
     }
 }
 

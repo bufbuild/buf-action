@@ -20,11 +20,12 @@ import { createConnectTransport } from "@connectrpc/connect-web";
 import { createPromiseClient, ConnectError, Code } from "@connectrpc/connect";
 import { LabelService } from "@buf/bufbuild_registry.connectrpc_es/buf/registry/module/v1/label_service_connect";
 import { LabelRef } from "@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/label_pb";
+import * as parseDiff from "parse-diff";
 
 import { getInputs, Inputs, getEnv } from "./inputs";
 import { Outputs } from "./outputs";
 import { installBuf } from "./installer";
-import { commentOnPR } from "./comment";
+import { findCommentOnPR, commentOnPR } from "./comment";
 import { parseModuleNames, ModuleName } from "./config";
 
 // main is the entrypoint for the action.
@@ -34,18 +35,25 @@ async function main() {
   const [bufPath, bufVersion] = await installBuf(github, inputs.version);
   core.setOutput(Outputs.BufVersion, bufVersion);
   await login(bufPath, inputs);
-
   if (inputs.setup_only) {
     core.info("Setup only, skipping steps");
     return;
   }
+  // Parse the module names from the input.
+  const moduleNames = await parseModuleNames(bufPath, inputs.input);
   // Run the buf workflow.
-  const steps = await runWorkflow(bufPath, inputs);
+  const steps = await runWorkflow(bufPath, inputs, moduleNames);
   // Create a summary of the steps.
-  const summary = createSummary(inputs, steps);
+  const summary = createSummary(inputs, steps, moduleNames);
   // Comment on the PR with the summary, if requested.
   if (inputs.pr_comment) {
-    await commentOnPR(context, github, summary.stringify());
+    const commentID = await findCommentOnPR(context, github);
+    await commentOnPR(
+      context,
+      github,
+      commentID,
+      `The latest Buf updates on your PR.\n\n${summary.stringify()}`,
+    );
   }
   // Write the summary to a file defined by GITHUB_STEP_SUMMARY.
   // NB: Write empties the buffer and must be after the comment.
@@ -78,27 +86,68 @@ interface Steps {
 
 // createSummary creates a GitHub summary of the steps. The summary is a table
 // with the name and status of each step.
-function createSummary(inputs: Inputs, steps: Steps): typeof core.summary {
+function createSummary(
+  inputs: Inputs,
+  steps: Steps,
+  moduleNames: ModuleName[],
+): typeof core.summary {
   const table = [
     [
-      { data: "Name", header: true },
-      { data: "Status", header: true },
+      { data: "Build", header: true },
+      { data: "Format", header: true },
+      { data: "Lint", header: true },
+      { data: "Breaking", header: true },
+      { data: "Run", header: true },
+      { data: "Updated (UTC)", header: true },
     ],
-    ["build", message(steps.build?.status)],
-    ["lint", message(steps.lint?.status)],
-    ["format", message(steps.format?.status)],
-    ["breaking", message(steps.breaking?.status)],
+    [
+      message(steps.build),
+      message(steps.format),
+      message(steps.lint),
+      message(steps.breaking),
+      `<a href="${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}">view</a>`,
+      new Date().toLocaleString("en-US", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        hour12: true,
+        timeZone: "UTC",
+      }),
+    ],
   ];
-  if (inputs.push) table.push(["push", message(steps.push?.status)]);
-  if (inputs.archive) table.push(["archive", message(steps.archive?.status)]);
-  return core.summary.addTable(table);
+  // If push or archive is enabled add a link to the registry.
+  let output = core.summary.addTable(table);
+  if (inputs.push && moduleNames.length > 0) {
+    const modules = moduleNames.map(
+      (moduleName) =>
+        `<a href="https://${moduleName.name}">${moduleName.name}</a>`,
+    );
+    output = output.addRaw(`Pushed to ${modules.join(", ")}.`, true);
+  }
+  if (inputs.archive && moduleNames.length > 0) {
+    const modules = moduleNames.map(
+      (moduleName) =>
+        `<a href="https://${moduleName.name}">${moduleName.name}</a>`,
+    );
+    output = output.addRaw(
+      `Archived labels ${inputs.archive_labels.join(", ")} to ${modules.join(", ")}.`,
+      true,
+    );
+  }
+  return output;
 }
 
 // runWorkflow runs the buf workflow. It returns the results of each step.
 // First, it builds the input. If the build fails, the workflow stops.
 // Next, it runs lint, format, and breaking checks. If any of these fail, the workflow stops.
 // Finally, it pushes or archives the label to the registry.
-async function runWorkflow(bufPath: string, inputs: Inputs): Promise<Steps> {
+async function runWorkflow(
+  bufPath: string,
+  inputs: Inputs,
+  moduleNames: ModuleName[],
+): Promise<Steps> {
   const steps: Steps = {};
   steps.build = await build(bufPath, inputs);
   if (steps.build.status == Status.Failed) {
@@ -115,7 +164,6 @@ async function runWorkflow(bufPath: string, inputs: Inputs): Promise<Steps> {
   if (checks.some((result) => result.status == Status.Failed)) {
     return steps;
   }
-  const moduleNames = await parseModuleNames(bufPath, inputs.input);
   steps.push = await push(bufPath, inputs, moduleNames);
   steps.archive = await archive(inputs, moduleNames);
   return steps;
@@ -200,7 +248,17 @@ async function format(bufPath: string, inputs: Inputs): Promise<Result> {
   for (const path of inputs.exclude_paths) {
     args.push("--exclude-path", path);
   }
-  return run(bufPath, args);
+  const result = await run(bufPath, args);
+  if (result.status == Status.Failed && result.stdout.startsWith("diff")) {
+    // If the format step fails, parse the diff and write github annotations.
+    const diff = parseDiff(result.stdout);
+    result.stdout = ""; // Clear the stdout to count the number of changes.
+    for (const file of diff) {
+      result.stdout += `::error file=${file.to}::Format diff -${file.deletions}/+${file.additions}.\n`;
+    }
+    console.log(result.stdout);
+  }
+  return result;
 }
 
 // breaking runs the "buf breaking" step.
@@ -379,15 +437,15 @@ function pass(): Result {
 
 // message returns a human-readable message for the status. An undefined status
 // is considered cancelled.
-function message(status: Status | undefined): string {
-  switch (status) {
+function message(result: Result | undefined): string {
+  switch (result?.status) {
     case Status.Passed:
-      return "✅ passed";
+      return "<code>✅ passed</code>";
     case Status.Failed:
-      return "❌ failed";
+      return `<code>❌ failed (${result.stdout.split("\n").length - 1})</code>`;
     case Status.Skipped:
-      return "⏩ skipped";
+      return "<code>⏩ skipped</code>";
     default:
-      return "🚫 cancelled";
+      return "<code>🚫 cancelled</code>";
   }
 }
