@@ -411,7 +411,7 @@ jobs:
         with:
           username: ${{ secrets.BUF_USERNAME }}
           token: ${{ secrets.BUF_TOKEN }}
-          ignore_refs: ${{ github.ref_name }}
+          ignore_refs: ${{ github.head_ref || github.ref_name }}
           lint: false
           format: false
           breaking: false
