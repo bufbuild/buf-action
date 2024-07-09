@@ -97,7 +97,6 @@ export function getInputs(): Inputs {
     const event = github.context.payload as DeleteEvent;
     inputs.archive_labels.push(event.ref);
   }
-  console.log("inputs", inputs);
   return inputs;
 }
 

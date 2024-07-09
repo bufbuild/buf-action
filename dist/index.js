@@ -47511,7 +47511,6 @@ function getInputs() {
         const event = lib_github.context.payload;
         inputs.archive_labels.push(event.ref);
     }
-    console.log("inputs", inputs);
     return inputs;
 }
 // getEnv returns the case insensitive value of the environment variable.
