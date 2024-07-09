@@ -398,7 +398,7 @@ jobs:
     # Check the ignore_refs input.
     runs-on: ubuntu-latest
     needs:
-      - test-build
+      - test-setup
     steps:
       - uses: actions/checkout@v4
       - env:
