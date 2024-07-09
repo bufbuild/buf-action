@@ -81,6 +81,8 @@ Add these parameters under the `with` section of the `uses` step in the workflow
 | `push_disable_create`           | Disables repository creation if it does not exist. | False |
 | `archive`                       | Whether to run the archive step. | Runs on Git deletes |
 | `setup_only`                    | Setup only the `buf` environment, optionally logging into the BSR, but without executing other commands. | |
+| `github_actor`                  | GitHub actor for API requests. | Actor from GitHub context |
+| `github_token`                  | GitHub token for API requests. Ensures requests aren't rate limited | Token from GitHub context |
 
 
 ### Skip the breaking change detection step
