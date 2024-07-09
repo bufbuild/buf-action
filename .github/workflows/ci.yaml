@@ -395,7 +395,7 @@ jobs:
           archive: true # Archive the pushed module.
           comment: false
   test-ignore-refs:
-    # Check the ignore_refs input.
+    # Check the ignore_refs input doesn't build or login, but still installs buf.
     runs-on: ubuntu-latest
     needs:
       - test-setup
@@ -406,7 +406,7 @@ jobs:
         run: |
           mkdir -p foo/v1
           printf "version: v2\nname: ${BUF_MODULE}\n" > buf.yaml
-          printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > foo/v1/bar.proto
+          printf "NOT BUILDABLE" > foo/v1/bar.proto
       - uses: ./
         with:
           username: ${{ secrets.BUF_USERNAME }}
@@ -419,5 +419,4 @@ jobs:
           archive: false
           comment: false
         id: buf-action
-      - run: |
-          echo "${{ steps.buf-action.outputs.out }}" | grep "Skipping steps due to ref"
+      - run: buf --version
