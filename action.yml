@@ -62,6 +62,16 @@ inputs:
       Comment on the pull request with the results of each step.
     required: false
     default: ${{ github.event_name == 'pull_request' }}
+  ignore_refs:
+    description: |-
+      Ignore specific refs expressed as glob expressions (separated by newlines).
+      Example:
+        with:
+          ignore_refs: |
+            main
+            develop/*
+    required: false
+    default: "dependabot/*"
 
   input:
     description: |-

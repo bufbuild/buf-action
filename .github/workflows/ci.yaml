@@ -394,3 +394,30 @@ jobs:
           push: true # Push to re-create.
           archive: true # Archive the pushed module.
           comment: false
+  test-ignore-refs:
+    # Check the ignore_refs input.
+    runs-on: ubuntu-latest
+    needs:
+      - test-build
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
+        run: |
+          mkdir -p foo/v1
+          printf "version: v2\nname: ${BUF_MODULE}\n" > buf.yaml
+          printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > foo/v1/bar.proto
+      - uses: ./
+        with:
+          username: ${{ secrets.BUF_USERNAME }}
+          token: ${{ secrets.BUF_TOKEN }}
+          ignore_refs: ${{ github.ref_name }}
+          lint: false
+          format: false
+          breaking: false
+          push: false
+          archive: false
+          comment: false
+        id: buf-action
+      - run: |
+          echo "${{ steps.buf-action.outputs.out }}" | grep "Skipping steps due to ref"

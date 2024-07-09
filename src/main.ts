@@ -21,6 +21,7 @@ import { createPromiseClient, ConnectError, Code } from "@connectrpc/connect";
 import { LabelService } from "@buf/bufbuild_registry.connectrpc_es/buf/registry/module/v1/label_service_connect";
 import { LabelRef } from "@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/label_pb";
 import * as parseDiff from "parse-diff";
+import * as minimatch from "minimatch";
 
 import { getInputs, Inputs, getEnv } from "./inputs";
 import { Outputs } from "./outputs";
@@ -34,6 +35,16 @@ async function main() {
   const github = getOctokit(core.getInput("github_token"));
   const [bufPath, bufVersion] = await installBuf(github, inputs.version);
   core.setOutput(Outputs.BufVersion, bufVersion);
+  // Skip the action if requested.
+  for (const ignoreRef of inputs.ignore_refs) {
+    if (minimatch.minimatch(inputs.ref_name, ignoreRef)) {
+      core.info(
+        `Skipping steps due to ref ${inputs.ref_name} matching ignore ref ${ignoreRef}`,
+      );
+      return;
+    }
+  }
+  // Log in to the Buf registry.
   await login(bufPath, inputs);
   if (inputs.setup_only) {
     core.info("Setup only, skipping steps");

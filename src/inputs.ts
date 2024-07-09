@@ -22,12 +22,14 @@ import {
 
 // Inputs are the inputs to the action, matching the inputs in the action.yml.
 export interface Inputs {
+  ref_name: string;
   version: string;
   username: string;
   token: string;
   domain: string;
   setup_only: boolean;
   pr_comment: boolean;
+  ignore_refs: string[];
 
   input: string;
   paths: string[];
@@ -47,12 +49,14 @@ export interface Inputs {
 // getInputs decodes the inputs from the environment variables.
 export function getInputs(): Inputs {
   const inputs: Inputs = {
+    ref_name: process.env.GITHUB_REF_NAME ?? "",
     version: core.getInput("version"),
     username: core.getInput("username"),
     token: core.getInput("token") || getEnv("BUF_TOKEN"),
     domain: core.getInput("domain"),
     setup_only: core.getBooleanInput("setup_only"),
     pr_comment: core.getBooleanInput("pr_comment"),
+    ignore_refs: core.getMultilineInput("ignore_refs"),
     // Inputs shared between buf steps.
     input: core.getInput("input"),
     paths: core.getMultilineInput("paths"),
@@ -80,6 +84,7 @@ export function getInputs(): Inputs {
   }
   if (github.context.eventName === "pull_request") {
     const event = github.context.payload as PullRequestEvent;
+    inputs.ref_name = event.pull_request.head.ref;
     if (inputs.breaking_against === "") {
       inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.pull_request.base.sha}`;
       if (inputs.input) {
@@ -92,6 +97,7 @@ export function getInputs(): Inputs {
     const event = github.context.payload as DeleteEvent;
     inputs.archive_labels.push(event.ref);
   }
+  console.log("inputs", inputs);
   return inputs;
 }
 
