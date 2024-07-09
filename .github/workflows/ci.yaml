@@ -393,7 +393,7 @@ jobs:
           breaking: false
           push: true # Push to re-create.
           archive: true # Archive the pushed module.
-          comment: false
+          pr_comment: false
   test-ignore-refs:
     # Check the ignore_refs input doesn't build or login, but still installs buf.
     runs-on: ubuntu-latest
@@ -417,6 +417,6 @@ jobs:
           breaking: false
           push: false
           archive: false
-          comment: false
+          pr_comment: false
         id: buf-action
       - run: buf --version
