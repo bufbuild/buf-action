@@ -31,9 +31,13 @@ import { parseModuleNames, ModuleName } from "./config";
 // main is the entrypoint for the action.
 async function main() {
   const inputs = getInputs();
-  const github = getOctokit(core.getInput("github_token"));
+  const github = getOctokit(inputs.github_token);
   const [bufPath, bufVersion] = await installBuf(github, inputs.version);
   core.setOutput(Outputs.BufVersion, bufVersion);
+  if (inputs.github_actor == "dependabot[bot]") {
+    core.info("Skipping steps for dependabot");
+    return;
+  }
   await login(bufPath, inputs);
   if (inputs.setup_only) {
     core.info("Setup only, skipping steps");
