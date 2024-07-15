@@ -73,7 +73,7 @@ Add these parameters under the `with` section of the `uses` step in the workflow
 | `exclude_imports`               | Exclude files imported by the target modules. | False |
 | `exclude_paths`                 | Exclude specific files or directories, e.g. "proto/a/a.proto", "proto/a" (separated by newlines). | |
 | `pr_comment`                    | Comment the results on the pull request. | Only on pull requests |
-| `ignore_refs`                   | Ignore specific refs expressed as glob expressions, e.g. "main", "develope/*" (separated by newlines). | Ignores dependabot ("dependabot/*") |
+| `ignore_refs`                   | Ignore specific refs expressed as glob expressions, e.g. "main", "develop/*" (separated by newlines). | Ignores dependabot ("dependabot/*") |
 | `format`                        | Whether to run the formatting step. | Runs on pushes to Git PR |
 | `lint`                          | Whether to run the linting step. | Runs on pushes to Git PR |
 | `breaking`                      | Whether to run the breaking change detection step. | Runs on pushes to Git PR |
