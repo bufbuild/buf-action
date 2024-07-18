@@ -57,7 +57,7 @@ async function main() {
       github,
       commentID,
       `The latest Buf updates to your PR.` +
-        `Results from workflow <a href="${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}"><b>${context.workflow} / ${context} (pull request)</b></a>.` +
+        `Results from workflow <a href="${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}"><b>${context.workflow} / ${context.job} (pull request)</b></a>.` +
         `\n\n${summary.stringify()}`,
     );
   }

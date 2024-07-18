@@ -163,7 +163,7 @@ jobs:
         with:
           script: |
             const expects = [
-              "The latest buf updates from workflow Buf action CI, job test-comment.",
+              "The latest Buf updates on your PR.",
               "✅ passed",
               "❌ failed (1)",
               "⏩ skipped",

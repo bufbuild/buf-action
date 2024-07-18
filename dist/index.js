@@ -45762,7 +45762,7 @@ async function main() {
     if (inputs.pr_comment) {
         const commentID = await findCommentOnPR(lib_github.context, github);
         await commentOnPR(lib_github.context, github, commentID, `The latest Buf updates to your PR.` +
-            `Results from workflow <a href="${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}"><b>${lib_github.context.workflow} / ${lib_github.context} (pull request)</b></a>.` +
+            `Results from workflow <a href="${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/actions/runs/${lib_github.context.runId}"><b>${lib_github.context.workflow} / ${lib_github.context.job} (pull request)</b></a>.` +
             `\n\n${summary.stringify()}`);
     }
     // Write the summary to a file defined by GITHUB_STEP_SUMMARY.
