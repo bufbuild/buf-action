@@ -56,9 +56,7 @@ async function main() {
       context,
       github,
       commentID,
-      `The latest Buf updates to your PR.` +
-        `Results from workflow <a href="${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}"><b>${context.workflow} / ${context.job} (pull request)</b></a>.` +
-        `\n\n${summary.stringify()}`,
+      `The latest Buf updates to your PR. Results from workflow <a href="${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}">${context.workflow} / ${context.job} (pull request)</a>.\n\n${summary.stringify()}`,
     );
   }
   // Write the summary to a file defined by GITHUB_STEP_SUMMARY.
