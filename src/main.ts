@@ -56,7 +56,7 @@ async function main() {
       context,
       github,
       commentID,
-      `The latest Buf updates on your PR.\n\n${summary.stringify()}`,
+      `The latest Buf updates from ${context.job} on your PR.\n\n${summary.stringify()}`,
     );
   }
   // Write the summary to a file defined by GITHUB_STEP_SUMMARY.

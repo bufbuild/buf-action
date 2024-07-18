@@ -45607,9 +45607,12 @@ async function downloadBuf(version) {
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// commentTag is the tag used to identify the comment. This is a non-visible
-// string injected into the comment body.
-const commentTag = "<!-- Buf results -->";
+
+// commentTag returns the tag used to identify the comment. This is a non-visible
+// string injected into the comment body. It is unique to the workflow and job.
+function commentTag() {
+    return `<!-- buf ${lib_github.context.workflow}:${lib_github.context.job} -->`;
+}
 // findCommentOnPR finds the comment on the PR that contains the Buf results.
 // If the comment is found, it returns the comment ID. If the comment is not
 // found, it returns undefined.
@@ -45625,7 +45628,7 @@ async function findCommentOnPR(context, github) {
         repo: repo,
         issue_number: prNumber,
     });
-    const previousComment = comments.find((comment) => comment.body?.includes(commentTag));
+    const previousComment = comments.find((comment) => comment.body?.includes(commentTag()));
     if (previousComment) {
         core.info(`Found previous comment ${previousComment.id}`);
         return previousComment.id;
@@ -45645,7 +45648,7 @@ async function commentOnPR(context, github, commentID, body) {
     const content = {
         owner: owner,
         repo: repo,
-        body: body + commentTag,
+        body: body + commentTag(),
     };
     if (commentID) {
         await github.rest.issues.updateComment({
@@ -45758,7 +45761,7 @@ async function main() {
     // Comment on the PR with the summary, if requested.
     if (inputs.pr_comment) {
         const commentID = await findCommentOnPR(lib_github.context, github);
-        await commentOnPR(lib_github.context, github, commentID, `The latest Buf updates on your PR.\n\n${summary.stringify()}`);
+        await commentOnPR(lib_github.context, github, commentID, `The latest Buf updates from ${lib_github.context.job} on your PR.\n\n${summary.stringify()}`);
     }
     // Write the summary to a file defined by GITHUB_STEP_SUMMARY.
     // NB: Write empties the buffer and must be after the comment.
