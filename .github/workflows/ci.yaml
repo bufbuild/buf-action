@@ -163,12 +163,12 @@ jobs:
         with:
           script: |
             const expects = [
-              "The latest Buf updates on your PR.",
+              "The latest buf updates from workflow Buf action CI, job test-comment.",
               "✅ passed",
               "❌ failed (1)",
               "⏩ skipped",
             ];
-            const commentTag = "<!-- Buf results -->";
+            const commentTag = "<!-- buf Buf action CI:buf -->";
             const { owner, repo } = context.repo;
             const prNumber = context.payload.pull_request?.number;
             if (!prNumber) {

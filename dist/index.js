@@ -45761,7 +45761,7 @@ async function main() {
     // Comment on the PR with the summary, if requested.
     if (inputs.pr_comment) {
         const commentID = await findCommentOnPR(lib_github.context, github);
-        await commentOnPR(lib_github.context, github, commentID, `The latest Buf updates from ${lib_github.context.job} on your PR.\n\n${summary.stringify()}`);
+        await commentOnPR(lib_github.context, github, commentID, `The latest buf updates from workflow ${lib_github.context.workflow}, job ${lib_github.context.job}.\n\n${summary.stringify()}`);
     }
     // Write the summary to a file defined by GITHUB_STEP_SUMMARY.
     // NB: Write empties the buffer and must be after the comment.
