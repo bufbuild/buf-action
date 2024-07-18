@@ -168,7 +168,7 @@ jobs:
               "❌ failed (1)",
               "⏩ skipped",
             ];
-            const commentTag = "<!-- buf Buf action CI:buf -->";
+            const commentTag = "<!-- buf Buf action CI:test-comment -->";
             const { owner, repo } = context.repo;
             const prNumber = context.payload.pull_request?.number;
             if (!prNumber) {
