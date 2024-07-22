@@ -56,7 +56,7 @@ async function main() {
       context,
       github,
       commentID,
-      `The latest Buf updates on your PR.\n\n${summary.stringify()}`,
+      `The latest Buf updates on your PR. Results from workflow <a href="${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}">${context.workflow} / ${context.job} (pull_request)</a>.\n\n${summary.stringify()}`,
     );
   }
   // Write the summary to a file defined by GITHUB_STEP_SUMMARY.
@@ -101,7 +101,6 @@ function createSummary(
       { data: "Format", header: true },
       { data: "Lint", header: true },
       { data: "Breaking", header: true },
-      { data: "Run", header: true },
       { data: "Updated (UTC)", header: true },
     ],
     [
@@ -109,7 +108,6 @@ function createSummary(
       message(steps.format),
       message(steps.lint),
       message(steps.breaking),
-      `<a href="${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}">view</a>`,
       new Date().toLocaleString("en-US", {
         day: "numeric",
         month: "short",

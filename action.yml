@@ -59,7 +59,7 @@ inputs:
     default: "false"
   pr_comment:
     description: |-
-      Comment on the pull request with the results of each step.
+      Comment on the pull request with the results of each step. The workflow and job name combination must be unique.
     required: false
     default: ${{ github.event_name == 'pull_request' }}
 

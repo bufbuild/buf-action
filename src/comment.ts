@@ -13,12 +13,15 @@
 // limitations under the License.
 
 import * as core from "@actions/core";
+import { context } from "@actions/github";
 import { Context } from "@actions/github/lib/context";
 import { GitHub } from "@actions/github/lib/utils";
 
-// commentTag is the tag used to identify the comment. This is a non-visible
-// string injected into the comment body.
-const commentTag = "<!-- Buf results -->";
+// commentTag returns the tag used to identify the comment. This is a non-visible
+// string injected into the comment body. It is unique to the workflow and job.
+function commentTag(): string {
+  return `<!-- buf ${context.workflow}:${context.job} -->`;
+}
 
 // findCommentOnPR finds the comment on the PR that contains the Buf results.
 // If the comment is found, it returns the comment ID. If the comment is not
@@ -39,7 +42,7 @@ export async function findCommentOnPR(
     issue_number: prNumber,
   });
   const previousComment = comments.find((comment) =>
-    comment.body?.includes(commentTag),
+    comment.body?.includes(commentTag()),
   );
   if (previousComment) {
     core.info(`Found previous comment ${previousComment.id}`);
@@ -66,7 +69,7 @@ export async function commentOnPR(
   const content = {
     owner: owner,
     repo: repo,
-    body: body + commentTag,
+    body: body + commentTag(),
   };
   if (commentID) {
     await github.rest.issues.updateComment({
