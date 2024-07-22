@@ -17,6 +17,10 @@ import { context } from "@actions/github";
 import { Context } from "@actions/github/lib/context";
 import { GitHub } from "@actions/github/lib/utils";
 
+// oldCommentTag is the previous tag used to identify the comment. This is
+// temporary and will be removed in a future release.
+const oldCommentTag = "<!-- Buf results -->";
+
 // commentTag returns the tag used to identify the comment. This is a non-visible
 // string injected into the comment body. It is unique to the workflow and job.
 function commentTag(): string {
@@ -41,8 +45,11 @@ export async function findCommentOnPR(
     repo: repo,
     issue_number: prNumber,
   });
-  const previousComment = comments.find((comment) =>
-    comment.body?.includes(commentTag()),
+  const tag = commentTag();
+  const previousComment = comments.find(
+    (comment) =>
+      // TODO: Remove the old comment tag check in a future release.
+      comment.body?.includes(tag) || comment.body?.includes(oldCommentTag),
   );
   if (previousComment) {
     core.info(`Found previous comment ${previousComment.id}`);
