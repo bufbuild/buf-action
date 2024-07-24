@@ -45488,7 +45488,7 @@ var semver = __nccwpck_require__(1383);
 
 
 // requiredVersion is the minimum version of buf required.
-const requiredVersion = ">=1.34.0";
+const requiredVersion = ">=1.35.0";
 // installBuf installs the buf binary and returns the path to the binary. The
 // versionInput should be an explicit version of buf.
 async function installBuf(github, versionInput) {
