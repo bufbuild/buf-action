@@ -19,8 +19,7 @@ jobs:
           setup_only: true
       - env:
           BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
-          BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
-        run: echo ${BUF_TOKEN} | buf registry login buf.build --username ${BUF_USERNAME} --token-stdin
+        run: echo ${BUF_TOKEN} | buf registry login buf.build --token-stdin
       - run: buf build --error-format=github-actions
       - if: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'buf skip lint') }}
         run: buf lint --error-format github-actions

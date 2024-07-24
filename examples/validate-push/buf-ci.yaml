@@ -12,8 +12,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: bufbuild/buf-action@v0.2
         with:
-          # Username and token are required to authenticate with the Buf Schema Registry.
-          username: ${{ secrets.BUF_USERNAME }}
+          # The token paramater is required to authenticate with the Buf Schema Registry.
           token: ${{ secrets.BUF_TOKEN }}
           lint: ${{ github.event_name == 'push' }}
           format: ${{ github.event_name == 'push' }}
