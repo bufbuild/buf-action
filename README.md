@@ -115,7 +115,7 @@ For reproducible builds, you can pin to an explicit version of `buf` by setting 
 ```yaml
 - uses: bufbuild/buf-action@v0.2
   with:
-    version: 1.34.0
+    version: 1.35.0
 ```
 
 If no version is specified in the workflow config, the action will resolve the version in order of precedence:
