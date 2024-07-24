@@ -175,7 +175,8 @@ async function runWorkflow(
 async function login(bufPath: string, inputs: Inputs) {
   const { token, domain } = inputs;
   if (token == "") {
-    throw new Error("No token provided");
+    core.debug("Skipping login, no token provided");
+    return;
   }
   core.debug(`Logging in to ${domain}`);
   await exec.exec(bufPath, ["registry", "login", domain, "--token-stdin"], {
