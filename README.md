@@ -38,7 +38,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: bufbuild/buf-action@v0.2
         with:
-          username: ${{ secrets.BUF_USERNAME }}
           token: ${{ secrets.BUF_TOKEN }}
 ```
 
@@ -65,7 +64,6 @@ Add these parameters under the `with` section of the `uses` step in the workflow
 | Parameter                       | Description                                        | Default            |
 |:--------------------------------|:---------------------------------------------------|:-------------------|
 | `version`                       | Version of the `buf` CLI to use. | Latest [version][buf-releases] |
-| `username`                      | Username for [logging into the BSR](https://buf.build/docs/bsr/authentication). | |
 | `token`                         | API token for [logging into the BSR](https://buf.build/docs/bsr/authentication). | |
 | `domain`                        | Domain for logging into the BSR, enterprise only.| `buf.build` |
 | `input`                         | [Input](https://buf.build/docs/reference/inputs) for the `buf` command. | |
@@ -117,7 +115,7 @@ For reproducible builds, you can pin to an explicit version of `buf` by setting 
 ```yaml
 - uses: bufbuild/buf-action@v0.2
   with:
-    version: 1.34.0
+    version: 1.35.0
 ```
 
 If no version is specified in the workflow config, the action will resolve the version in order of precedence:
@@ -131,15 +129,12 @@ If no version is specified in the workflow config, the action will resolve the v
 way for consumers of your APIs to generate code.
 Authenticating with the BSR is required for both the push and archive label steps.
 
-To authenticate with the BSR, set the parameters `username` and `token`.
-The `username` and `token` values should be
-[stored as secrets in the repository settings](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions).
-The `token` value can be [generated from the BSR UI](https://buf.build/docs/bsr/authentication#create-an-api-token).
+To authenticate with the BSR, set the API token as the parameter `token`.
+Generate a token from the [BSR UI](https://buf.build/docs/bsr/authentication#create-an-api-token) and add it to the [repository secrets](https://docs.github.com/en/actions/reference/encrypted-secrets).
 
 ```yaml
 - uses: bufbuild/buf-action@v0.2
   with:
-    username: ${{ secrets.BUF_USERNAME }}
     token: ${{ secrets.BUF_TOKEN }}
 ```
 
@@ -170,7 +165,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: bufbuild/buf-action@v0.2
         with:
-          username: ${{ secrets.BUF_USERNAME }}
           token: ${{ secrets.BUF_TOKEN }}
 +         pr_comment: false
 ```

@@ -173,22 +173,15 @@ async function runWorkflow(
 
 // login logs in to the Buf registry, storing credentials.
 async function login(bufPath: string, inputs: Inputs) {
-  const { username, token, domain } = inputs;
-  if (username == "") {
-    core.debug("Skipping login, no username provided");
+  const { token, domain } = inputs;
+  if (token == "") {
+    core.debug("Skipping login, no token provided");
     return;
   }
-  if (token == "") {
-    throw new Error("No token provided");
-  }
-  core.debug(`Logging in as ${username}`);
-  await exec.exec(
-    bufPath,
-    ["registry", "login", domain, "--username", username, "--token-stdin"],
-    {
-      input: Buffer.from(token + "\n"),
-    },
-  );
+  core.debug(`Logging in to ${domain}`);
+  await exec.exec(bufPath, ["registry", "login", domain, "--token-stdin"], {
+    input: Buffer.from(token + "\n"),
+  });
 }
 
 // build runs the "buf build" step.

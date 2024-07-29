@@ -17,6 +17,5 @@ jobs:
       - uses: actions/checkout@v4
       - uses: bufbuild/buf-action@v0.2
         with:
-          username: ${{ secrets.BUF_USERNAME }}
           token: ${{ secrets.BUF_TOKEN }}
           breaking: ${{ github.event_name == 'pull_request' }}

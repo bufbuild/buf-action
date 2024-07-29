@@ -45391,7 +45391,6 @@ var parse_diff = __nccwpck_require__(4833);
 function getInputs() {
     const inputs = {
         version: core.getInput("version"),
-        username: core.getInput("username"),
         token: core.getInput("token") || getEnv("BUF_TOKEN"),
         domain: core.getInput("domain"),
         setup_only: core.getBooleanInput("setup_only"),
@@ -45489,7 +45488,7 @@ var semver = __nccwpck_require__(1383);
 
 
 // requiredVersion is the minimum version of buf required.
-const requiredVersion = ">=1.34.0";
+const requiredVersion = ">=1.35.0";
 // installBuf installs the buf binary and returns the path to the binary. The
 // versionInput should be an explicit version of buf.
 async function installBuf(github, versionInput) {
@@ -45848,16 +45847,13 @@ async function runWorkflow(bufPath, inputs, moduleNames) {
 }
 // login logs in to the Buf registry, storing credentials.
 async function login(bufPath, inputs) {
-    const { username, token, domain } = inputs;
-    if (username == "") {
-        core.debug("Skipping login, no username provided");
+    const { token, domain } = inputs;
+    if (token == "") {
+        core.debug("Skipping login, no token provided");
         return;
     }
-    if (token == "") {
-        throw new Error("No token provided");
-    }
-    core.debug(`Logging in as ${username}`);
-    await exec.exec(bufPath, ["registry", "login", domain, "--username", username, "--token-stdin"], {
+    core.debug(`Logging in to ${domain}`);
+    await exec.exec(bufPath, ["registry", "login", domain, "--token-stdin"], {
         input: Buffer.from(token + "\n"),
     });
 }

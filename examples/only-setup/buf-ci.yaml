@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: bufbuild/buf-action@v0.2
         with:
-          # Add username or token secrets to your repository settings to
-          # authenticate with the Buf Schema Registry.
+          # Add the parameter token as a secret in your repository settings
+          # to authenticate with the Buf Schema Registry.
           setup_only: true
       - run: buf build --error-format=github-actions

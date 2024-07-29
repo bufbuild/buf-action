@@ -27,11 +27,7 @@ inputs:
       Version of the Buf CLI to use.
       Example:
         with:
-          version: 1.34.0
-    required: false
-  username:
-    description: |-
-      Username for logging into the BSR.
+          version: 1.35.0
     required: false
   token:
     description: |-
