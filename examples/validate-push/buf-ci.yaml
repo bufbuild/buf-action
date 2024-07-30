@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: bufbuild/buf-action@v0.2
+      - uses: bufbuild/buf-action@v0.3
         with:
           # The token paramater is required to authenticate with the Buf Schema Registry.
           token: ${{ secrets.BUF_TOKEN }}
