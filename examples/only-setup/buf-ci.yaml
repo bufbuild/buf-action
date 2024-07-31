@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: bufbuild/buf-action@v0.3
+      - uses: bufbuild/buf-action@v1
         with:
           # Add the parameter token as a secret in your repository settings
           # to authenticate with the Buf Schema Registry.
