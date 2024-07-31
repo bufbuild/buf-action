@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: bufbuild/buf-action@v0.2
+      - uses: bufbuild/buf-action@v0.3
         with:
           token: ${{ secrets.BUF_TOKEN }}
           breaking: ${{ github.event_name == 'pull_request' }}
