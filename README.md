@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: bufbuild/buf-action@v0.3
+      - uses: bufbuild/buf-action@v1
         with:
           token: ${{ secrets.BUF_TOKEN }}
 ```
@@ -56,7 +56,7 @@ To customize the behavior of the action, you can set the following parameters in
 Add these parameters under the `with` section of the `uses` step in the workflow file.
 
 ```yaml
-- uses: bufbuild/buf-action@v0.3
+- uses: bufbuild/buf-action@v1
   with:
     ...
 ```
@@ -101,7 +101,7 @@ To disable parts of the workflow, each step corresponds to a boolean flag in the
 For example to disable formatting set the parameter `format` to `false`:
 
 ```yaml
-- uses: bufbuild/buf-action@v0.3
+- uses: bufbuild/buf-action@v1
   with:
     format: false
 ```
@@ -113,7 +113,7 @@ See [action.yml](action.yml) for all available parameters.
 For reproducible builds, you can pin to an explicit version of `buf` by setting `version`.
 
 ```yaml
-- uses: bufbuild/buf-action@v0.3
+- uses: bufbuild/buf-action@v1
   with:
     version: 1.35.0
 ```
@@ -133,7 +133,7 @@ To authenticate with the BSR, set the API token as the parameter `token`.
 Generate a token from the [BSR UI](https://buf.build/docs/bsr/authentication#create-an-api-token) and add it to the [repository secrets](https://docs.github.com/en/actions/reference/encrypted-secrets).
 
 ```yaml
-- uses: bufbuild/buf-action@v0.3
+- uses: bufbuild/buf-action@v1
   with:
     token: ${{ secrets.BUF_TOKEN }}
 ```
@@ -163,7 +163,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: bufbuild/buf-action@v0.3
+      - uses: bufbuild/buf-action@v1
         with:
           token: ${{ secrets.BUF_TOKEN }}
 +         pr_comment: false
@@ -175,7 +175,7 @@ To run the action for parameters not declared at the root of the repository,
 set the parameter `input` to the directory of your `buf.yaml` file.
 
 ```yaml
-- uses: bufbuild/buf-action@v0.3
+- uses: bufbuild/buf-action@v1
   with:
     input: <path/to/module>
 ```
@@ -184,7 +184,7 @@ Breaking change detection by default will use the `input` value as a subdirector
 To customize this behavior, set the parameter `breaking_against` to the desired input.
 
 ```yaml
-- uses: bufbuild/buf-action@v0.3
+- uses: bufbuild/buf-action@v1
   with:
     input: <path/to/module>
     breaking_against: ${{ github.event.repository.clone_url }}#format=git,commit=${{ github.event.pull_request.base.sha }},subdir=<path/to/module>
@@ -201,7 +201,7 @@ and then set the value of `breaking_against` to the path of the base.
   with:
     path: base
     ref: ${{ github.event.pull_request.base.sha }}
-- uses: bufbuild/buf-action@v0.3
+- uses: bufbuild/buf-action@v1
   with:
     input: head/<path/to/module>
     breaking_against: base/<path/to/module>
@@ -216,7 +216,7 @@ This will install `buf` and optionally login to the schema registry but no addit
 Subsequent steps will have `buf` available in their $PATH and can invoke `buf` directly.
 
 ```yaml
-- uses: bufbuild/buf-action@v0.3
+- uses: bufbuild/buf-action@v1
   with:
     setup_only: true
 - run: buf build --error-format github-actions
@@ -230,7 +230,7 @@ To trigger steps on different events use the GitHub action context to deduce the
 For example to enable formatting checks on both pull requests and push create an expression for the parameter `format`:
 
 ```yaml
-- uses: bufbuild/buf-action@v0.3
+- uses: bufbuild/buf-action@v1
   with:
     format: ${{ contains(fromJSON('["push", "pull_request"]'), github.event_name) }}
 ```
@@ -243,7 +243,7 @@ To conditionally run checks based on user input, use the GitHub action context t
 For example to disable breaking change detection on commits, create an expression on the parameter `breaking` to check the contents of the commit message:
 
 ```yaml
-- uses: bufbuild/buf-action@v0.3
+- uses: bufbuild/buf-action@v1
   with:
     breaking: |
       contains(fromJSON('["push", "pull_request"]'), github.event_name) &&
