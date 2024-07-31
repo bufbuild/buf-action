@@ -5,9 +5,6 @@
 [![ci](https://github.com/bufbuild/buf-action/actions/workflows/ci.yaml/badge.svg?branch=main)][ci]
 [![slack](https://img.shields.io/badge/slack-buf-%23e01563)][slack]
 
-> [!CAUTION]
-> This is in alpha and is under development, stay tuned!
-
 This GitHub action makes it easy to run [`buf`][buf] within a workflow to check for
 [build](https://buf.build/docs/reference/cli/buf/build),
 [lint](https://buf.build/docs/lint/overview),
