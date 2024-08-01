@@ -1,4 +1,4 @@
-![The Buf logo](https://avatars.githubusercontent.com/u/54191850)
+![The Buf logo](https://avatars.githubusercontent.com/u/54191850?s=200&v=4)
 
 # buf-action
 
