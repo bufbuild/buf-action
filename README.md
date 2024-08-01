@@ -286,9 +286,9 @@ we recommend migrating to this consolidated action that has additional capabilit
 If you have any feedback or need support, please reach out to us on the [Buf Slack][slack],
 or [GitHub Issues](https://github.com/bufbuild/buf-action/issues).
 
-## Status: alpha
+## Status: stable
 
-Not yet stable.
+This action is stable and ready for production use.
 
 ## Legal
 
