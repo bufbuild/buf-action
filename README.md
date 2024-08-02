@@ -32,8 +32,10 @@ jobs:
   buf:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: bufbuild/buf-action@v1
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run Buf
+        uses: bufbuild/buf-action@v1
         with:
           token: ${{ secrets.BUF_TOKEN }}
 ```

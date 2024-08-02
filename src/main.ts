@@ -153,6 +153,12 @@ async function runWorkflow(
   const steps: Steps = {};
   steps.build = await build(bufPath, inputs);
   if (steps.build.status == Status.Failed) {
+    if (steps.build.stderr.match(/had no .proto files/)) {
+      core.info(
+        "Empty repository detected, ensure the repository is checked out",
+      );
+      return steps;
+    }
     return steps;
   }
   const checks = await Promise.all([
