@@ -79,6 +79,20 @@ jobs:
         with:
           setup_only: true
       - run: buf --version | grep $BUF_VERSION
+  test-empty-build:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          lint: false
+          format: false
+          breaking: false
+          push: false
+          archive: false
+          pr_comment: false
+        continue-on-error: true # build fails
   test-lint:
     runs-on: ubuntu-latest
     needs: build
