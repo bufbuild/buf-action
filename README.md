@@ -32,7 +32,6 @@ jobs:
   buf:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
       - uses: bufbuild/buf-action@v1
         with:
           token: ${{ secrets.BUF_TOKEN }}
@@ -159,7 +158,6 @@ jobs:
   buf:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
       - uses: bufbuild/buf-action@v1
         with:
           token: ${{ secrets.BUF_TOKEN }}
@@ -169,25 +167,17 @@ jobs:
 ### Specify the input directory
 
 To run the action for parameters not declared at the root of the repository,
-set the parameter `input` to the directory of your `buf.yaml` file.
+set the parameter `input` and `breaking_against` to include a subdir to the path
+of your `buf.yaml` file. These parameters are configured as a base input ref.
 
 ```yaml
 - uses: bufbuild/buf-action@v1
   with:
-    input: <path/to/module>
-```
-
-Breaking change detection by default will use the `input` value as a subdirectory for the breaking against value.
-To customize this behavior, set the parameter `breaking_against` to the desired input.
-
-```yaml
-- uses: bufbuild/buf-action@v1
-  with:
-    input: <path/to/module>
+    input: ${{ github.event.repository.clone_url }}#format=git,commit=${{ github.event.pull_request.head.sha }},subdir=<path/to/module>
     breaking_against: ${{ github.event.repository.clone_url }}#format=git,commit=${{ github.event.pull_request.base.sha }},subdir=<path/to/module>
 ```
 
-Alternatively, you can checkout the base for the breaking comparison to a local folder
+Alternatively, you can checkout the head and base to a local folder
 and then set the value of `breaking_against` to the path of the base.
 
 ```yaml

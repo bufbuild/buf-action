@@ -15,8 +15,8 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 import {
-  PushEvent,
-  PullRequestEvent,
+  //PushEvent,
+  //PullRequestEvent,
   DeleteEvent,
 } from "@octokit/webhooks-definitions/schema";
 
@@ -71,23 +71,11 @@ export function getInputs(): Inputs {
     archive_labels: [],
   };
   if (github.context.eventName === "push") {
-    const event = github.context.payload as PushEvent;
-    if (inputs.breaking_against === "") {
-      inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.before}`;
-      if (inputs.input) {
-        inputs.breaking_against += `,subdir=${inputs.input}`;
-      }
-    }
+    //const event = github.context.payload as PushEvent;
     inputs.archive_labels.push(github.context.ref);
   }
   if (github.context.eventName === "pull_request") {
-    const event = github.context.payload as PullRequestEvent;
-    if (inputs.breaking_against === "") {
-      inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.pull_request.base.sha}`;
-      if (inputs.input) {
-        inputs.breaking_against += `,subdir=${inputs.input}`;
-      }
-    }
+    //const event = github.context.payload as PullRequestEvent;
     inputs.archive_labels.push(github.context.ref);
   }
   if (github.context.eventName === "delete") {

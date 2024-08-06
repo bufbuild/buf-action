@@ -63,6 +63,7 @@ inputs:
     description: |-
       Input for the buf command.
     required: false
+    default: ${{ github.event.repository.clone_url }}#format=git,commit=${{ github.event.pull_request.head.sha || github.event.after }}
   paths:
     description: |-
       Limit to specific files or directories (separated by newlines).
@@ -112,6 +113,7 @@ inputs:
       Input to compare against for breaking change detection.
       Defaults to the base branch of the pull request or the commit before the push.
     required: false
+    default: ${{ github.event.repository.clone_url }}#format=git,commit=${{ github.event.pull_request.base.sha || github.event.before }}
 
   push:
     description: |-
