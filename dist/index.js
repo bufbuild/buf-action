@@ -45829,8 +45829,7 @@ async function runWorkflow(bufPath, inputs, moduleNames) {
     steps.build = await build(bufPath, inputs);
     if (steps.build.status == Status.Failed) {
         if (steps.build.stderr.match(/had no .proto files/)) {
-            core.info("Empty repository detected, ensure the repository is checked out");
-            return steps;
+            core.info('Did you forget to add the "actions/checkout@v4" checkout step to your workflow?');
         }
         return steps;
     }
