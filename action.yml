@@ -56,8 +56,9 @@ inputs:
   pr_comment:
     description: |-
       Comment on the pull request with the results of each step. The workflow and job name combination must be unique.
+      Only runs on pull requests from non forked repositories.
     required: false
-    default: ${{ github.event_name == 'pull_request' }}
+    default: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
 
   input:
     description: |-
