@@ -116,9 +116,9 @@ inputs:
 
   push:
     description: |-
-      Whether to run the push step. Runs by default on pushes.
+      Whether to run the push step. Runs by default on pushes, for non forked repositories.
     required: false
-    default: ${{ github.event_name == 'push' }}
+    default: ${{ github.event_name == 'push' && github.event.pull_request.head.repo.full_name == github.repository }}
   push_disable_create:
     description: |-
       Disables repository creation if it does not exist. Defaults to false.
@@ -127,9 +127,9 @@ inputs:
 
   archive:
     description: |-
-      Whether to run the archive step. Runs by default on deletes.
+      Whether to run the archive step. Runs by default on deletes, for non forked repositories.
     required: false
-    default: ${{ github.event_name == 'delete' }}
+    default: ${{ github.event_name == 'delete' && github.event.pull_request.head.repo.full_name == github.repository }}
 
 outputs:
   buf_version:
