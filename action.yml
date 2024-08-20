@@ -56,7 +56,7 @@ inputs:
   pr_comment:
     description: |-
       Comment on the pull request with the results of each step. The workflow and job name combination must be unique.
-      Only runs on pull requests from non forked repositories.
+      Only runs on pull requests, for non forked repositories.
     required: false
     default: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
 
@@ -118,7 +118,7 @@ inputs:
     description: |-
       Whether to run the push step. Runs by default on pushes, for non forked repositories.
     required: false
-    default: ${{ github.event_name == 'push' && github.event.pull_request.head.repo.full_name == github.repository }}
+    default: ${{ github.event_name == 'push' }}
   push_disable_create:
     description: |-
       Disables repository creation if it does not exist. Defaults to false.
@@ -129,7 +129,7 @@ inputs:
     description: |-
       Whether to run the archive step. Runs by default on deletes, for non forked repositories.
     required: false
-    default: ${{ github.event_name == 'delete' && github.event.pull_request.head.repo.full_name == github.repository }}
+    default: ${{ github.event_name == 'delete' }}
 
 outputs:
   buf_version:
