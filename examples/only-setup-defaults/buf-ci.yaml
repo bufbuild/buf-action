@@ -29,7 +29,7 @@ jobs:
         run: |
           buf breaking --error-format github-actions --against \
             ${{ github.event.repository.clone_url }}#format=git,tag=${{ github.event.pull_request.base.sha || github.event.before }}
-      - if: github.event_name == 'push' && 
+      - if: ${{ github.event_name == 'push' }}
         run: buf push --error-format github-actions --create --git-metadata
-      - if: github.event_name == 'delete'
+      - if: ${{ github.event_name == 'delete' }}
         run: buf beta registry archive --label ${{ github.ref_name }}
