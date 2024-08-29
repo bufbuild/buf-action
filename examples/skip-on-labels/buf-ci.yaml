@@ -15,12 +15,6 @@ jobs:
       - uses: bufbuild/buf-action@v1
         with:
           token: ${{ secrets.BUF_TOKEN }}
-          lint: |
-            github.event_name == 'pull_request' && \
-            !contains(github.event.pull_request.labels.*.name, 'buf skip lint')
-          format: |
-            github.event_name == 'pull_request' && \
-            !contains(github.event.pull_request.labels.*.name, 'buf skip format')
-          breaking: |
-            github.event_name == 'pull_request' && \
-            !contains(github.event.pull_request.labels.*.name, 'buf skip breaking')
+          lint: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'buf skip lint') }}
+          format: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'buf skip format') }}
+          breaking: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'buf skip breaking') }}
