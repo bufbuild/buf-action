@@ -1,0 +1,22 @@
+# This workflow runs checks before pushing to the BSR.
+name: Buf CI
+on:
+  push:
+  delete:
+permissions:
+  contents: read
+jobs:
+  buf:      
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-action@v1
+        with:
+          token: ${{ secrets.BUF_TOKEN }}
+          lint: ${{ github.event_name == 'push' }}
+          format: ${{ github.event_name == 'push' }}
+          breaking: ${{ github.event_name == 'push' && !contains(github.event.head_commit.message, 'buf skip breaking') }}
+          # Specify the branch to compare against for breaking change detection.
+          # The default for push is to compare to the commit before. We want to
+          # compare against the main branch for a GitHub flow style workflow.
+          breaking_against: .git#branch=main
