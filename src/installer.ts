@@ -46,18 +46,13 @@ export async function installBuf(
       silent: true,
     });
     const version = bufVersion.stdout.trim();
-    core.info(`Using buf (${version}) found in $PATH`);
-    if (!semver.satisfies(version, requiredVersion)) {
-      throw new Error(
-        `The version of buf (${version}) does not satisfy the required version (${requiredVersion})`,
-      );
+    if (
+      semver.satisfies(version, requiredVersion) &&
+      (resolvedVersion == "" || semver.eq(version, resolvedVersion))
+    ) {
+      core.info(`Using buf (${version}) found in $PATH`);
+      return [binName, version];
     }
-    if (resolvedVersion != "" && !semver.eq(version, resolvedVersion)) {
-      throw new Error(
-        `The version of buf (${version}) does not equal the resolved version (${resolvedVersion})`,
-      );
-    }
-    return [binName, version];
   }
   if (resolvedVersion === "") {
     resolvedVersion = await latestVersion(github);
