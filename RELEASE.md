@@ -8,7 +8,7 @@ We follow the best practices outlined in the [GitHub Actions documentation][gith
 2. On a new branch, run the following commands to update the version of the action:
 
 ```bash
-VERSION=X.Y.Z make updateversion
+VERSION=X.Y.Z VERSION_SHORT=X make updateversion
 ```
 
 3. Open a PR titled "Prepare for vX.Y.Z". Once it's reviewed and CI passes, merge it.
