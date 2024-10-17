@@ -79,10 +79,10 @@ steps:
 ```
 
 The following parameters have been altered:
-  - `create_visibility` is not editable. The default visibility is `private`.
+  - `create_visibility` is not setable. The default visibility is `private`.
   - `draft` is not setable. The default behavior of the action is to set the
     labels using the `--git-metadata` flag. This will set the `--label` flag to
-    the branch name.
+    the branch name. Drafts have been deprecated in favor of labels.
 
 
 ```yaml
@@ -92,7 +92,6 @@ steps:
     with:
       token: ${{ secrets.BUF_TOKEN }}
 ```
-
 
 [buf]: https://buf.build
 [buf-setup]: https://github.com/marketplace/actions/buf-setup
