@@ -26,7 +26,7 @@ steps:
   - run: buf --version  # Outputs the version of the `buf` CLI
 ```
 
-See the setup-only example in the [README](../README.md#setup-only).
+See the setup-only example in the [README](./README.md#setup-only).
 
 ## [buf-breaking-action][buf-breaking]
 
@@ -42,7 +42,7 @@ steps:
 The `against` parameter has been renamed to `breaking_against` and will default
 to the head of the current branch of the pull request.
 
-See the specify the input directory example in the [README](../README.md#specify-the-input-directory).
+See the specify the input directory example in the [README](./README.md#specify-the-input-directory).
 
 ## [buf-lint-action][buf-lint]
 
