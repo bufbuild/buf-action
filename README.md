@@ -281,6 +281,8 @@ we recommend migrating to this consolidated action that has additional capabilit
 - Status comments on pull requests.
 - Easy configuration for custom behavior.
 
+See the [migration guide](MIGRATION.md) for more information.
+
 ## Feedback and support
 
 If you have any feedback or need support, please reach out to us on the [Buf Slack][slack],
