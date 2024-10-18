@@ -23,7 +23,7 @@ Example migration:
 
 ```diff
  steps:
-   - uses: actions/checkout@v2
+   - uses: actions/checkout@v4
 -  - uses: bufbuild/buf-setup-action@v1.45.0
 +  - uses: bufbuild/buf-action@v1
      with:
