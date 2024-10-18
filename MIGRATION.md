@@ -47,7 +47,7 @@ To migrate from `buf-breaking-action` to `buf-action`, refer to the table below 
 | `input`             | `input`             | Unchanged. The input directory to be linted. Defaults to the current directory. See the [README](./README.md#specify-the-input-directory) for more details on specifying inputs. | 
 | `against`           | `breaking_against`  | Renamed. Specifies the reference to check breaking changes against. |
 | `buf_input_https_username`| N/A           | Removed. The username is not required for login. |
-| `buf_input_https_password`| N/A           | Removed. To support multiple registries use the mulitple format of `BUF_TOKEN` as an enviornemt variable. See the [buf token formats documentation][buf_token_formats] for more details.  |
+| `buf_input_https_password`| N/A           | Removed. To support multiple registries use the mulitple format of `BUF_TOKEN` as an enviornemt variable. See the [buf token formats documentation][buf-token-formats] for more details.  |
 | `buf_token`         | `token`             | Renamed. Buf API token for BSR requests.                          |
 
 Example migration:
@@ -135,5 +135,5 @@ For example:
 [buf-lint]: https://github.com/marketplace/actions/buf-lint  
 [buf-push]: https://github.com/marketplace/actions/buf-push
 [git-metadata]: https://buf.build/docs/reference/cli/buf/push/?h=git+metadata#git-metadata
-[buf_token_formats]: https://buf.build/docs/bsr/authentication/#buf_token-formats
-[commit-labels]: https://buf.build/docs/concepts/commits-labels/
+[buf-token-formats]: https://buf.build/docs/bsr/authentication/#buf_token-formats
+[commits-labels]: https://buf.build/docs/concepts/commits-labels/
