@@ -59,6 +59,8 @@ Example migration:
 -  - uses: bufbuild/buf-breaking-action@v1
 +  - uses: bufbuild/buf-action@v1
      with:
+-      buf_token: ${{ secrets.BUF_TOKEN }}
++      token: ${{ secrets.BUF_TOKEN }}
 -      against: 'https://github.com/acme/weather.git#branch=main'
 +      # This example shows how to maintain behavior when migrating, but we recommend unsetting this parameter and relying on the default behavior instead.
 +      breaking_against: 'https://github.com/acme/weather.git#branch=main'
