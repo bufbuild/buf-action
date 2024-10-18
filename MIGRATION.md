@@ -15,7 +15,7 @@ To migrate from `buf-setup-action` to `buf-action`, refer to the table below for
 | `buf_user`          | N/A                 | Removed. The username is not required for login. |
 | `buf_api_token`     | `token`             | Renamed. Buf API token for BSR requests. |
 | `buf_domain`        | `domain`            | Renamed. Buf domain for BSR requests. Enterprise only. |
-| N/A                 | `setup_only`        | Added. Installs `buf` and optionally login to the BSR but no additional commands will be run. Defaults to `false`. For more details, refer to the setup-only example in the [README](./README.md#setup-only) |
+| N/A                 | `setup_only`        | Added. Installs `buf` and optionally login to the BSR but no additional commands will be run. Set to `true` to make `buf-action` behave like `buf-setup-action`. Defaults to `false`. For more details, refer to the setup-only example in the [README](./README.md#setup-only) |
 | N/A                 | `github_action`     | Added. Github actor for API requests. Defaults to the current actor in the Github context. |
 | `github_token`      | `github_token`      | Unchanged. GitHub token for API requests. Defaults to token in the Github Context. |
 
