@@ -168,7 +168,7 @@ jobs:
 
 ### Specify the input directory
 
-To run the action for parameters not declared at the root of the repository,
+To run the action for inputs not declared at the root of the repository,
 set the parameter `input` to the directory of your `buf.yaml` file.
 
 ```yaml
