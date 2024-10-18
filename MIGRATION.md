@@ -92,7 +92,7 @@ To migrate from `buf-push-action` to `buf-action`, refer to the table below for 
 |:--------------------|:--------------------|:-----------------------------------------------------------------|
 | `input`             | `input`             | Unchanged. The input directory to be linted. Defaults to the current directory. See the [README](./README.md#specify-the-input-directory) for more details on specifying inputs. | 
 | `buf_token`         | `token`             | Renamed. Buf API token for BSR requests.                          |
-| `draft`             | N/A                 | Removed. Drafts are deprecated in favor of labels. Labels are set using git metadata. |
+| `draft`             | N/A                 | Removed. Drafts are deprecated in favor of labels. Labels are set using [git metadata][git-metadata]. |
 | `create_visibility` | N/A                 | Removed. Repositories will always be created with `private` visibility if they do not exist. |
 | N/A                 | `push_disable_create`| Added. Disables automatic creation of repositories. Defaults to `false`. |
 
@@ -125,7 +125,8 @@ For example:
 +   run: buf push --error-format github-actions --create --git-metadata
 ```
 
-For further details, see the [README](./README.md).
+> [!NOTE]
+> Labels are a new feature in the `buf` CLI. For more information, see the [commits and labels][commits-labels] documentation.
 
 [buf]: https://buf.build  
 [buf-setup]: https://github.com/marketplace/actions/buf-setup  
@@ -135,3 +136,4 @@ For further details, see the [README](./README.md).
 [buf-push]: https://github.com/marketplace/actions/buf-push
 [git-metadata]: https://buf.build/docs/reference/cli/buf/push/?h=git+metadata#git-metadata
 [buf_token_formats]: https://buf.build/docs/bsr/authentication/#buf_token-formats
+[commit-labels]: https://buf.build/docs/concepts/commits-labels/
