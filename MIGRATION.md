@@ -60,7 +60,7 @@ Example migration:
 +  - uses: bufbuild/buf-action@v1
      with:
 -      against: 'https://github.com/acme/weather.git#branch=main'
-+      breaking_against: 'https://github.com/acme/weather.git#branch=main'
++      breaking_against: 'https://github.com/acme/weather.git#branch=main' # This example shows how to maintain behavior when migrating, but we recommend unsetting this parameter and relying on the default behavior instead.
 ```
 
 ## [buf-lint-action][buf-lint]
