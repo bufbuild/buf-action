@@ -65,14 +65,15 @@ changes are required. Here is an example:
 To migrate from `buf-push-action` to `buf-action`, there are a few changes that
 need to be made:
   - `buf_token` has been renamed to `token`.
-  - `create_visibility` has been removed. The default visibility is `private`.
-  - `draft` has been removed. The default behavior of the action is to set the
-    labels using the `--git-metadata` flag. This will set the `--label` flag to
-    the branch name. Drafts have been deprecated in favor of labels.
+  - `create_visibility` has been removed. If the BSR repository doesn't exist
+    it will always be created with the visbility of `private`. To disable
+    creation of repositories set the parameter `push_disable_create` to `true`. 
+  - `draft` has been removed. Drafts have been deprecated in favor of labels.
+    The default behavior of the action is to set the labels using git metadata.
+    This will be similar to the existing behaviour of drafts as the branch name
+    will be used for the label.
 
-The new actions default behavior is to push the branch name as a label. This
-behavior will be similar to existing workflows that use drafts. Here is an
-example of how a migration would look:
+Here is an example of how a migration would look:
 
 ```diff
  steps:
