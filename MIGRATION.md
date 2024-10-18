@@ -116,13 +116,13 @@ For example:
 
 ```diff
  steps:
-  - uses: actions/checkout@v2
-  - uses: bufbuild/buf-action@v1
-     with:
-       token: ${{ secrets.BUF_TOKEN }}
-+      setup_only: true # Disables default behavior.
-+ - if: ${{ github.event_name == 'push' }}
-+   run: buf push --error-format github-actions --create --git-metadata
+   - uses: actions/checkout@v2
+   - uses: bufbuild/buf-action@v1
+      with:
+        token: ${{ secrets.BUF_TOKEN }}
++       setup_only: true # Disables default behavior.
++  - if: ${{ github.event_name == 'push' }}
++    run: buf push --error-format github-actions --create --git-metadata
 ```
 
 > [!NOTE]
