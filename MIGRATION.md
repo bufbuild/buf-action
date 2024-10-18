@@ -88,10 +88,6 @@ Example migration:
 
 To migrate from `buf-push-action` to `buf-action`, refer to the table below for the necessary changes:
 
-1. Replace `buf_token` with `token`.
-2. Remove the `create_visibility` parameter. By default, if the BSR repository doesn't exist, it will be created as private. To disable automatic repository creation, set `push_disable_create: true`.
-3. Remove the `draft` parameter. Drafts have been deprecated in favor of labels. The action will now set labels using the [git metadata flag][git-metadata].
-
 | Old Parameter       | New Parameter       | Description                                                      |
 |:--------------------|:--------------------|:-----------------------------------------------------------------|
 | `input`             | `input`             | Unchanged. The input directory to be linted. Defaults to the current directory. See the [README](./README.md#specify-the-input-directory) for more details on specifying inputs. | 
