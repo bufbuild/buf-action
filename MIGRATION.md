@@ -45,7 +45,7 @@ To migrate from `buf-breaking-action` to `buf-action`, refer to the table below 
 | Old Parameter       | New Parameter       | Description                                                      |
 |:--------------------|:--------------------|:-----------------------------------------------------------------|
 | `input`             | `input`             | Unchanged. The input directory to build. Defaults to the current directory. See the [README](./README.md#specify-the-input-directory) for more details on specifying inputs. | 
-| `against`           | `breaking_against`  | Renamed. Specifies the reference to check breaking changes against. |
+| `against`           | `breaking_against`  | Renamed. Specifies the reference to check breaking changes against. We recommend not setting this parameter and instead relying on the default behavior. |
 | `buf_input_https_username`| N/A           | Removed. The username is not required for login. |
 | `buf_input_https_password`| N/A           | Removed. To support multiple registries use the mulitple format of `BUF_TOKEN` as an enviornemt variable. See the [buf token formats documentation][buf-token-formats] for more details.  |
 | `buf_token`         | `token`             | Renamed. Buf API token for BSR requests.                          |
