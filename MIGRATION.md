@@ -54,7 +54,7 @@ Example migration:
 
 ```diff
  steps:
-   - uses: actions/checkout@v2
+   - uses: actions/checkout@v4
 -  - uses: bufbuild/buf-setup-action@v1
 -  - uses: bufbuild/buf-breaking-action@v1
 +  - uses: bufbuild/buf-action@v1
@@ -76,12 +76,14 @@ Example migration:
 
 ```diff
  steps:
-   - uses: actions/checkout@v2
+   - uses: actions/checkout@v4
 -  - uses: bufbuild/buf-setup-action@v1
 -  - uses: bufbuild/buf-lint-action@v1
 +  - uses: bufbuild/buf-action@v1
      with:
-      input: proto
+       input: proto
+-      buf_token: ${{ secrets.BUF_TOKEN }}
++      token: ${{ secrets.BUF_TOKEN }}
 ```
 
 ## [buf-push-action][buf-push]
@@ -100,7 +102,7 @@ Example migration:
 
 ```diff
  steps:
-   - uses: actions/checkout@v2
+   - uses: actions/checkout@v4
 -  - uses: bufbuild/buf-setup-action@v1
 -  - uses: bufbuild/buf-push-action@v1
 +  - uses: bufbuild/buf-action@v1
@@ -116,7 +118,7 @@ For example:
 
 ```diff
  steps:
-   - uses: actions/checkout@v2
+   - uses: actions/checkout@v4
    - uses: bufbuild/buf-action@v1
       with:
         token: ${{ secrets.BUF_TOKEN }}
