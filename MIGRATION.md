@@ -15,9 +15,9 @@ parameter to the Buf CLI version you want to pin to. Here is an example:
 -  - uses: bufbuild/buf-setup-action@v1.45.0
 +  - uses: bufbuild/buf-action@v1
 +    with:
-+      version: '1.45.0' # Optional. Default is 'latest'
-+      setup_only: true  # Optional. Only installs the `buf` CLI.
-   - run: buf --version  # Outputs the version of the `buf` CLI
++      version: '1.45.0' # Optional. Set the version, defaults to the latest release.
++      setup_only: true
+   - run: buf --version
 ```
 
 The version of the `buf` CLI is no longer tied to the version of the action.
