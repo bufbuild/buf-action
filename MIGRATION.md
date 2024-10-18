@@ -6,8 +6,8 @@ individual actions ([buf-setup-action][buf-setup], [buf-breaking-action][buf-bre
 ## [buf-setup-action][buf-setup]
 
 To migrate to `buf-action` while retaining the same behavior as the deprecated
-`buf-setup-action`, set the `setup_only` input to `true` and set the `version`
-input to the Buf CLI version you want to pin to. Here is an example:
+`buf-setup-action`, set the `setup_only` parameter to `true` and set the `version`
+parameter to the Buf CLI version you want to pin to. Here is an example:
 
 ```diff
  steps:
