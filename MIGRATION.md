@@ -44,7 +44,7 @@ To migrate from `buf-breaking-action` to `buf-action`, refer to the table below 
 
 | Old Parameter       | New Parameter       | Description                                                      |
 |:--------------------|:--------------------|:-----------------------------------------------------------------|
-| `input`             | `input`             | Unchanged. The input directory to be linted. Defaults to the current directory. See the [README](./README.md#specify-the-input-directory) for more details on specifying inputs. | 
+| `input`             | `input`             | Unchanged. The input directory to build. Defaults to the current directory. See the [README](./README.md#specify-the-input-directory) for more details on specifying inputs. | 
 | `against`           | `breaking_against`  | Renamed. Specifies the reference to check breaking changes against. |
 | `buf_input_https_username`| N/A           | Removed. The username is not required for login. |
 | `buf_input_https_password`| N/A           | Removed. To support multiple registries use the mulitple format of `BUF_TOKEN` as an enviornemt variable. See the [buf token formats documentation][buf-token-formats] for more details.  |
@@ -69,7 +69,7 @@ To migrate from `buf-lint-action` to `buf-action`, refer to the table below for 
 
 | Old Parameter       | New Parameter       | Description                                                      |
 |:--------------------|:--------------------|:-----------------------------------------------------------------|
-| `input`             | `input`             | Unchanged. The input directory to be linted. Defaults to the current directory. See the [README](./README.md#specify-the-input-directory) for more details on specifying inputs. | 
+| `input`             | `input`             | Unchanged. The input directory to lint. Defaults to the current directory. See the [README](./README.md#specify-the-input-directory) for more details on specifying inputs. | 
 | `buf_token`         | `token`             | Renamed. Buf API token for BSR requests.                          |
 
 Example migration:
@@ -90,7 +90,7 @@ To migrate from `buf-push-action` to `buf-action`, refer to the table below for 
 
 | Old Parameter       | New Parameter       | Description                                                      |
 |:--------------------|:--------------------|:-----------------------------------------------------------------|
-| `input`             | `input`             | Unchanged. The input directory to be linted. Defaults to the current directory. See the [README](./README.md#specify-the-input-directory) for more details on specifying inputs. | 
+| `input`             | `input`             | Unchanged. The input directory to push. Defaults to the current directory. See the [README](./README.md#specify-the-input-directory) for more details on specifying inputs. | 
 | `buf_token`         | `token`             | Renamed. Buf API token for BSR requests.                          |
 | `draft`             | N/A                 | Removed. Drafts are deprecated in favor of labels. Labels are set using [git metadata][git-metadata]. |
 | `create_visibility` | N/A                 | Removed. Repositories will always be created with `private` visibility if they do not exist. |
