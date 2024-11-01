@@ -45881,6 +45881,9 @@ async function lint(bufPath, inputs) {
         return skip();
     }
     const args = ["lint", "--error-format", "github-actions"];
+    if (core.isDebug()) {
+        args.push("--debug");
+    }
     if (inputs.input) {
         args.push(inputs.input);
     }
@@ -46049,6 +46052,9 @@ var Status;
 })(Status || (Status = {}));
 // run executes the buf command with the given arguments.
 async function run(bufPath, args) {
+    if (core.isDebug()) {
+        args = ["--debug", ...args];
+    }
     return exec.getExecOutput(bufPath, args, {
         ignoreReturnCode: true,
         env: {

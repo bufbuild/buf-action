@@ -214,6 +214,9 @@ async function lint(bufPath: string, inputs: Inputs): Promise<Result> {
     return skip();
   }
   const args = ["lint", "--error-format", "github-actions"];
+  if (core.isDebug()) {
+    args.push("--debug");
+  }
   if (inputs.input) {
     args.push(inputs.input);
   }
@@ -405,6 +408,9 @@ interface Result extends exec.ExecOutput {
 
 // run executes the buf command with the given arguments.
 async function run(bufPath: string, args: string[]): Promise<Result> {
+  if (core.isDebug()) {
+    args = ["--debug", ...args];
+  }
   return exec
     .getExecOutput(bufPath, args, {
       ignoreReturnCode: true,
