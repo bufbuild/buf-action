@@ -45881,9 +45881,6 @@ async function lint(bufPath, inputs) {
         return skip();
     }
     const args = ["lint", "--error-format", "github-actions"];
-    if (core.isDebug()) {
-        args.push("--debug");
-    }
     if (inputs.input) {
         args.push(inputs.input);
     }
