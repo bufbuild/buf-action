@@ -283,6 +283,12 @@ we recommend migrating to this consolidated action that has additional capabilit
 
 See the [migration guide](MIGRATION.md) for more information.
 
+## Debugging
+
+To debug the action, rerun the workflow with debug logging enabled.
+This will run all buf commands with the `--debug` flag.
+See the [re-run jobs with debug logging](https://github.blog/changelog/2022-05-24-github-actions-re-run-jobs-with-debug-logging/) for more information.
+
 ## Feedback and support
 
 If you have any feedback or need support, please reach out to us on the [Buf Slack][slack],
