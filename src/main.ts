@@ -405,6 +405,9 @@ interface Result extends exec.ExecOutput {
 
 // run executes the buf command with the given arguments.
 async function run(bufPath: string, args: string[]): Promise<Result> {
+  if (core.isDebug()) {
+    args = ["--debug", ...args];
+  }
   return exec
     .getExecOutput(bufPath, args, {
       ignoreReturnCode: true,

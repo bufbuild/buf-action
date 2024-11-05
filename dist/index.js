@@ -46049,6 +46049,9 @@ var Status;
 })(Status || (Status = {}));
 // run executes the buf command with the given arguments.
 async function run(bufPath, args) {
+    if (core.isDebug()) {
+        args = ["--debug", ...args];
+    }
     return exec.getExecOutput(bufPath, args, {
         ignoreReturnCode: true,
         env: {
