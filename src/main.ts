@@ -84,6 +84,7 @@ interface Steps {
   lint?: Result;
   format?: Result;
   breaking?: Result;
+  generate?: Result;
   push?: Result;
   archive?: Result;
 }
@@ -164,16 +165,33 @@ async function runWorkflow(
     lint(bufPath, inputs),
     format(bufPath, inputs),
     breaking(bufPath, inputs),
+    generate(bufPath, inputs),
   ]);
   steps.lint = checks[0];
   steps.format = checks[1];
   steps.breaking = checks[2];
+  steps.generate = checks[3];
   if (checks.some((result) => result.status == Status.Failed)) {
     return steps;
   }
   steps.push = await push(bufPath, inputs, moduleNames);
   steps.archive = await archive(inputs, moduleNames);
   return steps;
+}
+
+function appendCommonParameters(args: string[], inputs: Inputs) {
+  if (inputs.input) {
+    args.push(inputs.input);
+  }
+  for (const path of inputs.paths) {
+    args.push("--path", path);
+  }
+  for (const path of inputs.exclude_paths) {
+    args.push("--exclude-path", path);
+  }
+  if (inputs.exclude_imports) {
+    args.push("--exclude-imports");
+  }
 }
 
 // login logs in to the Buf registry, storing credentials.
@@ -192,18 +210,7 @@ async function login(bufPath: string, inputs: Inputs) {
 // build runs the "buf build" step.
 async function build(bufPath: string, inputs: Inputs): Promise<Result> {
   const args = ["build", "--error-format", "github-actions"];
-  if (inputs.input) {
-    args.push(inputs.input);
-  }
-  for (const path of inputs.paths) {
-    args.push("--path", path);
-  }
-  for (const path of inputs.exclude_paths) {
-    args.push("--exclude-path", path);
-  }
-  if (inputs.exclude_imports) {
-    args.push("--exclude-imports");
-  }
+  appendCommonParameters(args, inputs);
   return run(bufPath, args);
 }
 
@@ -214,15 +221,7 @@ async function lint(bufPath: string, inputs: Inputs): Promise<Result> {
     return skip();
   }
   const args = ["lint", "--error-format", "github-actions"];
-  if (inputs.input) {
-    args.push(inputs.input);
-  }
-  for (const path of inputs.paths) {
-    args.push("--path", path);
-  }
-  for (const path of inputs.exclude_paths) {
-    args.push("--exclude-path", path);
-  }
+  appendCommonParameters(args, inputs);
   return run(bufPath, args);
 }
 
@@ -239,15 +238,8 @@ async function format(bufPath: string, inputs: Inputs): Promise<Result> {
     "github-actions",
     "--exit-code",
   ];
-  if (inputs.input) {
-    args.push(inputs.input);
-  }
-  for (const path of inputs.paths) {
-    args.push("--path", path);
-  }
-  for (const path of inputs.exclude_paths) {
-    args.push("--exclude-path", path);
-  }
+  appendCommonParameters(args, inputs);
+  // TODO: Test: this now includes inputs.exclude_imports - was that skipped intentionally?
   const result = await run(bufPath, args);
   if (result.status == Status.Failed && result.stdout.startsWith("diff")) {
     // If the format step fails, parse the diff and write github annotations.
@@ -274,18 +266,18 @@ async function breaking(bufPath: string, inputs: Inputs): Promise<Result> {
     "--against",
     inputs.breaking_against,
   ];
-  if (inputs.input) {
-    args.push(inputs.input);
+  appendCommonParameters(args, inputs);
+  return run(bufPath, args);
+}
+
+// generate runs the "buf generate" step.
+async function generate(bufPath: string, inputs: Inputs): Promise<Result> {
+  if (!inputs.generate) {
+    core.debug("Skipping generate");
+    return skip();
   }
-  for (const path of inputs.paths) {
-    args.push("--path", path);
-  }
-  for (const path of inputs.exclude_paths) {
-    args.push("--exclude-path", path);
-  }
-  if (inputs.exclude_imports) {
-    args.push("--exclude-imports");
-  }
+  const args = ["generate", "--error-format", "github-actions"];
+  appendCommonParameters(args, inputs);
   return run(bufPath, args);
 }
 

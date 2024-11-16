@@ -39,6 +39,7 @@ export interface Inputs {
   format: boolean;
   breaking: boolean;
   breaking_against: string;
+  generate: boolean;
   push: boolean;
   push_disable_create: boolean;
   archive: boolean;
@@ -65,6 +66,7 @@ export function getInputs(): Inputs {
     format: core.getBooleanInput("format"),
     breaking: core.getBooleanInput("breaking"),
     breaking_against: core.getInput("breaking_against"),
+    generate: core.getBooleanInput("generate"),
     push: core.getBooleanInput("push"),
     push_disable_create: core.getBooleanInput("push_disable_create"),
     archive: core.getBooleanInput("archive"),

@@ -102,6 +102,13 @@ inputs:
     required: false
     default: ${{ github.event_name == 'pull_request' }}
 
+  generate:
+    description: |-
+      Whether to run the generate step.
+      Does not run by default.
+    required: false
+    default: "false"
+
   breaking:
     description: |-
       Whether to run the breaking change detection step.
