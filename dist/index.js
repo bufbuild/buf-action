@@ -45372,7 +45372,7 @@ const LabelService = {
 // EXTERNAL MODULE: ./node_modules/parse-diff/index.js
 var parse_diff = __nccwpck_require__(4833);
 ;// CONCATENATED MODULE: ./src/inputs.ts
-// Copyright 2024 Buf Technologies, Inc.
+// Copyright 2024-2025 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45445,7 +45445,7 @@ function getEnv(name) {
 }
 
 ;// CONCATENATED MODULE: ./src/outputs.ts
-// Copyright 2024 Buf Technologies, Inc.
+// Copyright 2024-2025 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45469,7 +45469,7 @@ var tool_cache = __nccwpck_require__(7784);
 // EXTERNAL MODULE: ./node_modules/semver/index.js
 var semver = __nccwpck_require__(1383);
 ;// CONCATENATED MODULE: ./src/installer.ts
-// Copyright 2024 Buf Technologies, Inc.
+// Copyright 2024-2025 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45589,7 +45589,7 @@ async function downloadBuf(version) {
 }
 
 ;// CONCATENATED MODULE: ./src/comment.ts
-// Copyright 2024 Buf Technologies, Inc.
+// Copyright 2024-2025 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45669,7 +45669,7 @@ async function commentOnPR(context, github, commentID, body) {
 }
 
 ;// CONCATENATED MODULE: ./src/config.ts
-// Copyright 2024 Buf Technologies, Inc.
+// Copyright 2024-2025 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45713,7 +45713,7 @@ function parseModuleName(moduleName) {
 }
 
 ;// CONCATENATED MODULE: ./src/main.ts
-// Copyright 2024 Buf Technologies, Inc.
+// Copyright 2024-2025 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
