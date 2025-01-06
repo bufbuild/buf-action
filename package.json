@@ -21,7 +21,7 @@
   "license": "Apache-2.0",
   "licenseHeader": {
     "licenseType": "apache",
-    "yearRange": "2024",
+    "yearRange": "2024-2025",
     "copyrightHolder": "Buf Technologies, Inc."
   },
   "devDependencies": {
