@@ -45963,12 +45963,15 @@ async function push(bufPath, inputs, moduleNames) {
         core.debug("Skipping push, no named modules detected");
         return skip();
     }
+    const sourceControlUrl = `${lib_github.context.serverUrl}/${lib_github.context.repo.owner}/${lib_github.context.repo.repo}/commit/${lib_github.context.sha}`;
     const args = [
         "push",
         "--error-format",
         "github-actions",
         "--exclude-unnamed",
         "--git-metadata",
+        "--source-control-url",
+        sourceControlUrl,
     ];
     if (!inputs.push_disable_create) {
         args.push("--create");
