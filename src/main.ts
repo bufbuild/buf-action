@@ -16,10 +16,12 @@ import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import { context, getOctokit } from "@actions/github";
 
+import { create } from "@bufbuild/protobuf";
+
 import { createConnectTransport } from "@connectrpc/connect-web";
-import { createPromiseClient, ConnectError, Code } from "@connectrpc/connect";
-import { LabelService } from "@buf/bufbuild_registry.connectrpc_es/buf/registry/module/v1/label_service_connect";
-import { LabelRef } from "@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/label_pb";
+import { createClient, ConnectError, Code } from "@connectrpc/connect";
+import { LabelService } from "@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/label_service_pb";
+import { LabelRefSchema } from "@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/label_pb";
 import * as parseDiff from "parse-diff";
 
 import { getInputs, Inputs, getEnv } from "./inputs";
@@ -347,9 +349,9 @@ async function archive(
     const transport = createConnectTransport({
       baseUrl: baseURL,
     });
-    const client = createPromiseClient(LabelService, transport);
+    const client = createClient(LabelService, transport);
     for (const label of inputs.archive_labels) {
-      const labelRef = new LabelRef({
+      const labelRef = create(LabelRefSchema, {
         value: {
           case: "name",
           value: {
