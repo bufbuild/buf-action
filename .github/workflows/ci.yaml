@@ -378,7 +378,7 @@ jobs:
       - test-archive
     steps:
       - uses: actions/checkout@v4
-      -  run: |
+      - run: |
           mkdir -p foo/v1
           printf "version: v2\nname: ${BUF_MODULE}\n" > buf.yaml
           printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > foo/v1/bar.proto
