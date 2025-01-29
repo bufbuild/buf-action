@@ -18,7 +18,7 @@ import {
   PushEvent,
   PullRequestEvent,
   DeleteEvent,
-} from "@octokit/webhooks-definitions/schema";
+} from "@octokit/webhooks-types";
 
 // Inputs are the inputs to the action, matching the inputs in the action.yml.
 export interface Inputs {
