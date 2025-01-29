@@ -154,9 +154,7 @@ jobs:
       - test-breaking
     steps:
       - uses: actions/checkout@v4
-      - env:
-          BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
-        run: |
+      - run: |
           # Lint skipped, format fails, breaking succeeds
           mkdir -p proto
           printf 'version: v2\nmodules:\n  - path: proto' > buf.yaml
@@ -164,7 +162,6 @@ jobs:
       - uses: ./
         continue-on-error: true # format fails
         with:
-          username: ${{ secrets.BUF_USERNAME }}
           token: ${{ secrets.BUF_TOKEN }}
           lint: false # lint skipped
           format: true
@@ -232,15 +229,12 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
-      - env:
-          BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
-        run: |
+      - run: |
           mkdir -p proto/foo/v1
           printf "version: v2\nmodules:\n  - path: proto\n    name: ${BUF_MODULE}\n" > buf.yaml
           printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > proto/foo/v1/bar.proto
       - uses: ./
         with:
-          username: ${{ secrets.BUF_USERNAME }}
           token: ${{ secrets.BUF_TOKEN }}
           lint: false
           format: false
@@ -254,9 +248,7 @@ jobs:
     if: ${{ github.event_name == 'push' }} # --git-metadata is only available on push
     steps:
       - uses: actions/checkout@v4
-      - env:
-          BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
-        run: |
+      - run: |
           mkdir -p proto/foo/v1
           printf "version: v2\nmodules:\n  - path: proto\n    name: ${BUF_MODULE}\n" > buf.yaml
           printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > proto/foo/v1/bar.proto
@@ -306,16 +298,13 @@ jobs:
           pr_comment: false
           input: proto
         # Test v2 with multiple modules, one without a name.
-      - env:
-          BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
-        run: |
+      - run: |
           mkdir -p foo/foo/v1 bar/bar/v1
           printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > foo/foo/v1/bar.proto
           printf "syntax = \"proto3\";\npackage bar.v1;\nmessage Foo {}\n" > bar/bar/v1/foo.proto
           printf "version: v2\nmodules:\n  - path: foo\n    name: ${BUF_MODULE}\n  - path: bar\n" > buf.yaml
       - uses: ./
         with:
-          username: ${{ secrets.BUF_USERNAME }}
           token: ${{ secrets.BUF_TOKEN }}
           lint: false
           format: false
@@ -332,15 +321,12 @@ jobs:
       - test-push-unnamed
     steps:
       - uses: actions/checkout@v4
-      - env:
-          BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
-        run: |
+      - run: |
           mkdir -p proto/foo/v1
           printf "version: v2\nmodules:\n  - path: proto\n    name: ${BUF_MODULE}\n" > buf.yaml
           printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > proto/foo/v1/bar.proto
       - uses: ./
         with:
-          username: ${{ secrets.BUF_USERNAME }}
           token: ${{ secrets.BUF_TOKEN }}
           lint: false
           format: false
@@ -392,15 +378,12 @@ jobs:
       - test-archive
     steps:
       - uses: actions/checkout@v4
-      - env:
-          BUF_USERNAME: ${{ secrets.BUF_USERNAME }}
-        run: |
+      - run: |
           mkdir -p foo/v1
           printf "version: v2\nname: ${BUF_MODULE}\n" > buf.yaml
           printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > foo/v1/bar.proto
       - uses: ./
         with:
-          username: ${{ secrets.BUF_USERNAME }}
           token: ${{ secrets.BUF_TOKEN }}
           lint: false
           format: false
