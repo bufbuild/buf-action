@@ -305,7 +305,7 @@ async function push(
   }
   // We want push to succeed without additional user configuration even if the action is being run on an
   // enterprise GitHub instance. Because enterprise GitHub instances can have an arbitrary URL, the Buf CLI with not be
-  // able to automatically detect the source control url, so we set it explicitly. 
+  // able to automatically detect the source control url, so we set it explicitly.
   const sourceControlUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${context.sha}`;
   const args = [
     "push",
