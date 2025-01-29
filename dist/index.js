@@ -38066,7 +38066,7 @@ function createBinarySerialization(messageType, options) {
             }
             catch (e) {
                 const m = e instanceof Error ? e.message : String(e);
-                throw new connect_error_ConnectError(`parse binary: ${m}`, code_Code.InvalidArgument);
+                throw new connect_error_ConnectError(`parse binary: ${m}`, code_Code.Internal);
             }
         },
         serialize(data) {
@@ -38168,9 +38168,7 @@ function applyInterceptors(next, interceptors) {
  */
 function createLinkedAbortController(...signals) {
     const controller = new AbortController();
-    const sa = signals
-        .filter((s) => s !== undefined)
-        .concat(controller.signal);
+    const sa = signals.filter((s) => s !== undefined).concat(controller.signal);
     for (const signal of sa) {
         if (signal.aborted) {
             onAbort.apply(signal);
@@ -38553,7 +38551,7 @@ async function envelope_envelopeDecompress(envelope, compression, readMaxBytes) 
     let { flags, data } = envelope;
     if ((flags & compressedFlag) === compressedFlag) {
         if (!compression) {
-            throw new ConnectError("received compressed envelope, but do not know how to decompress", Code.InvalidArgument);
+            throw new ConnectError("received compressed envelope, but do not know how to decompress", Code.Internal);
         }
         data = await compression.decompress(data, readMaxBytes);
         flags = flags ^ compressedFlag;
@@ -38590,6 +38588,79 @@ function encodeEnvelopes(...envelopes) {
         offset += e.data.length + 5;
     }
     return bytes;
+}
+
+;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/compression.js
+// Copyright 2021-2024 The Connect Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+/**
+ * compressedFlag indicates that the data in a EnvelopedMessage is
+ * compressed. It has the same meaning in the gRPC-Web, gRPC-HTTP2,
+ * and Connect protocols.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+const compression_compressedFlag = 0b00000001;
+/**
+ * Validates the request encoding and determines the accepted response encoding.
+ *
+ * Returns the request and response compression to use. If the client requested
+ * an encoding that is not available, the returned object contains an error that
+ * must be used for the response.
+ *
+ * @private Internal code, does not follow semantic versioning.
+ */
+function compressionNegotiate(available, requested, // e.g. the value of the Grpc-Encoding header
+accepted, // e.g. the value of the Grpc-Accept-Encoding header
+headerNameAcceptEncoding) {
+    let request = null;
+    let response = null;
+    let error = undefined;
+    if (requested !== null && requested !== "identity") {
+        const found = available.find((c) => c.name === requested);
+        if (found) {
+            request = found;
+        }
+        else {
+            // To comply with https://github.com/grpc/grpc/blob/master/doc/compression.md
+            // and the Connect protocol, we return code "unimplemented" and specify
+            // acceptable compression(s).
+            const acceptable = available.map((c) => c.name).join(",");
+            error = new ConnectError(`unknown compression "${requested}": supported encodings are ${acceptable}`, Code.Unimplemented, {
+                [headerNameAcceptEncoding]: acceptable,
+            });
+        }
+    }
+    if (accepted === null || accepted === "") {
+        // Support asymmetric compression. This logic follows
+        // https://github.com/grpc/grpc/blob/master/doc/compression.md and common
+        // sense.
+        response = request;
+    }
+    else {
+        const acceptNames = accepted.split(",").map((n) => n.trim());
+        for (const name of acceptNames) {
+            const found = available.find((c) => c.name === name);
+            if (found) {
+                response = found;
+                break;
+            }
+        }
+    }
+    return { request, response, error };
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/headers.js
@@ -38779,7 +38850,7 @@ function requestHeader(methodKind, useBinaryFormat, timeoutMs, userProvidedHeade
             : contentTypeStreamJson);
     result.set(headers_headerProtocolVersion, protocolVersion);
     if (setUserAgent) {
-        result.set(headerUserAgent, "connect-es/1.4.0");
+        result.set(headerUserAgent, "connect-es/1.6.1");
     }
     return result;
 }
@@ -39020,34 +39091,22 @@ function transformConnectPostToGetRequest(request, message, useBase64) {
 
 /**
  * Determine the Connect error code for the given HTTP status code.
- * See https://connectrpc.com/docs/protocol#error-codes
+ * See https://connectrpc.com/docs/protocol/#http-to-error-code
  *
  * @private Internal code, does not follow semantic versioning.
  */
 function codeFromHttpStatus(httpStatus) {
     switch (httpStatus) {
         case 400: // Bad Request
-            return code_Code.InvalidArgument;
+            return code_Code.Internal;
         case 401: // Unauthorized
             return code_Code.Unauthenticated;
         case 403: // Forbidden
             return code_Code.PermissionDenied;
         case 404: // Not Found
             return code_Code.Unimplemented;
-        case 408: // Request Timeout
-            return code_Code.DeadlineExceeded;
-        case 409: // Conflict
-            return code_Code.Aborted;
-        case 412: // Precondition Failed
-            return code_Code.FailedPrecondition;
-        case 413: // Payload Too Large
-            return code_Code.ResourceExhausted;
-        case 415: // Unsupported Media Type
-            return code_Code.Internal;
         case 429: // Too Many Requests
             return code_Code.Unavailable;
-        case 431: // Request Header Fields Too Large
-            return code_Code.ResourceExhausted;
         case 502: // Bad Gateway
             return code_Code.Unavailable;
         case 503: // Service Unavailable
@@ -39067,13 +39126,13 @@ function codeFromHttpStatus(httpStatus) {
 function codeToHttpStatus(code) {
     switch (code) {
         case Code.Canceled:
-            return 408; // Request Timeout
+            return 499; // Client Closed Request
         case Code.Unknown:
             return 500; // Internal Server Error
         case Code.InvalidArgument:
             return 400; // Bad Request
         case Code.DeadlineExceeded:
-            return 408; // Request Timeout
+            return 504; // Gateway Timeout
         case Code.NotFound:
             return 404; // Not Found
         case Code.AlreadyExists:
@@ -39083,13 +39142,13 @@ function codeToHttpStatus(code) {
         case Code.ResourceExhausted:
             return 429; // Too Many Requests
         case Code.FailedPrecondition:
-            return 412; // Precondition Failed
+            return 400; // Bad Request
         case Code.Aborted:
             return 409; // Conflict
         case Code.OutOfRange:
             return 400; // Bad Request
         case Code.Unimplemented:
-            return 404; // Not Found
+            return 501; // Not Implemented
         case Code.Internal:
             return 500; // Internal Server Error
         case Code.Unavailable:
@@ -39133,8 +39192,8 @@ function codeToHttpStatus(code) {
  *
  * @private Internal code, does not follow semantic versioning.
  */
-function validateResponse(methodKind, status, headers) {
-    const mimeType = headers.get("Content-Type");
+function validateResponse(methodKind, useBinaryFormat, status, headers) {
+    const mimeType = headers.get(headerContentType);
     const parsedType = parseContentType(mimeType);
     if (status !== 200) {
         const errorFromStatus = new connect_error_ConnectError(`HTTP ${status}`, codeFromHttpStatus(status), headers);
@@ -39143,6 +39202,14 @@ function validateResponse(methodKind, status, headers) {
             return { isUnaryError: true, unaryError: errorFromStatus };
         }
         throw errorFromStatus;
+    }
+    const allowedContentType = {
+        binary: useBinaryFormat,
+        stream: methodKind !== service_type_MethodKind.Unary,
+    };
+    if ((parsedType === null || parsedType === void 0 ? void 0 : parsedType.binary) !== allowedContentType.binary ||
+        parsedType.stream !== allowedContentType.stream) {
+        throw new connect_error_ConnectError(`unsupported content type ${mimeType}`, parsedType === undefined ? code_Code.Unknown : code_Code.Internal, headers);
     }
     return { isUnaryError: false };
 }
@@ -39153,16 +39220,16 @@ function validateResponse(methodKind, status, headers) {
  *
  * @private
  */
-function validateResponseWithCompression(methodKind, acceptCompression, status, headers) {
+function validateResponseWithCompression(methodKind, acceptCompression, useBinaryFormat, status, headers) {
     let compression;
     const encoding = headers.get(methodKind == MethodKind.Unary ? headerUnaryEncoding : headerStreamEncoding);
     if (encoding != null && encoding.toLowerCase() !== "identity") {
         compression = acceptCompression.find((c) => c.name === encoding);
         if (!compression) {
-            throw new ConnectError(`unsupported response encoding "${encoding}"`, Code.InvalidArgument, headers);
+            throw new ConnectError(`unsupported response encoding "${encoding}"`, Code.Internal, headers);
         }
     }
-    return Object.assign({ compression }, validateResponse(methodKind, status, headers));
+    return Object.assign({ compression }, validateResponse(methodKind, useBinaryFormat, status, headers));
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/error-json.js
@@ -39201,19 +39268,18 @@ var __rest = (undefined && undefined.__rest) || function (s, e) {
  * @private Internal code, does not follow semantic versioning.
  */
 function errorFromJson(jsonValue, metadata, fallback) {
+    var _a;
     if (metadata) {
         new Headers(metadata).forEach((value, key) => fallback.metadata.append(key, value));
     }
     if (typeof jsonValue !== "object" ||
         jsonValue == null ||
-        Array.isArray(jsonValue) ||
-        !("code" in jsonValue) ||
-        typeof jsonValue.code !== "string") {
+        Array.isArray(jsonValue)) {
         throw fallback;
     }
-    const code = codeFromString(jsonValue.code);
-    if (code === undefined) {
-        throw fallback;
+    let code = fallback.code;
+    if ("code" in jsonValue && typeof jsonValue.code === "string") {
+        code = (_a = codeFromString(jsonValue.code)) !== null && _a !== void 0 ? _a : code;
     }
     const message = jsonValue.message;
     if (message != null && typeof message !== "string") {
@@ -39226,8 +39292,7 @@ function errorFromJson(jsonValue, metadata, fallback) {
                 typeof detail != "object" ||
                 Array.isArray(detail) ||
                 typeof detail.type != "string" ||
-                typeof detail.value != "string" ||
-                ("debug" in detail && typeof detail.debug != "object")) {
+                typeof detail.value != "string") {
                 throw fallback;
             }
             try {
@@ -39302,7 +39367,7 @@ function error_json_errorToJson(error, jsonWriteOptions) {
         })
             .map((_a) => {
             var { value } = _a, rest = __rest(_a, ["value"]);
-            return (Object.assign(Object.assign({}, rest), { value: protoBase64.enc(value) }));
+            return (Object.assign(Object.assign({}, rest), { value: protoBase64.enc(value).replace(/=+$/, "") }));
         });
     }
     return o;
@@ -39353,10 +39418,10 @@ function trailerDemux(header) {
     const h = new Headers(), t = new Headers();
     header.forEach((value, key) => {
         if (key.toLowerCase().startsWith("trailer-")) {
-            t.set(key.substring(8), value);
+            t.append(key.substring(8), value);
         }
         else {
-            h.set(key, value);
+            h.append(key, value);
         }
     });
     return [h, t];
@@ -39372,7 +39437,7 @@ function trailerDemux(header) {
 function trailerMux(header, trailer) {
     const h = new Headers(header);
     trailer.forEach((value, key) => {
-        h.set(`trailer-${key}`, value);
+        h.append(`trailer-${key}`, value);
     });
     return h;
 }
@@ -39409,7 +39474,7 @@ const endStreamFlag = 0b00000010;
  * @private Internal code, does not follow semantic versioning.
  */
 function endStreamFromJson(data) {
-    const parseErr = new connect_error_ConnectError("invalid end stream", code_Code.InvalidArgument);
+    const parseErr = new connect_error_ConnectError("invalid end stream", code_Code.Unknown);
     let jsonValue;
     try {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -39440,7 +39505,7 @@ function endStreamFromJson(data) {
             }
         }
     }
-    const error = "error" in jsonValue
+    const error = "error" in jsonValue && jsonValue.error != null
         ? errorFromJson(jsonValue.error, metadata, parseErr)
         : undefined;
     return { metadata, error };
@@ -39614,7 +39679,7 @@ function createConnectTransport(options) {
                     }
                     const fetch = (_a = options.fetch) !== null && _a !== void 0 ? _a : globalThis.fetch;
                     const response = await fetch(req.url, Object.assign(Object.assign({}, req.init), { headers: req.header, signal: req.signal, body }));
-                    const { isUnaryError, unaryError } = validateResponse(method.kind, response.status, response.headers);
+                    const { isUnaryError, unaryError } = validateResponse(method.kind, useBinaryFormat, response.status, response.headers);
                     if (isUnaryError) {
                         throw errorFromJson((await response.json()), http_headers_appendHeaders(...trailerDemux(response.headers)), unaryError);
                     }
@@ -39635,7 +39700,7 @@ function createConnectTransport(options) {
         async stream(service, method, signal, timeoutMs, header, input, contextValues) {
             var _a;
             const { serialize, parse } = createClientMethodSerializers(method, useBinaryFormat, options.jsonOptions, options.binaryOptions);
-            function parseResponseBody(body, trailerTarget, header) {
+            function parseResponseBody(body, trailerTarget, header, signal) {
                 return __asyncGenerator(this, arguments, function* parseResponseBody_1() {
                     const reader = createEnvelopeReadableStream(body).getReader();
                     let endStreamReceived = false;
@@ -39645,6 +39710,9 @@ function createConnectTransport(options) {
                             break;
                         }
                         const { flags, data } = result.value;
+                        if ((flags & compression_compressedFlag) === compression_compressedFlag) {
+                            throw new connect_error_ConnectError(`protocol error: received unsupported compressed output`, code_Code.Internal);
+                        }
                         if ((flags & endStreamFlag) === endStreamFlag) {
                             endStreamReceived = true;
                             const endStream = endStreamFromJson(data);
@@ -39659,6 +39727,16 @@ function createConnectTransport(options) {
                             continue;
                         }
                         yield yield __await(parse(data));
+                    }
+                    // Node wil not throw an AbortError on `read` if the
+                    // signal is aborted before `getReader` is called.
+                    // As a work around we check at the end and throw.
+                    //
+                    // Ref: https://github.com/nodejs/undici/issues/1940
+                    if ("throwIfAborted" in signal) {
+                        // We assume that implementations without `throwIfAborted` (old
+                        // browsers) do honor aborted signals on `read`.
+                        signal.throwIfAborted();
                     }
                     if (!endStreamReceived) {
                         throw "missing EndStreamResponse";
@@ -39704,12 +39782,12 @@ function createConnectTransport(options) {
                     var _a;
                     const fetch = (_a = options.fetch) !== null && _a !== void 0 ? _a : globalThis.fetch;
                     const fRes = await fetch(req.url, Object.assign(Object.assign({}, req.init), { headers: req.header, signal: req.signal, body: await createRequestBody(req.message) }));
-                    validateResponse(method.kind, fRes.status, fRes.headers);
+                    validateResponse(method.kind, useBinaryFormat, fRes.status, fRes.headers);
                     if (fRes.body === null) {
                         throw "missing response body";
                     }
                     const trailer = new Headers();
-                    const res = Object.assign(Object.assign({}, req), { header: fRes.headers, trailer, message: parseResponseBody(fRes.body, trailer, fRes.headers) });
+                    const res = Object.assign(Object.assign({}, req), { header: fRes.headers, trailer, message: parseResponseBody(fRes.body, trailer, fRes.headers, req.signal) });
                     return res;
                 },
             });
@@ -39866,8 +39944,8 @@ function sinkAllBytes(readMaxBytes, lengthHint) {
     };
 }
 function pipe(source, ...rest) {
-    var _a;
     return async_iterable_asyncGenerator(this, arguments, function* pipe_1() {
+        var _a;
         const [transforms, opt] = pickTransforms(rest);
         let abortable;
         const sourceIt = source[Symbol.asyncIterator]();
@@ -40734,10 +40812,10 @@ var promise_client_asyncGenerator = (undefined && undefined.__asyncGenerator) ||
 
 
 /**
- * Create a PromiseClient for the given service, invoking RPCs through the
+ * Create a Client for the given service, invoking RPCs through the
  * given transport.
  */
-function createPromiseClient(service, transport) {
+function createClient(service, transport) {
     return makeAnyClient(service, (method) => {
         switch (method.kind) {
             case service_type_MethodKind.Unary:
@@ -40752,6 +40830,12 @@ function createPromiseClient(service, transport) {
                 return null;
         }
     });
+}
+/**
+ * @deprecated use createClient.
+ */
+function createPromiseClient(service, transport) {
+    return createClient(service, transport);
 }
 function createUnaryFn(transport, service, method) {
     return async function (input, options) {
@@ -40774,12 +40858,14 @@ function createClientStreamingFn(transport, service, method) {
         const response = await transport.stream(service, method, options === null || options === void 0 ? void 0 : options.signal, options === null || options === void 0 ? void 0 : options.timeoutMs, options === null || options === void 0 ? void 0 : options.headers, request, options === null || options === void 0 ? void 0 : options.contextValues);
         (_d = options === null || options === void 0 ? void 0 : options.onHeader) === null || _d === void 0 ? void 0 : _d.call(options, response.header);
         let singleMessage;
+        let count = 0;
         try {
             for (var _f = true, _g = promise_client_asyncValues(response.message), _h; _h = await _g.next(), _a = _h.done, !_a; _f = true) {
                 _c = _h.value;
                 _f = false;
                 const message = _c;
                 singleMessage = message;
+                count++;
             }
         }
         catch (e_1_1) { e_1 = { error: e_1_1 }; }
@@ -40790,7 +40876,10 @@ function createClientStreamingFn(transport, service, method) {
             finally { if (e_1) throw e_1.error; }
         }
         if (!singleMessage) {
-            throw new connect_error_ConnectError("protocol error: missing response message", code_Code.Internal);
+            throw new connect_error_ConnectError("protocol error: missing response message", code_Code.Unimplemented);
+        }
+        if (count > 1) {
+            throw new connect_error_ConnectError("protocol error: received extra messages for client streaming method", code_Code.Unimplemented);
         }
         (_e = options === null || options === void 0 ? void 0 : options.onTrailer) === null || _e === void 0 ? void 0 : _e.call(options, response.trailer);
         return singleMessage;
@@ -40803,8 +40892,8 @@ function createBiDiStreamingFn(transport, service, method) {
 }
 function handleStreamResponse(stream, options) {
     const it = (function () {
-        var _a, _b;
         return promise_client_asyncGenerator(this, arguments, function* () {
+            var _a, _b;
             const response = yield promise_client_await(stream);
             (_a = options === null || options === void 0 ? void 0 : options.onHeader) === null || _a === void 0 ? void 0 : _a.call(options, response.header);
             yield promise_client_await(yield* promise_client_asyncDelegator(promise_client_asyncValues(response.message)));
@@ -44367,7 +44456,7 @@ function normalizeFieldInfos(fieldInfos, packedByDefault) {
 /**
  * Provides functionality for messages defined with the proto3 syntax.
  */
-const proto3 = makeProtoRuntime("proto3", (fields) => {
+const proto3_proto3 = makeProtoRuntime("proto3", (fields) => {
     return new InternalFieldList(fields, (source) => normalizeFieldInfos(source, true));
 }, 
 // TODO merge with proto2 and initExtensionField, also see initPartial, equals, clone
@@ -44512,7 +44601,7 @@ const proto3 = makeProtoRuntime("proto3", (fields) => {
  *
  * @generated from message google.protobuf.Timestamp
  */
-class Timestamp extends Message {
+class timestamp_pb_Timestamp extends Message {
     constructor(data) {
         super();
         /**
@@ -44532,11 +44621,11 @@ class Timestamp extends Message {
          * @generated from field: int32 nanos = 2;
          */
         this.nanos = 0;
-        proto3.util.initPartial(data, this);
+        proto3_proto3.util.initPartial(data, this);
     }
     fromJson(json, options) {
         if (typeof json !== "string") {
-            throw new Error(`cannot decode google.protobuf.Timestamp from JSON: ${proto3.json.debug(json)}`);
+            throw new Error(`cannot decode google.protobuf.Timestamp from JSON: ${proto3_proto3.json.debug(json)}`);
         }
         const matches = json.match(/^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:Z|\.([0-9]{3,9})Z|([+-][0-9][0-9]:[0-9][0-9]))$/);
         if (!matches) {
@@ -44583,37 +44672,37 @@ class Timestamp extends Message {
         return new Date(Number(this.seconds) * 1000 + Math.ceil(this.nanos / 1000000));
     }
     static now() {
-        return Timestamp.fromDate(new Date());
+        return timestamp_pb_Timestamp.fromDate(new Date());
     }
     static fromDate(date) {
         const ms = date.getTime();
-        return new Timestamp({
+        return new timestamp_pb_Timestamp({
             seconds: protoInt64.parse(Math.floor(ms / 1000)),
             nanos: (ms % 1000) * 1000000,
         });
     }
     static fromBinary(bytes, options) {
-        return new Timestamp().fromBinary(bytes, options);
+        return new timestamp_pb_Timestamp().fromBinary(bytes, options);
     }
     static fromJson(jsonValue, options) {
-        return new Timestamp().fromJson(jsonValue, options);
+        return new timestamp_pb_Timestamp().fromJson(jsonValue, options);
     }
     static fromJsonString(jsonString, options) {
-        return new Timestamp().fromJsonString(jsonString, options);
+        return new timestamp_pb_Timestamp().fromJsonString(jsonString, options);
     }
     static equals(a, b) {
-        return proto3.util.equals(Timestamp, a, b);
+        return proto3_proto3.util.equals(timestamp_pb_Timestamp, a, b);
     }
 }
-Timestamp.runtime = proto3;
-Timestamp.typeName = "google.protobuf.Timestamp";
-Timestamp.fields = proto3.util.newFieldList(() => [
+timestamp_pb_Timestamp.runtime = proto3_proto3;
+timestamp_pb_Timestamp.typeName = "google.protobuf.Timestamp";
+timestamp_pb_Timestamp.fields = proto3_proto3.util.newFieldList(() => [
     { no: 1, name: "seconds", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 2, name: "nanos", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
 ]);
 
 ;// CONCATENATED MODULE: ./node_modules/@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/label_pb.js
-// Copyright 2023-2024 Buf Technologies, Inc.
+// Copyright 2023-2025 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44627,7 +44716,7 @@ Timestamp.fields = proto3.util.newFieldList(() => [
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// @generated by protoc-gen-es v1.7.2
+// @generated by protoc-gen-es v1.10.0
 // @generated from file buf/registry/module/v1/label.proto (package buf.registry.module.v1, syntax proto3)
 /* eslint-disable */
 // @ts-nocheck
@@ -44641,7 +44730,7 @@ Timestamp.fields = proto3.util.newFieldList(() => [
  *
  * @generated from enum buf.registry.module.v1.CommitCheckStatus
  */
-const CommitCheckStatus = proto3.makeEnum(
+const CommitCheckStatus = /*@__PURE__*/ proto3_proto3.makeEnum(
   "buf.registry.module.v1.CommitCheckStatus",
   [
     {no: 0, name: "COMMIT_CHECK_STATUS_UNSPECIFIED", localName: "UNSPECIFIED"},
@@ -44660,13 +44749,13 @@ const CommitCheckStatus = proto3.makeEnum(
  *
  * @generated from message buf.registry.module.v1.Label
  */
-const Label = proto3.makeMessageType(
+const label_pb_Label = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.Label",
   () => [
     { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "create_time", kind: "message", T: Timestamp },
-    { no: 3, name: "update_time", kind: "message", T: Timestamp },
-    { no: 4, name: "archive_time", kind: "message", T: Timestamp },
+    { no: 2, name: "create_time", kind: "message", T: timestamp_pb_Timestamp },
+    { no: 3, name: "update_time", kind: "message", T: timestamp_pb_Timestamp },
+    { no: 4, name: "archive_time", kind: "message", T: timestamp_pb_Timestamp },
     { no: 5, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 6, name: "owner_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 7, name: "module_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
@@ -44683,11 +44772,11 @@ const Label = proto3.makeMessageType(
  *
  * @generated from message buf.registry.module.v1.CommitCheckState
  */
-const CommitCheckState = proto3.makeMessageType(
+const CommitCheckState = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.CommitCheckState",
   () => [
-    { no: 1, name: "status", kind: "enum", T: proto3.getEnumType(CommitCheckStatus) },
-    { no: 3, name: "update_time", kind: "message", T: Timestamp },
+    { no: 1, name: "status", kind: "enum", T: proto3_proto3.getEnumType(CommitCheckStatus) },
+    { no: 3, name: "update_time", kind: "message", T: timestamp_pb_Timestamp },
   ],
 );
 
@@ -44698,7 +44787,7 @@ const CommitCheckState = proto3.makeMessageType(
  *
  * @generated from message buf.registry.module.v1.LabelRef
  */
-const LabelRef = proto3.makeMessageType(
+const LabelRef = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.LabelRef",
   () => [
     { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "value" },
@@ -44714,7 +44803,7 @@ const LabelRef = proto3.makeMessageType(
  *
  * @generated from message buf.registry.module.v1.LabelRef.Name
  */
-const LabelRef_Name = proto3.makeMessageType(
+const LabelRef_Name = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.LabelRef.Name",
   () => [
     { no: 1, name: "owner", kind: "scalar", T: 9 /* ScalarType.STRING */ },
@@ -44731,17 +44820,17 @@ const LabelRef_Name = proto3.makeMessageType(
  *
  * @generated from message buf.registry.module.v1.ScopedLabelRef
  */
-const ScopedLabelRef = proto3.makeMessageType(
+const ScopedLabelRef = /*@__PURE__*/ (/* unused pure expression or super */ null && (proto3.makeMessageType(
   "buf.registry.module.v1.ScopedLabelRef",
   () => [
     { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "value" },
     { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "value" },
   ],
-);
+)));
 
 
 ;// CONCATENATED MODULE: ./node_modules/@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/module_pb.js
-// Copyright 2023-2024 Buf Technologies, Inc.
+// Copyright 2023-2025 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44755,7 +44844,7 @@ const ScopedLabelRef = proto3.makeMessageType(
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// @generated by protoc-gen-es v1.7.2
+// @generated by protoc-gen-es v1.10.0
 // @generated from file buf/registry/module/v1/module.proto (package buf.registry.module.v1, syntax proto3)
 /* eslint-disable */
 // @ts-nocheck
@@ -44767,7 +44856,7 @@ const ScopedLabelRef = proto3.makeMessageType(
  *
  * @generated from enum buf.registry.module.v1.ModuleVisibility
  */
-const ModuleVisibility = proto3.makeEnum(
+const ModuleVisibility = /*@__PURE__*/ proto3_proto3.makeEnum(
   "buf.registry.module.v1.ModuleVisibility",
   [
     {no: 0, name: "MODULE_VISIBILITY_UNSPECIFIED", localName: "UNSPECIFIED"},
@@ -44781,7 +44870,7 @@ const ModuleVisibility = proto3.makeEnum(
  *
  * @generated from enum buf.registry.module.v1.ModuleState
  */
-const ModuleState = proto3.makeEnum(
+const ModuleState = /*@__PURE__*/ proto3_proto3.makeEnum(
   "buf.registry.module.v1.ModuleState",
   [
     {no: 0, name: "MODULE_STATE_UNSPECIFIED", localName: "UNSPECIFIED"},
@@ -44795,7 +44884,7 @@ const ModuleState = proto3.makeEnum(
  *
  * @generated from message buf.registry.module.v1.Module
  */
-const Module = proto3.makeMessageType(
+const module_pb_Module = /*@__PURE__*/ (/* unused pure expression or super */ null && (proto3.makeMessageType(
   "buf.registry.module.v1.Module",
   () => [
     { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
@@ -44809,7 +44898,7 @@ const Module = proto3.makeMessageType(
     { no: 9, name: "url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 10, name: "default_label_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ],
-);
+)));
 
 /**
  * ModuleRef is a reference to a Module, either an id or a fully-qualified name.
@@ -44818,13 +44907,13 @@ const Module = proto3.makeMessageType(
  *
  * @generated from message buf.registry.module.v1.ModuleRef
  */
-const ModuleRef = proto3.makeMessageType(
+const ModuleRef = /*@__PURE__*/ (/* unused pure expression or super */ null && (proto3.makeMessageType(
   "buf.registry.module.v1.ModuleRef",
   () => [
     { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "value" },
     { no: 2, name: "name", kind: "message", T: ModuleRef_Name, oneof: "value" },
   ],
-);
+)));
 
 /**
  * The fully-qualified name of a Module within a BSR instance.
@@ -44834,7 +44923,7 @@ const ModuleRef = proto3.makeMessageType(
  *
  * @generated from message buf.registry.module.v1.ModuleRef.Name
  */
-const ModuleRef_Name = proto3.makeMessageType(
+const ModuleRef_Name = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.ModuleRef.Name",
   () => [
     { no: 1, name: "owner", kind: "scalar", T: 9 /* ScalarType.STRING */ },
@@ -44845,7 +44934,7 @@ const ModuleRef_Name = proto3.makeMessageType(
 
 
 ;// CONCATENATED MODULE: ./node_modules/@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/digest_pb.js
-// Copyright 2023-2024 Buf Technologies, Inc.
+// Copyright 2023-2025 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44859,7 +44948,7 @@ const ModuleRef_Name = proto3.makeMessageType(
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// @generated by protoc-gen-es v1.7.2
+// @generated by protoc-gen-es v1.10.0
 // @generated from file buf/registry/module/v1/digest.proto (package buf.registry.module.v1, syntax proto3)
 /* eslint-disable */
 // @ts-nocheck
@@ -44871,7 +44960,7 @@ const ModuleRef_Name = proto3.makeMessageType(
  *
  * @generated from enum buf.registry.module.v1.DigestType
  */
-const DigestType = proto3.makeEnum(
+const DigestType = /*@__PURE__*/ proto3_proto3.makeEnum(
   "buf.registry.module.v1.DigestType",
   [
     {no: 0, name: "DIGEST_TYPE_UNSPECIFIED", localName: "UNSPECIFIED"},
@@ -44887,17 +44976,17 @@ const DigestType = proto3.makeEnum(
  *
  * @generated from message buf.registry.module.v1.Digest
  */
-const Digest = proto3.makeMessageType(
+const Digest = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.Digest",
   () => [
-    { no: 1, name: "type", kind: "enum", T: proto3.getEnumType(DigestType) },
+    { no: 1, name: "type", kind: "enum", T: proto3_proto3.getEnumType(DigestType) },
     { no: 2, name: "value", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
   ],
 );
 
 
 ;// CONCATENATED MODULE: ./node_modules/@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/commit_pb.js
-// Copyright 2023-2024 Buf Technologies, Inc.
+// Copyright 2023-2025 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44911,7 +45000,7 @@ const Digest = proto3.makeMessageType(
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// @generated by protoc-gen-es v1.7.2
+// @generated by protoc-gen-es v1.10.0
 // @generated from file buf/registry/module/v1/commit.proto (package buf.registry.module.v1, syntax proto3)
 /* eslint-disable */
 // @ts-nocheck
@@ -44931,11 +45020,11 @@ const Digest = proto3.makeMessageType(
  *
  * @generated from message buf.registry.module.v1.Commit
  */
-const Commit = proto3.makeMessageType(
+const commit_pb_Commit = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.Commit",
   () => [
     { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "create_time", kind: "message", T: Timestamp },
+    { no: 2, name: "create_time", kind: "message", T: timestamp_pb_Timestamp },
     { no: 3, name: "owner_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 4, name: "module_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "digest", kind: "message", T: Digest },
@@ -44946,7 +45035,7 @@ const Commit = proto3.makeMessageType(
 
 
 ;// CONCATENATED MODULE: ./node_modules/@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/resource_pb.js
-// Copyright 2023-2024 Buf Technologies, Inc.
+// Copyright 2023-2025 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44960,7 +45049,7 @@ const Commit = proto3.makeMessageType(
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// @generated by protoc-gen-es v1.7.2
+// @generated by protoc-gen-es v1.10.0
 // @generated from file buf/registry/module/v1/resource.proto (package buf.registry.module.v1, syntax proto3)
 /* eslint-disable */
 // @ts-nocheck
@@ -44975,14 +45064,14 @@ const Commit = proto3.makeMessageType(
  *
  * @generated from message buf.registry.module.v1.Resource
  */
-const Resource = proto3.makeMessageType(
+const Resource = /*@__PURE__*/ (/* unused pure expression or super */ null && (proto3.makeMessageType(
   "buf.registry.module.v1.Resource",
   () => [
     { no: 1, name: "module", kind: "message", T: Module, oneof: "value" },
     { no: 2, name: "label", kind: "message", T: Label, oneof: "value" },
     { no: 3, name: "commit", kind: "message", T: Commit, oneof: "value" },
   ],
-);
+)));
 
 /**
  * A reference to any of:
@@ -44999,7 +45088,7 @@ const Resource = proto3.makeMessageType(
  *
  * @generated from message buf.registry.module.v1.ResourceRef
  */
-const ResourceRef = proto3.makeMessageType(
+const ResourceRef = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.ResourceRef",
   () => [
     { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "value" },
@@ -45028,7 +45117,7 @@ const ResourceRef = proto3.makeMessageType(
  *
  * @generated from message buf.registry.module.v1.ResourceRef.Name
  */
-const ResourceRef_Name = proto3.makeMessageType(
+const ResourceRef_Name = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.ResourceRef.Name",
   () => [
     { no: 1, name: "owner", kind: "scalar", T: 9 /* ScalarType.STRING */ },
@@ -45041,7 +45130,7 @@ const ResourceRef_Name = proto3.makeMessageType(
 
 
 ;// CONCATENATED MODULE: ./node_modules/@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/label_service_pb.js
-// Copyright 2023-2024 Buf Technologies, Inc.
+// Copyright 2023-2025 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45055,7 +45144,7 @@ const ResourceRef_Name = proto3.makeMessageType(
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// @generated by protoc-gen-es v1.7.2
+// @generated by protoc-gen-es v1.10.0
 // @generated from file buf/registry/module/v1/label_service.proto (package buf.registry.module.v1, syntax proto3)
 /* eslint-disable */
 // @ts-nocheck
@@ -45068,7 +45157,7 @@ const ResourceRef_Name = proto3.makeMessageType(
 /**
  * @generated from message buf.registry.module.v1.GetLabelsRequest
  */
-const GetLabelsRequest = proto3.makeMessageType(
+const GetLabelsRequest = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.GetLabelsRequest",
   () => [
     { no: 1, name: "label_refs", kind: "message", T: LabelRef, repeated: true },
@@ -45078,26 +45167,26 @@ const GetLabelsRequest = proto3.makeMessageType(
 /**
  * @generated from message buf.registry.module.v1.GetLabelsResponse
  */
-const GetLabelsResponse = proto3.makeMessageType(
+const GetLabelsResponse = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.GetLabelsResponse",
   () => [
-    { no: 1, name: "labels", kind: "message", T: Label, repeated: true },
+    { no: 1, name: "labels", kind: "message", T: label_pb_Label, repeated: true },
   ],
 );
 
 /**
  * @generated from message buf.registry.module.v1.ListLabelsRequest
  */
-const ListLabelsRequest = proto3.makeMessageType(
+const ListLabelsRequest = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.ListLabelsRequest",
   () => [
     { no: 1, name: "page_size", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
     { no: 2, name: "page_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "resource_ref", kind: "message", T: ResourceRef },
-    { no: 4, name: "order", kind: "enum", T: proto3.getEnumType(ListLabelsRequest_Order) },
-    { no: 5, name: "commit_check_statuses", kind: "enum", T: proto3.getEnumType(CommitCheckStatus), repeated: true },
+    { no: 4, name: "order", kind: "enum", T: proto3_proto3.getEnumType(ListLabelsRequest_Order) },
+    { no: 5, name: "commit_check_statuses", kind: "enum", T: proto3_proto3.getEnumType(CommitCheckStatus), repeated: true },
     { no: 6, name: "name_query", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 7, name: "archive_filter", kind: "enum", T: proto3.getEnumType(ListLabelsRequest_ArchiveFilter) },
+    { no: 7, name: "archive_filter", kind: "enum", T: proto3_proto3.getEnumType(ListLabelsRequest_ArchiveFilter) },
   ],
 );
 
@@ -45106,7 +45195,7 @@ const ListLabelsRequest = proto3.makeMessageType(
  *
  * @generated from enum buf.registry.module.v1.ListLabelsRequest.Order
  */
-const ListLabelsRequest_Order = proto3.makeEnum(
+const ListLabelsRequest_Order = /*@__PURE__*/ proto3_proto3.makeEnum(
   "buf.registry.module.v1.ListLabelsRequest.Order",
   [
     {no: 0, name: "ORDER_UNSPECIFIED", localName: "UNSPECIFIED"},
@@ -45122,7 +45211,7 @@ const ListLabelsRequest_Order = proto3.makeEnum(
  *
  * @generated from enum buf.registry.module.v1.ListLabelsRequest.ArchiveFilter
  */
-const ListLabelsRequest_ArchiveFilter = proto3.makeEnum(
+const ListLabelsRequest_ArchiveFilter = /*@__PURE__*/ proto3_proto3.makeEnum(
   "buf.registry.module.v1.ListLabelsRequest.ArchiveFilter",
   [
     {no: 0, name: "ARCHIVE_FILTER_UNSPECIFIED", localName: "UNSPECIFIED"},
@@ -45135,25 +45224,25 @@ const ListLabelsRequest_ArchiveFilter = proto3.makeEnum(
 /**
  * @generated from message buf.registry.module.v1.ListLabelsResponse
  */
-const ListLabelsResponse = proto3.makeMessageType(
+const ListLabelsResponse = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.ListLabelsResponse",
   () => [
     { no: 1, name: "next_page_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "labels", kind: "message", T: Label, repeated: true },
+    { no: 2, name: "labels", kind: "message", T: label_pb_Label, repeated: true },
   ],
 );
 
 /**
  * @generated from message buf.registry.module.v1.ListLabelHistoryRequest
  */
-const ListLabelHistoryRequest = proto3.makeMessageType(
+const ListLabelHistoryRequest = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.ListLabelHistoryRequest",
   () => [
     { no: 1, name: "page_size", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
     { no: 2, name: "page_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "label_ref", kind: "message", T: LabelRef },
-    { no: 4, name: "order", kind: "enum", T: proto3.getEnumType(ListLabelHistoryRequest_Order) },
-    { no: 5, name: "commit_check_statuses", kind: "enum", T: proto3.getEnumType(CommitCheckStatus), repeated: true },
+    { no: 4, name: "order", kind: "enum", T: proto3_proto3.getEnumType(ListLabelHistoryRequest_Order) },
+    { no: 5, name: "commit_check_statuses", kind: "enum", T: proto3_proto3.getEnumType(CommitCheckStatus), repeated: true },
     { no: 6, name: "start_commit_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 7, name: "only_commits_with_changed_digests", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ],
@@ -45164,7 +45253,7 @@ const ListLabelHistoryRequest = proto3.makeMessageType(
  *
  * @generated from enum buf.registry.module.v1.ListLabelHistoryRequest.Order
  */
-const ListLabelHistoryRequest_Order = proto3.makeEnum(
+const ListLabelHistoryRequest_Order = /*@__PURE__*/ proto3_proto3.makeEnum(
   "buf.registry.module.v1.ListLabelHistoryRequest.Order",
   [
     {no: 0, name: "ORDER_UNSPECIFIED", localName: "UNSPECIFIED"},
@@ -45176,7 +45265,7 @@ const ListLabelHistoryRequest_Order = proto3.makeEnum(
 /**
  * @generated from message buf.registry.module.v1.ListLabelHistoryResponse
  */
-const ListLabelHistoryResponse = proto3.makeMessageType(
+const ListLabelHistoryResponse = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.ListLabelHistoryResponse",
   () => [
     { no: 1, name: "next_page_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
@@ -45187,10 +45276,10 @@ const ListLabelHistoryResponse = proto3.makeMessageType(
 /**
  * @generated from message buf.registry.module.v1.ListLabelHistoryResponse.Value
  */
-const ListLabelHistoryResponse_Value = proto3.makeMessageType(
+const ListLabelHistoryResponse_Value = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.ListLabelHistoryResponse.Value",
   () => [
-    { no: 1, name: "commit", kind: "message", T: Commit },
+    { no: 1, name: "commit", kind: "message", T: commit_pb_Commit },
     { no: 2, name: "commit_check_state", kind: "message", T: CommitCheckState },
   ],
   {localName: "ListLabelHistoryResponse_Value"},
@@ -45199,7 +45288,7 @@ const ListLabelHistoryResponse_Value = proto3.makeMessageType(
 /**
  * @generated from message buf.registry.module.v1.CreateOrUpdateLabelsRequest
  */
-const CreateOrUpdateLabelsRequest = proto3.makeMessageType(
+const CreateOrUpdateLabelsRequest = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.CreateOrUpdateLabelsRequest",
   () => [
     { no: 1, name: "values", kind: "message", T: CreateOrUpdateLabelsRequest_Value, repeated: true },
@@ -45211,7 +45300,7 @@ const CreateOrUpdateLabelsRequest = proto3.makeMessageType(
  *
  * @generated from message buf.registry.module.v1.CreateOrUpdateLabelsRequest.Value
  */
-const CreateOrUpdateLabelsRequest_Value = proto3.makeMessageType(
+const CreateOrUpdateLabelsRequest_Value = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.CreateOrUpdateLabelsRequest.Value",
   () => [
     { no: 1, name: "label_ref", kind: "message", T: LabelRef },
@@ -45223,17 +45312,17 @@ const CreateOrUpdateLabelsRequest_Value = proto3.makeMessageType(
 /**
  * @generated from message buf.registry.module.v1.CreateOrUpdateLabelsResponse
  */
-const CreateOrUpdateLabelsResponse = proto3.makeMessageType(
+const CreateOrUpdateLabelsResponse = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.CreateOrUpdateLabelsResponse",
   () => [
-    { no: 1, name: "labels", kind: "message", T: Label, repeated: true },
+    { no: 1, name: "labels", kind: "message", T: label_pb_Label, repeated: true },
   ],
 );
 
 /**
  * @generated from message buf.registry.module.v1.ArchiveLabelsRequest
  */
-const ArchiveLabelsRequest = proto3.makeMessageType(
+const ArchiveLabelsRequest = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.ArchiveLabelsRequest",
   () => [
     { no: 1, name: "label_refs", kind: "message", T: LabelRef, repeated: true },
@@ -45243,7 +45332,7 @@ const ArchiveLabelsRequest = proto3.makeMessageType(
 /**
  * @generated from message buf.registry.module.v1.ArchiveLabelsResponse
  */
-const ArchiveLabelsResponse = proto3.makeMessageType(
+const ArchiveLabelsResponse = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.ArchiveLabelsResponse",
   [],
 );
@@ -45251,7 +45340,7 @@ const ArchiveLabelsResponse = proto3.makeMessageType(
 /**
  * @generated from message buf.registry.module.v1.UnarchiveLabelsRequest
  */
-const UnarchiveLabelsRequest = proto3.makeMessageType(
+const UnarchiveLabelsRequest = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.UnarchiveLabelsRequest",
   () => [
     { no: 1, name: "label_refs", kind: "message", T: LabelRef, repeated: true },
@@ -45261,14 +45350,14 @@ const UnarchiveLabelsRequest = proto3.makeMessageType(
 /**
  * @generated from message buf.registry.module.v1.UnarchiveLabelsResponse
  */
-const UnarchiveLabelsResponse = proto3.makeMessageType(
+const UnarchiveLabelsResponse = /*@__PURE__*/ proto3_proto3.makeMessageType(
   "buf.registry.module.v1.UnarchiveLabelsResponse",
   [],
 );
 
 
 ;// CONCATENATED MODULE: ./node_modules/@buf/bufbuild_registry.connectrpc_es/buf/registry/module/v1/label_service_connect.js
-// Copyright 2023-2024 Buf Technologies, Inc.
+// Copyright 2023-2025 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45282,7 +45371,7 @@ const UnarchiveLabelsResponse = proto3.makeMessageType(
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// @generated by protoc-gen-connect-es v1.4.0
+// @generated by protoc-gen-connect-es v1.6.1
 // @generated from file buf/registry/module/v1/label_service.proto (package buf.registry.module.v1, syntax proto3)
 /* eslint-disable */
 // @ts-nocheck
