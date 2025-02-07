@@ -12,8 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Outputs are the outputs of the action, matching the outputs in the action.yml.
-export enum Outputs {
-  BufVersion = "buf_version",
-  BufPath = "buf_path",
+import * as core from "@actions/core";
+import * as exec from "@actions/exec";
+
+import { Outputs } from "./outputs";
+
+// main is the entrypoint for the action's post step.
+async function main() {
+  const bufPath = core.getState(Outputs.BufPath);
+  await logout(bufPath);
+}
+
+main()
+  .catch((err) => core.setFailed(err.message))
+  .then(() => core.debug(`done in ${process.uptime()} s`));
+
+// logout logs out of the Buf registry, removing credentials.
+async function logout(bufPath: string) {
+  core.debug(`Logging out`);
+  await exec.exec(bufPath, ["registry", "logout"]);
 }
