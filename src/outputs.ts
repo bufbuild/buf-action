@@ -15,4 +15,5 @@
 // Outputs are the outputs of the action, matching the outputs in the action.yml.
 export enum Outputs {
   BufVersion = "buf_version",
+  BufPath = "buf_path",
 }

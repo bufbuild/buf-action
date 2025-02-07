@@ -135,7 +135,11 @@ outputs:
   buf_version:
     description: |-
       Version of the Buf CLI used.
+  buf_path:
+    description: |-
+      Path to the Buf CLI binary.
 
 runs:
   using: "node20"
   main: "./dist/index.js"
+  post: "./dist/post/index.js"

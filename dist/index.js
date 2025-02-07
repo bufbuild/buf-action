@@ -47792,6 +47792,7 @@ function getEnv(name) {
 var Outputs;
 (function (Outputs) {
     Outputs["BufVersion"] = "buf_version";
+    Outputs["BufPath"] = "buf_path";
 })(Outputs || (Outputs = {}));
 
 // EXTERNAL MODULE: ./node_modules/@actions/tool-cache/lib/tool-cache.js
@@ -48076,6 +48077,8 @@ async function main() {
     const github = (0,lib_github.getOctokit)(inputs.github_token);
     const [bufPath, bufVersion] = await installBuf(github, inputs.version);
     core.setOutput(Outputs.BufVersion, bufVersion);
+    core.setOutput(Outputs.BufPath, bufPath);
+    core.saveState(Outputs.BufPath, bufPath);
     if (inputs.github_actor == "dependabot[bot]") {
         core.info("Skipping steps for dependabot");
         return;

@@ -36,6 +36,8 @@ async function main() {
   const github = getOctokit(inputs.github_token);
   const [bufPath, bufVersion] = await installBuf(github, inputs.version);
   core.setOutput(Outputs.BufVersion, bufVersion);
+  core.setOutput(Outputs.BufPath, bufPath);
+  core.saveState(Outputs.BufPath, bufPath);
   if (inputs.github_actor == "dependabot[bot]") {
     core.info("Skipping steps for dependabot");
     return;

@@ -8,7 +8,7 @@
     "format": "prettier --write 'src/*.{json,js,jsx,ts,tsx,css}' --log-level error",
     "lint": "eslint --max-warnings 0 src",
     "lint:fix": "eslint --max-warnings 0 --fix src",
-    "build": "ncc build -o dist src/main.ts",
+    "build": "ncc build -o dist src/main.ts && ncc build -o dist/post src/post.ts",
     "generate": "license-header --ignore 'dist/**'"
   },
   "keywords": [
