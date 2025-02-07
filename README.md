@@ -126,15 +126,24 @@ If no version is specified in the workflow config, the action will resolve the v
 way for consumers of your APIs to generate code.
 Authenticating with the BSR is required for both the push and archive label steps.
 
-To authenticate with the BSR, set the API token as the parameter `token`.
 Generate a token from the [BSR UI](https://buf.build/docs/bsr/authentication#create-an-api-token) and add it to the [repository secrets](https://docs.github.com/en/actions/reference/encrypted-secrets).
+Add the secret to the workflow file as the `token` parameter:
 
 ```yaml
 - uses: bufbuild/buf-action@v1
   with:
     token: ${{ secrets.BUF_TOKEN }}
 ```
+Or set the token as an environment variable:
 
+```yaml
+- env:
+    BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
+- uses: bufbuild/buf-action@v1
+```
+
+Setting the token as an environment variable avoids calling `buf registry login`.
+The login command will store the token in the `.netrc` file in the home directory of the runner.
 For more information on authentication, see the [BSR Authentication Reference](https://buf.build/docs/bsr/authentication).
 
 ### Summary comment
