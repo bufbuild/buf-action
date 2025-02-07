@@ -1,6 +1,6 @@
-name: Dependabot Update
+name: Dependabot Rebuild
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize]
 permissions:
   contents: write
@@ -15,8 +15,8 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: rebuild
         run: |
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/bufbuild/buf-action.git
           make build
           git add -A
-          git commit -m "Build"
+          git commit -m "[dependabot skip] build" || true
           git push -u origin HEAD:${{ github.event.pull_request.head.ref }}
