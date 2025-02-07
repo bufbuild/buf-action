@@ -15,12 +15,14 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 
+import { getInputs, Inputs } from "./inputs";
 import { Outputs } from "./outputs";
 
 // main is the entrypoint for the action's post step.
 async function main() {
+  const inputs = getInputs();
   const bufPath = core.getState(Outputs.BufPath);
-  await logout(bufPath);
+  await logout(bufPath, inputs);
 }
 
 main()
@@ -28,7 +30,8 @@ main()
   .then(() => core.debug(`done in ${process.uptime()} s`));
 
 // logout logs out of the Buf registry, removing credentials.
-async function logout(bufPath: string) {
-  core.debug(`Logging out`);
-  await exec.exec(bufPath, ["registry", "logout"]);
+async function logout(bufPath: string, inputs: Inputs) {
+  const { domain } = inputs;
+  core.debug(`Logging out of ${domain}`);
+  await exec.exec(bufPath, ["registry", "logout", domain]);
 }
