@@ -16,6 +16,8 @@ jobs:
       - name: rebuild
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/bufbuild/buf-action.git
+          git config user.name github-actions
+          git config user.email github-actions@github.com
           make build
           git add -A
           git commit -m "[dependabot skip] build" || true
