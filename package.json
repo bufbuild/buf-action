@@ -26,15 +26,15 @@
   },
   "devDependencies": {
     "@bufbuild/license-header": "^0.0.4",
-    "@eslint/js": "^9.19.0",
-    "@types/node": "^22.13.5",
+    "@eslint/js": "^9.21.0",
+    "@types/node": "^22.13.8",
     "@types/semver": "^7.5.8",
     "@vercel/ncc": "^0.38.3",
-    "eslint": "^9.19.0",
-    "globals": "^15.14.0",
-    "prettier": "3.4.2",
-    "typescript": "^5.7.3",
-    "typescript-eslint": "^8.24.1"
+    "eslint": "^9.21.0",
+    "globals": "^16.0.0",
+    "prettier": "3.5.3",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.25.0"
   },
   "dependencies": {
     "@actions/core": "^1.11.1",
@@ -43,8 +43,8 @@
     "@actions/tool-cache": "^2.0.2",
     "@buf/bufbuild_registry.bufbuild_es": "^2.2.3-20250116203702-1c024d64352b.1",
     "@bufbuild/protobuf": "^2.2.3",
-    "@connectrpc/connect": "^2.0.1",
-    "@connectrpc/connect-web": "^2.0.1",
+    "@connectrpc/connect": "^2.0.2",
+    "@connectrpc/connect-web": "^2.0.2",
     "@octokit/webhooks-types": "^7.6.1",
     "parse-diff": "^0.11.1",
     "semver": "^7.7.1"
