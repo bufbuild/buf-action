@@ -31,7 +31,7 @@
     "@types/semver": "^7.5.8",
     "@vercel/ncc": "^0.38.3",
     "eslint": "^9.21.0",
-    "globals": "^15.14.0",
+    "globals": "^16.0.0",
     "prettier": "3.5.2",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.24.1"
