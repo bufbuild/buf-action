@@ -44,7 +44,7 @@
     "@buf/bufbuild_registry.bufbuild_es": "^2.2.3-20250116203702-1c024d64352b.1",
     "@bufbuild/protobuf": "^2.2.3",
     "@connectrpc/connect": "^2.0.1",
-    "@connectrpc/connect-web": "^2.0.1",
+    "@connectrpc/connect-web": "^2.0.2",
     "@octokit/webhooks-types": "^7.6.1",
     "parse-diff": "^0.11.1",
     "semver": "^7.7.1"
