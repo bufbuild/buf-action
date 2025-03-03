@@ -43196,7 +43196,7 @@ function listValueFromJson(listValue, json) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/context-values.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -43235,7 +43235,7 @@ function createContextKey(defaultValue, options) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/http-headers.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -43295,7 +43295,7 @@ function http_headers_appendHeaders(...headers) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/code.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -43386,7 +43386,7 @@ var code_Code;
 })(code_Code || (code_Code = {}));
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/code-string.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -43436,7 +43436,7 @@ function codeFromString(value) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/connect-error.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -43955,7 +43955,7 @@ function timestampToJson(val) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/serialization.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44098,7 +44098,7 @@ function createJsonSerialization(desc, options) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/interceptor.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44124,7 +44124,7 @@ function applyInterceptors(next, interceptors) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/signals.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44221,7 +44221,7 @@ function getAbortSignalReason(signal) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/normalize.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44274,7 +44274,7 @@ function normalizeIterable(desc, input) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/run-call.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44391,7 +44391,7 @@ function setupSignal(opt) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/create-method-url.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44426,7 +44426,7 @@ function createMethodUrl(baseUrl, method) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/envelope.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44573,7 +44573,7 @@ function encodeEnvelopes(...envelopes) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/compression.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44646,7 +44646,7 @@ headerNameAcceptEncoding) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/headers.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44673,7 +44673,7 @@ const headers_headerProtocolVersion = "Connect-Protocol-Version";
 const headerUserAgent = "User-Agent";
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/version.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44728,7 +44728,7 @@ function requireProtocolVersionParam(queryParams) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/content-type.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44796,7 +44796,7 @@ function parseEncodingQuery(encoding) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/request-header.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44834,7 +44834,7 @@ function requestHeader(methodKind, useBinaryFormat, timeoutMs, userProvidedHeade
         // Note that we do not strictly comply with gRPC user agents.
         // We use "connect-es/1.2.3" where gRPC would use "grpc-es/1.2.3".
         // See https://github.com/grpc/grpc/blob/c462bb8d485fc1434ecfae438823ca8d14cf3154/doc/PROTOCOL-HTTP2.md#user-agents
-        result.set(headerUserAgent, "connect-es/2.0.1");
+        result.set(headerUserAgent, "connect-es/2.0.2");
     }
     return result;
 }
@@ -44864,7 +44864,7 @@ function requestHeaderWithCompression(methodKind, useBinaryFormat, timeoutMs, us
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/get-request.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44925,7 +44925,7 @@ function transformConnectPostToGetRequest(request, message, useBase64) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/http-status.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45013,7 +45013,7 @@ function codeToHttpStatus(code) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/validate-response.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45082,7 +45082,7 @@ function validateResponseWithCompression(methodKind, acceptCompression, useBinar
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/error-json.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45243,7 +45243,7 @@ function errorToJsonBytes(error, jsonWriteOptions) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/trailer-mux.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45294,7 +45294,7 @@ function trailerMux(header, trailer) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/end-stream.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45422,7 +45422,7 @@ function createEndStreamSerialization(options) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect-web/dist/esm/assert-fetch-api.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45448,7 +45448,7 @@ function assertFetchApi() {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect-web/dist/esm/connect-transport.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45640,7 +45640,7 @@ function createConnectTransport(options) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/any-client.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45672,7 +45672,7 @@ function makeAnyClient(service, createMethod) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/async-iterable.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -46611,7 +46611,7 @@ function createAsyncIterable(items) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/promise-client.js
-// Copyright 2021-2024 The Connect Authors
+// Copyright 2021-2025 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
