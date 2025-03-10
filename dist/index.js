@@ -47737,6 +47737,7 @@ function getInputs() {
         pr_comment: core.getBooleanInput("pr_comment"),
         github_actor: core.getInput("github_actor"),
         github_token: core.getInput("github_token"),
+        public_github_token: core.getInput("public_github_token"),
         // Inputs shared between buf steps.
         input: core.getInput("input"),
         paths: core.getMultilineInput("paths"),
@@ -47828,12 +47829,15 @@ var semver = __nccwpck_require__(2088);
 
 
 
+
 // requiredVersion is the minimum version of buf required.
 const requiredVersion = ">=1.35.0";
+// URL for the public GitHub API.
+const publicGitHubApiUrl = "https://api.github.com";
 // installBuf installs the buf binary and returns the path to the binary. The
 // versionInput should be an explicit version of buf.
-async function installBuf(github, versionInput) {
-    let resolvedVersion = resolveVersion(versionInput);
+async function installBuf(github, inputs) {
+    let resolvedVersion = resolveVersion(inputs.version);
     if (resolvedVersion != "" && !tool_cache.isExplicitVersion(resolvedVersion)) {
         throw new Error(`The version provided must be an explicit version: ${resolvedVersion}`);
     }
@@ -47856,7 +47860,8 @@ async function installBuf(github, versionInput) {
         }
     }
     if (resolvedVersion === "") {
-        resolvedVersion = await latestVersion(github);
+        const publicGitHub = resolvePublicGitHub(github, inputs);
+        resolvedVersion = await latestVersion(publicGitHub);
     }
     if (!semver.satisfies(resolvedVersion, requiredVersion)) {
         throw new Error(`The resolved version of buf (${resolvedVersion}) does not satisfy the required version (${requiredVersion})`);
@@ -47872,6 +47877,22 @@ async function installBuf(github, versionInput) {
     core.addPath(cachePath);
     core.info(`Setup buf (${resolvedVersion}) at ${cachePath}`);
     return [binName, resolvedVersion];
+}
+// resolvePublicGitHub returns a GitHub instance for the public GitHub API if
+// the environment is a GitHub Enterprise instance.
+function resolvePublicGitHub(github, inputs) {
+    const apiUrl = process.env.GITHUB_API_URL || ``;
+    if (apiUrl.startsWith(publicGitHubApiUrl)) {
+        core.info("Running on GitHub.com, using default GitHub API.");
+        return github;
+    }
+    const publicToken = inputs.public_github_token;
+    if (!publicToken) {
+        throw new Error("public_github_token is required for public GitHub API");
+    }
+    const publicGitHub = (0,lib_github.getOctokit)(publicToken, { baseUrl: publicGitHubApiUrl });
+    core.info("Running on GitHub Enterprise, using public GitHub API.");
+    return publicGitHub;
 }
 // resolveVersion from the input or environment.
 function resolveVersion(versionSpec) {
@@ -48085,7 +48106,7 @@ function parseModuleName(moduleName) {
 async function main() {
     const inputs = getInputs();
     const github = (0,lib_github.getOctokit)(inputs.github_token);
-    const [bufPath, bufVersion] = await installBuf(github, inputs.version);
+    const [bufPath, bufVersion] = await installBuf(github, inputs);
     core.setOutput(Outputs.BufVersion, bufVersion);
     core.setOutput(Outputs.BufPath, bufPath);
     core.saveState(Outputs.BufPath, bufPath);
