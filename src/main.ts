@@ -37,6 +37,8 @@ const publicGitHubApiUrl = "https://api.github.com";
 async function main() {
   const inputs = getInputs();
   const github = getOctokit(inputs.github_token);
+  // Check if the action is running on a GitHub Enterprise instance.
+  // If so, use the public GitHub API for resolving the Buf version etc.
   let publicGithubToken = inputs.github_token;
   let publicGithub = github;
   const apiUrl = process.env.GITHUB_API_URL || ``;
@@ -45,11 +47,19 @@ async function main() {
     publicGithubToken = inputs.public_github_token;
     if (publicGithubToken == "") {
       // Warn if the public GitHub token is not set. Don't fail as not required.
-      core.warning("public_github_token not set, GitHub API requests may be limited");
+      core.warning(
+        "public_github_token not set, GitHub API requests may be limited",
+      );
     }
-    publicGithub = getOctokit(publicGithubToken, { baseUrl: publicGitHubApiUrl });
+    publicGithub = getOctokit(publicGithubToken, {
+      baseUrl: publicGitHubApiUrl,
+    });
   }
-  const [bufPath, bufVersion] = await installBuf(publicGithub, publicGithubToken, inputs.version);
+  const [bufPath, bufVersion] = await installBuf(
+    publicGithub,
+    publicGithubToken,
+    inputs.version,
+  );
   core.setOutput(Outputs.BufVersion, bufVersion);
   core.setOutput(Outputs.BufPath, bufPath);
   core.saveState(Outputs.BufPath, bufPath);

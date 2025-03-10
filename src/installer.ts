@@ -119,7 +119,10 @@ type platformTable = {
 };
 
 // downloadBuf downloads the buf binary and returns the path to the binary.
-async function downloadBuf(version: string, githubToken: string): Promise<string> {
+async function downloadBuf(
+  version: string,
+  githubToken: string,
+): Promise<string> {
   const table: platformTable = {
     darwin: {
       x64: "buf-Darwin-x86_64",
