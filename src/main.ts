@@ -34,7 +34,7 @@ import { parseModuleNames, ModuleName } from "./config";
 async function main() {
   const inputs = getInputs();
   const github = getOctokit(inputs.github_token);
-  const [bufPath, bufVersion] = await installBuf(github, inputs.version);
+  const [bufPath, bufVersion] = await installBuf(github, inputs);
   core.setOutput(Outputs.BufVersion, bufVersion);
   core.setOutput(Outputs.BufPath, bufPath);
   core.saveState(Outputs.BufPath, bufPath);

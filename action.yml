@@ -48,6 +48,9 @@ inputs:
       GitHub token for API requests.
     required: false
     default: ${{ github.token }}
+  public_github_token:
+    description: |-
+      GitHub token for the public github.com, for use with enterprise GitHub instances.
   setup_only:
     description: |-
       Setup only the buf environment, optionally logging into the BSR, but without executing other commands.

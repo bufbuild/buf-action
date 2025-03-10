@@ -15,20 +15,24 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import * as tc from "@actions/tool-cache";
+import { getOctokit } from "@actions/github";
 import { GitHub } from "@actions/github/lib/utils";
 import * as semver from "semver";
-import { getEnv } from "./inputs";
+import { getEnv, Inputs } from "./inputs";
 
 // requiredVersion is the minimum version of buf required.
 const requiredVersion = ">=1.35.0";
+
+// URL for the public GitHub API.
+const publicGitHubApiUrl = "https://api.github.com";
 
 // installBuf installs the buf binary and returns the path to the binary. The
 // versionInput should be an explicit version of buf.
 export async function installBuf(
   github: InstanceType<typeof GitHub>,
-  versionInput: string,
+  inputs: Inputs,
 ): Promise<[string, string]> {
-  let resolvedVersion = resolveVersion(versionInput);
+  let resolvedVersion = resolveVersion(inputs.version);
   if (resolvedVersion != "" && !tc.isExplicitVersion(resolvedVersion)) {
     throw new Error(
       `The version provided must be an explicit version: ${resolvedVersion}`,
@@ -55,7 +59,8 @@ export async function installBuf(
     }
   }
   if (resolvedVersion === "") {
-    resolvedVersion = await latestVersion(github);
+    const publicGitHub = resolvePublicGitHub(github, inputs);
+    resolvedVersion = await latestVersion(publicGitHub);
   }
   if (!semver.satisfies(resolvedVersion, requiredVersion)) {
     throw new Error(
@@ -78,6 +83,26 @@ export async function installBuf(
   core.addPath(cachePath);
   core.info(`Setup buf (${resolvedVersion}) at ${cachePath}`);
   return [binName, resolvedVersion];
+}
+
+// resolvePublicGitHub returns a GitHub instance for the public GitHub API if
+// the environment is a GitHub Enterprise instance.
+function resolvePublicGitHub(
+  github: InstanceType<typeof GitHub>,
+  inputs: Inputs,
+): InstanceType<typeof GitHub> {
+  const apiUrl = process.env.GITHUB_API_URL || ``;
+  if (apiUrl.startsWith(publicGitHubApiUrl)) {
+    core.info("Running on GitHub.com, using default GitHub API.");
+    return github;
+  }
+  const publicToken = inputs.public_github_token;
+  if (!publicToken) {
+    throw new Error("public_github_token is required for public GitHub API");
+  }
+  const publicGitHub = getOctokit(publicToken, { baseUrl: publicGitHubApiUrl });
+  core.info("Running on GitHub Enterprise, using public GitHub API.");
+  return publicGitHub;
 }
 
 // resolveVersion from the input or environment.
