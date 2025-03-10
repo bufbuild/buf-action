@@ -15,10 +15,9 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import * as tc from "@actions/tool-cache";
-import { getOctokit } from "@actions/github";
 import { GitHub } from "@actions/github/lib/utils";
 import * as semver from "semver";
-import { getEnv, Inputs } from "./inputs";
+import { getEnv } from "./inputs";
 
 // requiredVersion is the minimum version of buf required.
 const requiredVersion = ">=1.35.0";
@@ -68,7 +67,7 @@ export async function installBuf(
   let cachePath = tc.find(bufName, resolvedVersion);
   if (!cachePath) {
     core.info(`Downloading buf (${resolvedVersion})`);
-    const downloadPath = await downloadBuf(resolvedVersion, publicGitHubToken);
+    const downloadPath = await downloadBuf(resolvedVersion, githubToken);
     await exec.exec("chmod", ["+x", downloadPath]);
     cachePath = await tc.cacheFile(
       downloadPath,
@@ -120,7 +119,7 @@ type platformTable = {
 };
 
 // downloadBuf downloads the buf binary and returns the path to the binary.
-async function downloadBuf(version: string, github_token: string): Promise<string> {
+async function downloadBuf(version: string, githubToken: string): Promise<string> {
   const table: platformTable = {
     darwin: {
       x64: "buf-Darwin-x86_64",
@@ -148,8 +147,9 @@ async function downloadBuf(version: string, github_token: string): Promise<strin
     );
   }
   const downloadURL = `https://github.com/bufbuild/buf/releases/download/v${version}/${executable}`;
+  const auth = githubToken ? `token ${githubToken}` : undefined;
   try {
-    return await tc.downloadTool(downloadURL, undefined, github_token);
+    return await tc.downloadTool(downloadURL, undefined, auth);
   } catch (error) {
     throw new Error(
       `Failed to download buf version ${version} from "${downloadURL}": ${error}`,
