@@ -47829,15 +47829,12 @@ var semver = __nccwpck_require__(2088);
 
 
 
-
 // requiredVersion is the minimum version of buf required.
 const requiredVersion = ">=1.35.0";
-// URL for the public GitHub API.
-const publicGitHubApiUrl = "https://api.github.com";
 // installBuf installs the buf binary and returns the path to the binary. The
 // versionInput should be an explicit version of buf.
-async function installBuf(github, inputs) {
-    let resolvedVersion = resolveVersion(inputs.version);
+async function installBuf(github, githubToken, inputVersion) {
+    let resolvedVersion = resolveVersion(inputVersion);
     if (resolvedVersion != "" && !tool_cache.isExplicitVersion(resolvedVersion)) {
         throw new Error(`The version provided must be an explicit version: ${resolvedVersion}`);
     }
@@ -47860,8 +47857,7 @@ async function installBuf(github, inputs) {
         }
     }
     if (resolvedVersion === "") {
-        const publicGitHub = resolvePublicGitHub(github, inputs);
-        resolvedVersion = await latestVersion(publicGitHub);
+        resolvedVersion = await latestVersion(github);
     }
     if (!semver.satisfies(resolvedVersion, requiredVersion)) {
         throw new Error(`The resolved version of buf (${resolvedVersion}) does not satisfy the required version (${requiredVersion})`);
@@ -47870,29 +47866,13 @@ async function installBuf(github, inputs) {
     let cachePath = tool_cache.find(bufName, resolvedVersion);
     if (!cachePath) {
         core.info(`Downloading buf (${resolvedVersion})`);
-        const downloadPath = await downloadBuf(resolvedVersion);
+        const downloadPath = await downloadBuf(resolvedVersion, githubToken);
         await exec.exec("chmod", ["+x", downloadPath]);
         cachePath = await tool_cache.cacheFile(downloadPath, binName, bufName, resolvedVersion);
     }
     core.addPath(cachePath);
     core.info(`Setup buf (${resolvedVersion}) at ${cachePath}`);
     return [binName, resolvedVersion];
-}
-// resolvePublicGitHub returns a GitHub instance for the public GitHub API if
-// the environment is a GitHub Enterprise instance.
-function resolvePublicGitHub(github, inputs) {
-    const apiUrl = process.env.GITHUB_API_URL || ``;
-    if (apiUrl.startsWith(publicGitHubApiUrl)) {
-        core.info("Running on GitHub.com, using default GitHub API.");
-        return github;
-    }
-    const publicToken = inputs.public_github_token;
-    if (!publicToken) {
-        throw new Error("public_github_token is required for public GitHub API");
-    }
-    const publicGitHub = (0,lib_github.getOctokit)(publicToken, { baseUrl: publicGitHubApiUrl });
-    core.info("Running on GitHub Enterprise, using public GitHub API.");
-    return publicGitHub;
 }
 // resolveVersion from the input or environment.
 function resolveVersion(versionSpec) {
@@ -47918,7 +47898,7 @@ async function latestVersion(github) {
     return resolvedVersion;
 }
 // downloadBuf downloads the buf binary and returns the path to the binary.
-async function downloadBuf(version) {
+async function downloadBuf(version, githubToken) {
     const table = {
         darwin: {
             x64: "buf-Darwin-x86_64",
@@ -47942,8 +47922,9 @@ async function downloadBuf(version) {
         throw new Error(`The "${process.arch}" architecture is not supported with a Buf release.`);
     }
     const downloadURL = `https://github.com/bufbuild/buf/releases/download/v${version}/${executable}`;
+    const auth = githubToken ? `token ${githubToken}` : undefined;
     try {
-        return await tool_cache.downloadTool(downloadURL);
+        return await tool_cache.downloadTool(downloadURL, undefined, auth);
     }
     catch (error) {
         throw new Error(`Failed to download buf version ${version} from "${downloadURL}": ${error}`);
@@ -48102,11 +48083,25 @@ function parseModuleName(moduleName) {
 
 
 
+// URL for the public GitHub API.
+const publicGitHubApiUrl = "https://api.github.com";
 // main is the entrypoint for the action.
 async function main() {
     const inputs = getInputs();
     const github = (0,lib_github.getOctokit)(inputs.github_token);
-    const [bufPath, bufVersion] = await installBuf(github, inputs);
+    let publicGithubToken = inputs.github_token;
+    let publicGithub = github;
+    const apiUrl = process.env.GITHUB_API_URL || ``;
+    if (!apiUrl.startsWith(publicGitHubApiUrl)) {
+        core.info("Running on GitHub Enterprise, using public GitHub API.");
+        publicGithubToken = inputs.public_github_token;
+        if (publicGithubToken == "") {
+            // Warn if the public GitHub token is not set. Don't fail as not required.
+            core.warning("public_github_token not set, GitHub API requests may be limited");
+        }
+        publicGithub = (0,lib_github.getOctokit)(publicGithubToken, { baseUrl: publicGitHubApiUrl });
+    }
+    const [bufPath, bufVersion] = await installBuf(publicGithub, publicGithubToken, inputs.version);
     core.setOutput(Outputs.BufVersion, bufVersion);
     core.setOutput(Outputs.BufPath, bufPath);
     core.saveState(Outputs.BufPath, bufPath);
