@@ -30,11 +30,26 @@ import { installBuf } from "./installer";
 import { findCommentOnPR, commentOnPR } from "./comment";
 import { parseModuleNames, ModuleName } from "./config";
 
+// URL for the public GitHub API.
+const publicGitHubApiUrl = "https://api.github.com";
+
 // main is the entrypoint for the action.
 async function main() {
   const inputs = getInputs();
   const github = getOctokit(inputs.github_token);
-  const [bufPath, bufVersion] = await installBuf(github, inputs);
+  let publicGitHubToken = inputs.github_token;
+  let publicGitHub = github;
+  const apiUrl = github.request.defaults.baseUrl || process.env.GITHUB_API_URL || ``;
+  if (!apiUrl.startsWith(publicGitHubApiUrl)) {
+    core.info("Running on GitHub Enterprise, using public GitHub API.");
+    publicGitHubToken = inputs.public_github_token;
+    if (publicGitHubToken == "") {
+      // Warn if the public GitHub token is not set. Don't fail as not required.
+      core.warning("public_github_token not set, GitHub API requests may be limited");
+    }
+    publicGitHub = getOctokit(inputs.public_github_token, { baseUrl: publicGitHubApiUrl });
+  }
+  const [bufPath, bufVersion] = await installBuf(publicGitHub, publicGitHubToken, inputs.version);
   core.setOutput(Outputs.BufVersion, bufVersion);
   core.setOutput(Outputs.BufPath, bufPath);
   core.saveState(Outputs.BufPath, bufPath);

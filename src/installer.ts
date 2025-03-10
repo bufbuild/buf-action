@@ -23,16 +23,14 @@ import { getEnv, Inputs } from "./inputs";
 // requiredVersion is the minimum version of buf required.
 const requiredVersion = ">=1.35.0";
 
-// URL for the public GitHub API.
-const publicGitHubApiUrl = "https://api.github.com";
-
 // installBuf installs the buf binary and returns the path to the binary. The
 // versionInput should be an explicit version of buf.
 export async function installBuf(
   github: InstanceType<typeof GitHub>,
-  inputs: Inputs,
+  githubToken: string,
+  inputVersion: string,
 ): Promise<[string, string]> {
-  let resolvedVersion = resolveVersion(inputs.version);
+  let resolvedVersion = resolveVersion(inputVersion);
   if (resolvedVersion != "" && !tc.isExplicitVersion(resolvedVersion)) {
     throw new Error(
       `The version provided must be an explicit version: ${resolvedVersion}`,
@@ -59,8 +57,7 @@ export async function installBuf(
     }
   }
   if (resolvedVersion === "") {
-    const publicGitHub = resolvePublicGitHub(github, inputs);
-    resolvedVersion = await latestVersion(publicGitHub);
+    resolvedVersion = await latestVersion(github);
   }
   if (!semver.satisfies(resolvedVersion, requiredVersion)) {
     throw new Error(
@@ -71,7 +68,7 @@ export async function installBuf(
   let cachePath = tc.find(bufName, resolvedVersion);
   if (!cachePath) {
     core.info(`Downloading buf (${resolvedVersion})`);
-    const downloadPath = await downloadBuf(resolvedVersion);
+    const downloadPath = await downloadBuf(resolvedVersion, publicGitHubToken);
     await exec.exec("chmod", ["+x", downloadPath]);
     cachePath = await tc.cacheFile(
       downloadPath,
@@ -83,26 +80,6 @@ export async function installBuf(
   core.addPath(cachePath);
   core.info(`Setup buf (${resolvedVersion}) at ${cachePath}`);
   return [binName, resolvedVersion];
-}
-
-// resolvePublicGitHub returns a GitHub instance for the public GitHub API if
-// the environment is a GitHub Enterprise instance.
-function resolvePublicGitHub(
-  github: InstanceType<typeof GitHub>,
-  inputs: Inputs,
-): InstanceType<typeof GitHub> {
-  const apiUrl = process.env.GITHUB_API_URL || ``;
-  if (apiUrl.startsWith(publicGitHubApiUrl)) {
-    core.info("Running on GitHub.com, using default GitHub API.");
-    return github;
-  }
-  const publicToken = inputs.public_github_token;
-  if (!publicToken) {
-    throw new Error("public_github_token is required for public GitHub API");
-  }
-  const publicGitHub = getOctokit(publicToken, { baseUrl: publicGitHubApiUrl });
-  core.info("Running on GitHub Enterprise, using public GitHub API.");
-  return publicGitHub;
 }
 
 // resolveVersion from the input or environment.
@@ -143,7 +120,7 @@ type platformTable = {
 };
 
 // downloadBuf downloads the buf binary and returns the path to the binary.
-async function downloadBuf(version: string): Promise<string> {
+async function downloadBuf(version: string, github_token: string): Promise<string> {
   const table: platformTable = {
     darwin: {
       x64: "buf-Darwin-x86_64",
@@ -172,7 +149,7 @@ async function downloadBuf(version: string): Promise<string> {
   }
   const downloadURL = `https://github.com/bufbuild/buf/releases/download/v${version}/${executable}`;
   try {
-    return await tc.downloadTool(downloadURL);
+    return await tc.downloadTool(downloadURL, undefined, github_token);
   } catch (error) {
     throw new Error(
       `Failed to download buf version ${version} from "${downloadURL}": ${error}`,
