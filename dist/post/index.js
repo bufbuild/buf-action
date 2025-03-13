@@ -31862,6 +31862,7 @@ function getInputs() {
         pr_comment: core.getBooleanInput("pr_comment"),
         github_actor: core.getInput("github_actor"),
         github_token: core.getInput("github_token"),
+        public_github_token: core.getInput("public_github_token"),
         // Inputs shared between buf steps.
         input: core.getInput("input"),
         paths: core.getMultilineInput("paths"),

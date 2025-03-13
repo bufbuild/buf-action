@@ -26,9 +26,10 @@ const requiredVersion = ">=1.35.0";
 // versionInput should be an explicit version of buf.
 export async function installBuf(
   github: InstanceType<typeof GitHub>,
-  versionInput: string,
+  githubToken: string,
+  inputVersion: string,
 ): Promise<[string, string]> {
-  let resolvedVersion = resolveVersion(versionInput);
+  let resolvedVersion = resolveVersion(inputVersion);
   if (resolvedVersion != "" && !tc.isExplicitVersion(resolvedVersion)) {
     throw new Error(
       `The version provided must be an explicit version: ${resolvedVersion}`,
@@ -66,7 +67,7 @@ export async function installBuf(
   let cachePath = tc.find(bufName, resolvedVersion);
   if (!cachePath) {
     core.info(`Downloading buf (${resolvedVersion})`);
-    const downloadPath = await downloadBuf(resolvedVersion);
+    const downloadPath = await downloadBuf(resolvedVersion, githubToken);
     await exec.exec("chmod", ["+x", downloadPath]);
     cachePath = await tc.cacheFile(
       downloadPath,
@@ -118,7 +119,10 @@ type platformTable = {
 };
 
 // downloadBuf downloads the buf binary and returns the path to the binary.
-async function downloadBuf(version: string): Promise<string> {
+async function downloadBuf(
+  version: string,
+  githubToken: string,
+): Promise<string> {
   const table: platformTable = {
     darwin: {
       x64: "buf-Darwin-x86_64",
@@ -146,8 +150,9 @@ async function downloadBuf(version: string): Promise<string> {
     );
   }
   const downloadURL = `https://github.com/bufbuild/buf/releases/download/v${version}/${executable}`;
+  const auth = githubToken ? `token ${githubToken}` : undefined;
   try {
-    return await tc.downloadTool(downloadURL);
+    return await tc.downloadTool(downloadURL, undefined, auth);
   } catch (error) {
     throw new Error(
       `Failed to download buf version ${version} from "${downloadURL}": ${error}`,
