@@ -78,7 +78,7 @@ Add these parameters under the `with` section of the `uses` step in the workflow
 | `setup_only`                    | Setup only the `buf` environment, optionally logging into the BSR, but without executing other commands. | |
 | `github_actor`                  | GitHub actor for API requests. | Actor from GitHub context |
 | `github_token`                  | GitHub token for API requests. Ensures requests aren't rate limited | Token from GitHub context |
-| `public_github_token`           | GitHub token github.com. Must be set when running on a private GitHub Enterprise instance to authenticate requests, otherwise ignored. | |
+| `public_github_token`           | GitHub token for github.com. Must be set when running on a private GitHub Enterprise instance to authenticate requests, otherwise ignored. | |
 
 
 ### Skip the breaking change detection step
