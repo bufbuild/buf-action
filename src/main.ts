@@ -47,10 +47,6 @@ async function main() {
     core.info("Running on GitHub Enterprise, using public GitHub API.");
     publicGithubToken = inputs.public_github_token;
     if (publicGithubToken == "") {
-      // Warn if the public GitHub token is not set. Don't fail as not required.
-      core.warning(
-        "public_github_token not set, GitHub API requests may be limited",
-      );
       publicGithub = undefined;
     } else {
       publicGithub = getOctokit(publicGithubToken, {

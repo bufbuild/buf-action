@@ -47926,6 +47926,10 @@ async function downloadBuf(version, githubToken) {
     }
     const downloadURL = `https://github.com/bufbuild/buf/releases/download/v${version}/${executable}`;
     const auth = githubToken ? `token ${githubToken}` : undefined;
+    if (!auth) {
+        // Warn if the GitHub token is not set. Don't fail as not required.
+        core.warning("Downloading buf without a GitHub API token, rate limits may apply.");
+    }
     try {
         return await tool_cache.downloadTool(downloadURL, undefined, auth);
     }
@@ -48101,8 +48105,6 @@ async function main() {
         core.info("Running on GitHub Enterprise, using public GitHub API.");
         publicGithubToken = inputs.public_github_token;
         if (publicGithubToken == "") {
-            // Warn if the public GitHub token is not set. Don't fail as not required.
-            core.warning("public_github_token not set, GitHub API requests may be limited");
             publicGithub = undefined;
         }
         else {
