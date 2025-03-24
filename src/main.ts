@@ -14,6 +14,7 @@
 
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
+import { GitHub } from "@actions/github/lib/utils";
 import { context, getOctokit } from "@actions/github";
 
 import { create } from "@bufbuild/protobuf";
@@ -40,7 +41,7 @@ async function main() {
   // Check if the action is running on a GitHub Enterprise instance.
   // If so, use the public GitHub API for resolving the Buf version etc.
   let publicGithubToken = inputs.github_token;
-  let publicGithub = github;
+  let publicGithub: InstanceType<typeof GitHub> | undefined = github;
   const apiUrl = process.env.GITHUB_API_URL || ``;
   if (!apiUrl.startsWith(publicGitHubApiUrl)) {
     core.info("Running on GitHub Enterprise, using public GitHub API.");
@@ -50,10 +51,12 @@ async function main() {
       core.warning(
         "public_github_token not set, GitHub API requests may be limited",
       );
+      publicGithub = undefined;
+    } else {
+      publicGithub = getOctokit(publicGithubToken, {
+        baseUrl: publicGitHubApiUrl,
+      });
     }
-    publicGithub = getOctokit(publicGithubToken, {
-      baseUrl: publicGitHubApiUrl,
-    });
   }
   const [bufPath, bufVersion] = await installBuf(
     publicGithub,

@@ -47857,6 +47857,9 @@ async function installBuf(github, githubToken, inputVersion) {
         }
     }
     if (resolvedVersion === "") {
+        if (!github) {
+            throw new Error(`The version of buf was not provided and the parameter "public_github_token" was not set. Unable to resolve the latest version of buf.`);
+        }
         resolvedVersion = await latestVersion(github);
     }
     if (!semver.satisfies(resolvedVersion, requiredVersion)) {
@@ -48100,10 +48103,13 @@ async function main() {
         if (publicGithubToken == "") {
             // Warn if the public GitHub token is not set. Don't fail as not required.
             core.warning("public_github_token not set, GitHub API requests may be limited");
+            publicGithub = undefined;
         }
-        publicGithub = (0,lib_github.getOctokit)(publicGithubToken, {
-            baseUrl: publicGitHubApiUrl,
-        });
+        else {
+            publicGithub = (0,lib_github.getOctokit)(publicGithubToken, {
+                baseUrl: publicGitHubApiUrl,
+            });
+        }
     }
     const [bufPath, bufVersion] = await installBuf(publicGithub, publicGithubToken, inputs.version);
     core.setOutput(Outputs.BufVersion, bufVersion);
