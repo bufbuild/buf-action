@@ -35,6 +35,7 @@ export interface Inputs {
   paths: string[];
   exclude_paths: string[];
   exclude_imports: boolean;
+  filter: string;
 
   lint: boolean;
   format: boolean;
@@ -62,6 +63,7 @@ export function getInputs(): Inputs {
     paths: core.getMultilineInput("paths"),
     exclude_paths: core.getMultilineInput("exclude_paths"),
     exclude_imports: core.getBooleanInput("exclude_imports"),
+    filter: core.getInput("filter"),
     // Inputs specific to buf steps.
     lint: core.getBooleanInput("lint"),
     format: core.getBooleanInput("format"),
@@ -79,6 +81,9 @@ export function getInputs(): Inputs {
       if (inputs.input) {
         inputs.breaking_against += `,subdir=${inputs.input}`;
       }
+      if (inputs.filter) {
+        inputs.breaking_against += `,filter=${inputs.filter}`;
+      }
     }
     inputs.archive_labels.push(github.context.ref);
   }
@@ -88,6 +93,9 @@ export function getInputs(): Inputs {
       inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.pull_request.base.sha}`;
       if (inputs.input) {
         inputs.breaking_against += `,subdir=${inputs.input}`;
+      }
+      if (inputs.filter) {
+        inputs.breaking_against += `,filter=${inputs.filter}`;
       }
     }
     inputs.archive_labels.push(github.context.ref);

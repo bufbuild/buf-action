@@ -64,6 +64,7 @@ Add these parameters under the `with` section of the `uses` step in the workflow
 | `token`                         | API token for [logging into the BSR](https://buf.build/docs/bsr/authentication). | |
 | `domain`                        | Domain for logging into the BSR, enterprise only.| `buf.build` |
 | `input`                         | [Input](https://buf.build/docs/reference/inputs) for the `buf` command. | |
+| `filter`                        | The [`filter`](https://buf.build/docs/reference/inputs/#git) parameter for `breaking_against` | |
 | `paths`                         | Limit to specific files or directories (separated by newlines). | |
 | `exclude_imports`               | Exclude files imported by the target modules. | False |
 | `exclude_paths`                 | Exclude specific files or directories, e.g. "proto/a/a.proto", "proto/a" (separated by newlines). | |

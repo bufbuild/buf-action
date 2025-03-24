@@ -67,6 +67,10 @@ inputs:
     description: |-
       Input for the buf command.
     required: false
+  filter:
+    description: |-
+      Value to be passed as the `filter` option. e.g `tree:0`
+    required: false
   paths:
     description: |-
       Limit to specific files or directories (separated by newlines).
