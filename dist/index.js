@@ -47858,7 +47858,7 @@ async function installBuf(github, githubToken, inputVersion) {
     }
     if (resolvedVersion === "") {
         if (!github) {
-            throw new Error(`The version of buf was not provided and the parameter "public_github_token" was not set. Unable to resolve the latest version of buf.`);
+            throw new Error(`Unable to resolve the latest version of buf. Must set the "version" parameter or provide a "public_github_token" to authenticate requests.`);
         }
         resolvedVersion = await latestVersion(github);
     }
