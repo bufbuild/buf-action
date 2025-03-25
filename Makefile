@@ -46,7 +46,6 @@ endif
 	$(SED_I) "s/version: [0-9]+\.[0-9]+\.[0-9]+/version: $(BUF_VERSION)/g" action.yml README.md examples/*.yaml examples/*/*.yaml
 	$(SED_I) "s/buf-action@v[0-9]+(\.[0-9]+)?(\.[0-9]+)?/buf-action@v$(VERSION_SHORT)/g" README.md examples/*.yaml examples/*/*.yaml
 	$(SED_I) "s/\"version\": \"[0-9]+\.[0-9]+\.[0-9]+\"/\"version\": \"$(VERSION)\"/g" package.json
-	$(SED_I) "s/^  BUF_VERSION: \"[0-9]+\.[0-9]+\.[0-9]+\"/  BUF_VERSION: \"$(BUF_VERSION)\"/g" .github/workflows/ci.yaml
 	npm prune
 
 .PHONY: generate
