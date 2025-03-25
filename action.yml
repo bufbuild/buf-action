@@ -27,7 +27,7 @@ inputs:
       Version of the Buf CLI to use.
       Example:
         with:
-          version: 1.35.0
+          version: 1.50.1
     required: false
   token:
     description: |-
