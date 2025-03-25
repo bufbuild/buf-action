@@ -25,7 +25,7 @@ const requiredVersion = ">=1.35.0";
 // installBuf installs the buf binary and returns the path to the binary. The
 // versionInput should be an explicit version of buf.
 export async function installBuf(
-  github: InstanceType<typeof GitHub>,
+  github: InstanceType<typeof GitHub> | undefined,
   githubToken: string,
   inputVersion: string,
 ): Promise<[string, string]> {
@@ -56,6 +56,11 @@ export async function installBuf(
     }
   }
   if (resolvedVersion === "") {
+    if (!github) {
+      throw new Error(
+        `Unable to resolve the latest version of buf. Must set the "version" parameter or provide a "public_github_token" to authenticate requests.`,
+      );
+    }
     resolvedVersion = await latestVersion(github);
   }
   if (!semver.satisfies(resolvedVersion, requiredVersion)) {
@@ -151,6 +156,12 @@ async function downloadBuf(
   }
   const downloadURL = `https://github.com/bufbuild/buf/releases/download/v${version}/${executable}`;
   const auth = githubToken ? `token ${githubToken}` : undefined;
+  if (!auth) {
+    // Warn if the GitHub token is not set. Don't fail as not required.
+    core.warning(
+      "Downloading buf without a GitHub API token, rate limits may apply.",
+    );
+  }
   try {
     return await tc.downloadTool(downloadURL, undefined, auth);
   } catch (error) {
