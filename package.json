@@ -28,7 +28,7 @@
     "@bufbuild/license-header": "^0.0.4",
     "@eslint/js": "^9.23.0",
     "@types/node": "^22.13.11",
-    "@types/semver": "^7.5.8",
+    "@types/semver": "^7.7.0",
     "@vercel/ncc": "^0.38.3",
     "eslint": "^9.23.0",
     "globals": "^16.0.0",
