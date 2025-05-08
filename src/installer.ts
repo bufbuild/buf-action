@@ -184,21 +184,19 @@ export async function assertChecksum(
   if (!bufPathOutput) {
     throw new Error(`Unable to find buf binary at ${bufPath}`);
   }
-  await exec.getExecOutput("sha256sum", [bufPathOutput], { silent: true });
+  const sha256sumOutput = await exec.getExecOutput(
+    "sha256sum",
+    [bufPathOutput],
+    { silent: true },
+  );
   // Checksum is in the format of "checksum filename", so split on space.
-  const checksumParts = checksum.split(" ");
+  const checksumParts = sha256sumOutput.stdout.trim().split(" ");
   if (checksumParts.length !== 2) {
     throw new Error(
       `Invalid checksum format: ${checksum}. Expected format: "checksum filename"`,
     );
   }
   const checksumValue = checksumParts[0];
-  const checksumFile = checksumParts[1];
-  if (checksumFile !== bufPathOutput) {
-    throw new Error(
-      `Checksum file does not match buf binary: ${checksumFile} != ${bufPathOutput}`,
-    );
-  }
   if (checksumValue !== checksum) {
     throw new Error(
       `Checksum value does not match buf binary, expected ${checksum}, got ${checksumValue}`,
