@@ -16,6 +16,9 @@ import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import * as tc from "@actions/tool-cache";
 import { GitHub } from "@actions/github/lib/utils";
+import * as crypto from "crypto";
+import * as fs from "fs";
+import { Readable } from "stream";
 import * as semver from "semver";
 import { getEnv } from "./inputs";
 
@@ -175,6 +178,7 @@ async function downloadBuf(
 export async function assertChecksum(
   bufPath: string,
   checksum: string,
+  algorithm: string = "sha256",
 ): Promise<void> {
   const whichBuf = await exec.getExecOutput("which", [bufPath], {
     ignoreReturnCode: true,
@@ -184,25 +188,25 @@ export async function assertChecksum(
   if (!bufPathOutput) {
     throw new Error(`Unable to find buf binary at ${bufPath}`);
   }
-  core.info(`Verifying checksum of buf binary at ${bufPathOutput}`);
-  const sha256sumOutput = await exec.getExecOutput(
-    "sha256sum",
-    [bufPathOutput],
-    { silent: true },
-  );
-  core.info(`Checksum output: ${sha256sumOutput.stdout}`);
-  // Checksum is in the format of "checksum filename", so split on space.
-  const checksumParts = sha256sumOutput.stdout.trim().split(" ");
-  if (checksumParts.length !== 2) {
+  const computedChecksum = await computeChecksum(bufPathOutput, algorithm);
+  if (computedChecksum !== checksum) {
     throw new Error(
-      `Invalid checksum format: ${sha256sumOutput.stdout}. Expected format: "checksum filename"`,
-    );
-  }
-  const checksumValue = checksumParts[0];
-  if (checksumValue !== checksum) {
-    throw new Error(
-      `Checksum value does not match buf binary, expected ${checksum}, got ${checksumValue}`,
+      `Checksum verification failed. Expected: ${checksum}, Computed: ${computedChecksum}`,
     );
   }
   return;
+}
+
+// computeChecksum hashes the binary, algorithm defaults to sha256.
+async function computeChecksum(
+  filePath: string,
+  algorithm: string = "sha256",
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash(algorithm);
+    const stream: Readable = fs.createReadStream(filePath);
+    stream.on("error", reject);
+    stream.on("data", (chunk: Buffer) => hash.update(chunk));
+    stream.on("end", () => resolve(hash.digest("hex")));
+  });
 }

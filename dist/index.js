@@ -47839,6 +47839,10 @@ var Outputs;
 
 // EXTERNAL MODULE: ./node_modules/@actions/tool-cache/lib/tool-cache.js
 var tool_cache = __nccwpck_require__(3472);
+// EXTERNAL MODULE: external "crypto"
+var external_crypto_ = __nccwpck_require__(6982);
+// EXTERNAL MODULE: external "fs"
+var external_fs_ = __nccwpck_require__(9896);
 // EXTERNAL MODULE: ./node_modules/semver/index.js
 var semver = __nccwpck_require__(2088);
 ;// CONCATENATED MODULE: ./src/installer.ts
@@ -47855,6 +47859,8 @@ var semver = __nccwpck_require__(2088);
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+
 
 
 
@@ -47969,7 +47975,7 @@ async function downloadBuf(version, githubToken) {
     }
 }
 // assertChecksum verifies the sha256 checksum of the buf binary.
-async function assertChecksum(bufPath, checksum) {
+async function assertChecksum(bufPath, checksum, algorithm = "sha256") {
     const whichBuf = await exec.getExecOutput("which", [bufPath], {
         ignoreReturnCode: true,
         silent: true,
@@ -47978,19 +47984,21 @@ async function assertChecksum(bufPath, checksum) {
     if (!bufPathOutput) {
         throw new Error(`Unable to find buf binary at ${bufPath}`);
     }
-    core.info(`Verifying checksum of buf binary at ${bufPathOutput}`);
-    const sha256sumOutput = await exec.getExecOutput("sha256sum", [bufPathOutput], { silent: true });
-    core.info(`Checksum output: ${sha256sumOutput.stdout}`);
-    // Checksum is in the format of "checksum filename", so split on space.
-    const checksumParts = sha256sumOutput.stdout.trim().split(" ");
-    if (checksumParts.length !== 2) {
-        throw new Error(`Invalid checksum format: ${sha256sumOutput.stdout}. Expected format: "checksum filename"`);
-    }
-    const checksumValue = checksumParts[0];
-    if (checksumValue !== checksum) {
-        throw new Error(`Checksum value does not match buf binary, expected ${checksum}, got ${checksumValue}`);
+    const computedChecksum = await computeChecksum(bufPathOutput, algorithm);
+    if (computedChecksum !== checksum) {
+        throw new Error(`Checksum verification failed. Expected: ${checksum}, Computed: ${computedChecksum}`);
     }
     return;
+}
+// computeChecksum hashes the binary, algorithm defaults to sha256.
+async function computeChecksum(filePath, algorithm = "sha256") {
+    return new Promise((resolve, reject) => {
+        const hash = external_crypto_.createHash(algorithm);
+        const stream = external_fs_.createReadStream(filePath);
+        stream.on("error", reject);
+        stream.on("data", (chunk) => hash.update(chunk));
+        stream.on("end", () => resolve(hash.digest("hex")));
+    });
 }
 
 ;// CONCATENATED MODULE: ./src/comment.ts
