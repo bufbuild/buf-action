@@ -47843,6 +47843,10 @@ var tool_cache = __nccwpck_require__(3472);
 var external_crypto_ = __nccwpck_require__(6982);
 // EXTERNAL MODULE: external "fs"
 var external_fs_ = __nccwpck_require__(9896);
+// EXTERNAL MODULE: external "util"
+var external_util_ = __nccwpck_require__(9023);
+// EXTERNAL MODULE: external "stream"
+var external_stream_ = __nccwpck_require__(2203);
 // EXTERNAL MODULE: ./node_modules/semver/index.js
 var semver = __nccwpck_require__(2088);
 ;// CONCATENATED MODULE: ./src/installer.ts
@@ -47859,6 +47863,8 @@ var semver = __nccwpck_require__(2088);
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+
 
 
 
@@ -47984,21 +47990,14 @@ async function assertChecksum(bufPath, checksum, algorithm = "sha256") {
     if (!bufPathOutput) {
         throw new Error(`Unable to find buf binary at ${bufPath}`);
     }
-    const computedChecksum = await computeChecksum(bufPathOutput, algorithm);
+    const hash = external_crypto_.createHash(algorithm);
+    const pipeline = external_util_.promisify(external_stream_.pipeline);
+    await pipeline(external_fs_.createReadStream(bufPathOutput), hash);
+    const computedChecksum = hash.digest("hex");
     if (computedChecksum !== checksum) {
         throw new Error(`Checksum verification failed. Expected: ${checksum}, Computed: ${computedChecksum}`);
     }
     return;
-}
-// computeChecksum hashes the binary, algorithm defaults to sha256.
-async function computeChecksum(filePath, algorithm = "sha256") {
-    return new Promise((resolve, reject) => {
-        const hash = external_crypto_.createHash(algorithm);
-        const stream = external_fs_.createReadStream(filePath);
-        stream.on("error", reject);
-        stream.on("data", (chunk) => hash.update(chunk));
-        stream.on("end", () => resolve(hash.digest("hex")));
-    });
 }
 
 ;// CONCATENATED MODULE: ./src/comment.ts

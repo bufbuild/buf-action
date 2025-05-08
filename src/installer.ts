@@ -18,7 +18,8 @@ import * as tc from "@actions/tool-cache";
 import { GitHub } from "@actions/github/lib/utils";
 import * as crypto from "crypto";
 import * as fs from "fs";
-import { Readable } from "stream";
+import * as util from "util";
+import * as stream from "stream";
 import * as semver from "semver";
 import { getEnv } from "./inputs";
 
@@ -188,25 +189,14 @@ export async function assertChecksum(
   if (!bufPathOutput) {
     throw new Error(`Unable to find buf binary at ${bufPath}`);
   }
-  const computedChecksum = await computeChecksum(bufPathOutput, algorithm);
+  const hash = crypto.createHash(algorithm);
+  const pipeline = util.promisify(stream.pipeline);
+  await pipeline(fs.createReadStream(bufPathOutput), hash);
+  const computedChecksum = hash.digest("hex");
   if (computedChecksum !== checksum) {
     throw new Error(
       `Checksum verification failed. Expected: ${checksum}, Computed: ${computedChecksum}`,
     );
   }
   return;
-}
-
-// computeChecksum hashes the binary, algorithm defaults to sha256.
-async function computeChecksum(
-  filePath: string,
-  algorithm: string = "sha256",
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const hash = crypto.createHash(algorithm);
-    const stream: Readable = fs.createReadStream(filePath);
-    stream.on("error", reject);
-    stream.on("data", (chunk: Buffer) => hash.update(chunk));
-    stream.on("end", () => resolve(hash.digest("hex")));
-  });
 }
