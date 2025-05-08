@@ -29,6 +29,10 @@ inputs:
         with:
           version: 1.50.1
     required: false
+  checksum:
+    description:
+      Checksum of the Buf CLI to verify (sha256).
+    required: false
   token:
     description: |-
       API token for logging into the BSR.

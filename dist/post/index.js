@@ -31857,6 +31857,7 @@ function getInputs() {
     const inputs = {
         version: core.getInput("version"),
         token: core.getInput("token") || getEnv("BUF_TOKEN"),
+        checksum: core.getInput("checksum"),
         domain: core.getInput("domain"),
         setup_only: core.getBooleanInput("setup_only"),
         pr_comment: core.getBooleanInput("pr_comment"),

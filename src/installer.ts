@@ -18,6 +18,8 @@ import * as tc from "@actions/tool-cache";
 import { GitHub } from "@actions/github/lib/utils";
 import * as semver from "semver";
 import { getEnv } from "./inputs";
+import * as crypto from "crypto";
+import * as fs from "fs/promises";
 
 // requiredVersion is the minimum version of buf required.
 const requiredVersion = ">=1.35.0";
@@ -169,4 +171,38 @@ async function downloadBuf(
       `Failed to download buf version ${version} from "${downloadURL}": ${error}`,
     );
   }
+}
+
+// assertChecksum verifies the checksum of the buf binary, algorithm defaults to sha256.
+export async function assertChecksum(
+  bufPath: string,
+  checksum: string,
+  algorithm: string = "sha256",
+): Promise<void> {
+  const whichBuf = await exec.getExecOutput("which", [bufPath], {
+    ignoreReturnCode: true,
+    silent: true,
+  });
+  const bufPathOutput = whichBuf.stdout.trim();
+  if (!bufPathOutput) {
+    throw new Error(`Unable to find buf binary at ${bufPath}`);
+  }
+  const computedChecksum = await computeChecksum(bufPathOutput, algorithm);
+  if (computedChecksum !== checksum) {
+    throw new Error(
+      `Checksum verification failed. Expected: ${checksum}, Computed: ${computedChecksum}`,
+    );
+  }
+  return;
+}
+
+// computeChecksum hashes the binary, algorithm defaults to sha256.
+export async function computeChecksum(
+  filePath: string,
+  algorithm: string = "sha256",
+) {
+  const hash = crypto.createHash(algorithm);
+  const fileBuffer = await fs.readFile(filePath);
+  hash.update(fileBuffer);
+  return hash.digest("hex");
 }
