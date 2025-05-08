@@ -18,8 +18,6 @@ import * as tc from "@actions/tool-cache";
 import { GitHub } from "@actions/github/lib/utils";
 import * as semver from "semver";
 import { getEnv } from "./inputs";
-import * as crypto from "crypto";
-import * as fs from "fs/promises";
 
 // requiredVersion is the minimum version of buf required.
 const requiredVersion = ">=1.35.0";
@@ -173,11 +171,10 @@ async function downloadBuf(
   }
 }
 
-// assertChecksum verifies the checksum of the buf binary, algorithm defaults to sha256.
+// assertChecksum verifies the sha256 checksum of the buf binary.
 export async function assertChecksum(
   bufPath: string,
   checksum: string,
-  algorithm: string = "sha256",
 ): Promise<void> {
   const whichBuf = await exec.getExecOutput("which", [bufPath], {
     ignoreReturnCode: true,
@@ -187,22 +184,25 @@ export async function assertChecksum(
   if (!bufPathOutput) {
     throw new Error(`Unable to find buf binary at ${bufPath}`);
   }
-  const computedChecksum = await computeChecksum(bufPathOutput, algorithm);
-  if (computedChecksum !== checksum) {
+  await exec.getExecOutput("sha256sum", [bufPathOutput], { silent: true });
+  // Checksum is in the format of "checksum filename", so split on space.
+  const checksumParts = checksum.split(" ");
+  if (checksumParts.length !== 2) {
     throw new Error(
-      `Checksum verification failed. Expected: ${checksum}, Computed: ${computedChecksum}`,
+      `Invalid checksum format: ${checksum}. Expected format: "checksum filename"`,
+    );
+  }
+  const checksumValue = checksumParts[0];
+  const checksumFile = checksumParts[1];
+  if (checksumFile !== bufPathOutput) {
+    throw new Error(
+      `Checksum file does not match buf binary: ${checksumFile} != ${bufPathOutput}`,
+    );
+  }
+  if (checksumValue !== checksum) {
+    throw new Error(
+      `Checksum value does not match buf binary, expected ${checksum}, got ${checksumValue}`,
     );
   }
   return;
-}
-
-// computeChecksum hashes the binary, algorithm defaults to sha256.
-export async function computeChecksum(
-  filePath: string,
-  algorithm: string = "sha256",
-) {
-  const hash = crypto.createHash(algorithm);
-  const fileBuffer = await fs.readFile(filePath);
-  hash.update(fileBuffer);
-  return hash.digest("hex");
 }
