@@ -47978,11 +47978,13 @@ async function assertChecksum(bufPath, checksum) {
     if (!bufPathOutput) {
         throw new Error(`Unable to find buf binary at ${bufPath}`);
     }
+    core.info(`Verifying checksum of buf binary at ${bufPathOutput}`);
     const sha256sumOutput = await exec.getExecOutput("sha256sum", [bufPathOutput], { silent: true });
+    core.info(`Checksum output: ${sha256sumOutput.stdout}`);
     // Checksum is in the format of "checksum filename", so split on space.
     const checksumParts = sha256sumOutput.stdout.trim().split(" ");
     if (checksumParts.length !== 2) {
-        throw new Error(`Invalid checksum format: ${checksum}. Expected format: "checksum filename"`);
+        throw new Error(`Invalid checksum format: ${sha256sumOutput.stdout}. Expected format: "checksum filename"`);
     }
     const checksumValue = checksumParts[0];
     if (checksumValue !== checksum) {
