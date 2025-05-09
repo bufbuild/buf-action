@@ -61,6 +61,7 @@ Add these parameters under the `with` section of the `uses` step in the workflow
 | Parameter                       | Description                                        | Default            |
 |:--------------------------------|:---------------------------------------------------|:-------------------|
 | `version`                       | Version of the `buf` CLI to use. | Latest [version][buf-releases] |
+| `checksum`                      | Checksum of the `buf` CLI to verify (sha256). | |
 | `token`                         | API token for [logging into the BSR](https://buf.build/docs/bsr/authentication). | |
 | `domain`                        | Domain for logging into the BSR, enterprise only.| `buf.build` |
 | `input`                         | [Input](https://buf.build/docs/reference/inputs) for the `buf` command. | |

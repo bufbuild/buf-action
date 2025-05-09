@@ -47762,6 +47762,7 @@ function getInputs() {
     const inputs = {
         version: core.getInput("version"),
         token: core.getInput("token") || getEnv("BUF_TOKEN"),
+        checksum: core.getInput("checksum"),
         domain: core.getInput("domain"),
         setup_only: core.getBooleanInput("setup_only"),
         pr_comment: core.getBooleanInput("pr_comment"),
@@ -47838,6 +47839,14 @@ var Outputs;
 
 // EXTERNAL MODULE: ./node_modules/@actions/tool-cache/lib/tool-cache.js
 var tool_cache = __nccwpck_require__(3472);
+// EXTERNAL MODULE: external "crypto"
+var external_crypto_ = __nccwpck_require__(6982);
+// EXTERNAL MODULE: external "fs"
+var external_fs_ = __nccwpck_require__(9896);
+// EXTERNAL MODULE: external "util"
+var external_util_ = __nccwpck_require__(9023);
+// EXTERNAL MODULE: external "stream"
+var external_stream_ = __nccwpck_require__(2203);
 // EXTERNAL MODULE: ./node_modules/semver/index.js
 var semver = __nccwpck_require__(2088);
 ;// CONCATENATED MODULE: ./src/installer.ts
@@ -47854,6 +47863,10 @@ var semver = __nccwpck_require__(2088);
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+
+
+
 
 
 
@@ -47966,6 +47979,26 @@ async function downloadBuf(version, githubToken) {
     catch (error) {
         throw new Error(`Failed to download buf version ${version} from "${downloadURL}": ${error}`);
     }
+}
+// assertChecksum verifies the sha256 checksum of the buf binary.
+async function assertChecksum(bufPath, checksum) {
+    const shaAlgorithm = "sha256";
+    const whichBuf = await exec.getExecOutput("which", [bufPath], {
+        ignoreReturnCode: true,
+        silent: true,
+    });
+    const bufPathOutput = whichBuf.stdout.trim();
+    if (!bufPathOutput) {
+        throw new Error(`Unable to find buf binary at ${bufPath}`);
+    }
+    const hash = external_crypto_.createHash(shaAlgorithm);
+    const pipeline = external_util_.promisify(external_stream_.pipeline);
+    await pipeline(external_fs_.createReadStream(bufPathOutput), hash);
+    const computedChecksum = hash.digest("hex");
+    if (computedChecksum !== checksum) {
+        throw new Error(`Checksum verification failed. Expected: ${checksum}, Computed: ${computedChecksum}`);
+    }
+    return;
 }
 
 ;// CONCATENATED MODULE: ./src/comment.ts
@@ -48144,6 +48177,11 @@ async function main() {
         }
     }
     const [bufPath, bufVersion] = await installBuf(publicGithub, publicGithubToken, inputs.version);
+    if (inputs.checksum) {
+        core.info(`Verifying checksum ${inputs.checksum}`);
+        await assertChecksum(bufPath, inputs.checksum);
+        core.info("Checksum verification passed");
+    }
     core.setOutput(Outputs.BufVersion, bufVersion);
     core.setOutput(Outputs.BufPath, bufPath);
     core.saveState(Outputs.BufPath, bufPath);

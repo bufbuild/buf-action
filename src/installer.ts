@@ -16,6 +16,10 @@ import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import * as tc from "@actions/tool-cache";
 import { GitHub } from "@actions/github/lib/utils";
+import * as crypto from "crypto";
+import * as fs from "fs";
+import * as util from "util";
+import * as stream from "stream";
 import * as semver from "semver";
 import { getEnv } from "./inputs";
 
@@ -169,4 +173,30 @@ async function downloadBuf(
       `Failed to download buf version ${version} from "${downloadURL}": ${error}`,
     );
   }
+}
+
+// assertChecksum verifies the sha256 checksum of the buf binary.
+export async function assertChecksum(
+  bufPath: string,
+  checksum: string,
+): Promise<void> {
+  const shaAlgorithm = "sha256";
+  const whichBuf = await exec.getExecOutput("which", [bufPath], {
+    ignoreReturnCode: true,
+    silent: true,
+  });
+  const bufPathOutput = whichBuf.stdout.trim();
+  if (!bufPathOutput) {
+    throw new Error(`Unable to find buf binary at ${bufPath}`);
+  }
+  const hash = crypto.createHash(shaAlgorithm);
+  const pipeline = util.promisify(stream.pipeline);
+  await pipeline(fs.createReadStream(bufPathOutput), hash);
+  const computedChecksum = hash.digest("hex");
+  if (computedChecksum !== checksum) {
+    throw new Error(
+      `Checksum verification failed. Expected: ${checksum}, Computed: ${computedChecksum}`,
+    );
+  }
+  return;
 }

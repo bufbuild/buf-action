@@ -27,7 +27,7 @@ import * as parseDiff from "parse-diff";
 
 import { getInputs, Inputs, getEnv } from "./inputs";
 import { Outputs } from "./outputs";
-import { installBuf } from "./installer";
+import { installBuf, assertChecksum } from "./installer";
 import { findCommentOnPR, commentOnPR } from "./comment";
 import { parseModuleNames, ModuleName } from "./config";
 
@@ -59,6 +59,11 @@ async function main() {
     publicGithubToken,
     inputs.version,
   );
+  if (inputs.checksum) {
+    core.info(`Verifying checksum ${inputs.checksum}`);
+    await assertChecksum(bufPath, inputs.checksum);
+    core.info("Checksum verification passed");
+  }
   core.setOutput(Outputs.BufVersion, bufVersion);
   core.setOutput(Outputs.BufPath, bufPath);
   core.saveState(Outputs.BufPath, bufPath);

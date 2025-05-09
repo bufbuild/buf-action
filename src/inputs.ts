@@ -23,6 +23,7 @@ import {
 // Inputs are the inputs to the action, matching the inputs in the action.yml.
 export interface Inputs {
   version: string;
+  checksum: string;
   token: string;
   domain: string;
   setup_only: boolean;
@@ -51,6 +52,7 @@ export function getInputs(): Inputs {
   const inputs: Inputs = {
     version: core.getInput("version"),
     token: core.getInput("token") || getEnv("BUF_TOKEN"),
+    checksum: core.getInput("checksum"),
     domain: core.getInput("domain"),
     setup_only: core.getBooleanInput("setup_only"),
     pr_comment: core.getBooleanInput("pr_comment"),
