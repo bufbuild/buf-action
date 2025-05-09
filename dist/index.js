@@ -47981,7 +47981,8 @@ async function downloadBuf(version, githubToken) {
     }
 }
 // assertChecksum verifies the sha256 checksum of the buf binary.
-async function assertChecksum(bufPath, checksum, algorithm = "sha256") {
+async function assertChecksum(bufPath, checksum) {
+    const shaAlgorithm = "sha256";
     const whichBuf = await exec.getExecOutput("which", [bufPath], {
         ignoreReturnCode: true,
         silent: true,
@@ -47990,7 +47991,7 @@ async function assertChecksum(bufPath, checksum, algorithm = "sha256") {
     if (!bufPathOutput) {
         throw new Error(`Unable to find buf binary at ${bufPath}`);
     }
-    const hash = external_crypto_.createHash(algorithm);
+    const hash = external_crypto_.createHash(shaAlgorithm);
     const pipeline = external_util_.promisify(external_stream_.pipeline);
     await pipeline(external_fs_.createReadStream(bufPathOutput), hash);
     const computedChecksum = hash.digest("hex");

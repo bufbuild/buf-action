@@ -179,8 +179,8 @@ async function downloadBuf(
 export async function assertChecksum(
   bufPath: string,
   checksum: string,
-  algorithm: string = "sha256",
 ): Promise<void> {
+  const shaAlgorithm = "sha256";
   const whichBuf = await exec.getExecOutput("which", [bufPath], {
     ignoreReturnCode: true,
     silent: true,
@@ -189,7 +189,7 @@ export async function assertChecksum(
   if (!bufPathOutput) {
     throw new Error(`Unable to find buf binary at ${bufPath}`);
   }
-  const hash = crypto.createHash(algorithm);
+  const hash = crypto.createHash(shaAlgorithm);
   const pipeline = util.promisify(stream.pipeline);
   await pipeline(fs.createReadStream(bufPathOutput), hash);
   const computedChecksum = hash.digest("hex");
