@@ -42,7 +42,8 @@ export async function installBuf(
   // Check if the binary is already available.
   const bufName = "buf";
   const binName = process.platform === "win32" ? "buf.exe" : "buf";
-  const whichBuf = await exec.exec("which", [binName], {
+  const lookupCmd = process.platform === "win32" ? "where" : "which";
+  const whichBuf = await exec.exec(lookupCmd, [binName], {
     ignoreReturnCode: true,
     silent: true,
   });
