@@ -15,6 +15,7 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import * as tc from "@actions/tool-cache";
+import * as io from "@actions/io";
 import { GitHub } from "@actions/github/lib/utils";
 import * as crypto from "crypto";
 import * as fs from "fs";
@@ -42,11 +43,8 @@ export async function installBuf(
   // Check if the binary is already available.
   const bufName = "buf";
   const binName = process.platform === "win32" ? "buf.exe" : "buf";
-  const whichBuf = await exec.exec("which", [binName], {
-    ignoreReturnCode: true,
-    silent: true,
-  });
-  if (whichBuf === 0) {
+  const bufFullPath = await io.which(binName, false);
+  if (bufFullPath !== "") {
     const bufVersion = await exec.getExecOutput(binName, ["--version"], {
       silent: true,
     });
@@ -181,17 +179,10 @@ export async function assertChecksum(
   checksum: string,
 ): Promise<void> {
   const shaAlgorithm = "sha256";
-  const whichBuf = await exec.getExecOutput("which", [bufPath], {
-    ignoreReturnCode: true,
-    silent: true,
-  });
-  const bufPathOutput = whichBuf.stdout.trim();
-  if (!bufPathOutput) {
-    throw new Error(`Unable to find buf binary at ${bufPath}`);
-  }
+  const bufFullPath = await io.which(bufPath, true);
   const hash = crypto.createHash(shaAlgorithm);
   const pipeline = util.promisify(stream.pipeline);
-  await pipeline(fs.createReadStream(bufPathOutput), hash);
+  await pipeline(fs.createReadStream(bufFullPath), hash);
   const computedChecksum = hash.digest("hex");
   if (computedChecksum !== checksum) {
     throw new Error(
