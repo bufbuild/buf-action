@@ -75,7 +75,7 @@ export async function installBuf(
   if (!cachePath) {
     core.info(`Downloading buf (${resolvedVersion})`);
     const downloadPath = await downloadBuf(resolvedVersion, githubToken);
-    await exec.exec("chmod", ["+x", downloadPath]);
+    //await exec.exec("chmod", ["+x", downloadPath]);
     cachePath = await tc.cacheFile(
       downloadPath,
       binName,
