@@ -47865,6 +47865,8 @@ var Outputs;
 
 // EXTERNAL MODULE: ./node_modules/@actions/tool-cache/lib/tool-cache.js
 var tool_cache = __nccwpck_require__(3472);
+// EXTERNAL MODULE: ./node_modules/@actions/io/lib/io.js
+var io = __nccwpck_require__(4994);
 // EXTERNAL MODULE: external "crypto"
 var external_crypto_ = __nccwpck_require__(6982);
 // EXTERNAL MODULE: external "fs"
@@ -47898,6 +47900,7 @@ var semver = __nccwpck_require__(2088);
 
 
 
+
 // requiredVersion is the minimum version of buf required.
 const requiredVersion = ">=1.35.0";
 // installBuf installs the buf binary and returns the path to the binary. The
@@ -47910,11 +47913,8 @@ async function installBuf(github, githubToken, inputVersion) {
     // Check if the binary is already available.
     const bufName = "buf";
     const binName = process.platform === "win32" ? "buf.exe" : "buf";
-    const whichBuf = await exec.exec("which", [binName], {
-        ignoreReturnCode: true,
-        silent: true,
-    });
-    if (whichBuf === 0) {
+    const bufFullPath = await io.which(binName, false);
+    if (bufFullPath !== "") {
         const bufVersion = await exec.getExecOutput(binName, ["--version"], {
             silent: true,
         });
@@ -48009,17 +48009,10 @@ async function downloadBuf(version, githubToken) {
 // assertChecksum verifies the sha256 checksum of the buf binary.
 async function assertChecksum(bufPath, checksum) {
     const shaAlgorithm = "sha256";
-    const whichBuf = await exec.getExecOutput("which", [bufPath], {
-        ignoreReturnCode: true,
-        silent: true,
-    });
-    const bufPathOutput = whichBuf.stdout.trim();
-    if (!bufPathOutput) {
-        throw new Error(`Unable to find buf binary at ${bufPath}`);
-    }
+    const bufFullPath = await io.which(bufPath, true);
     const hash = external_crypto_.createHash(shaAlgorithm);
     const pipeline = external_util_.promisify(external_stream_.pipeline);
-    await pipeline(external_fs_.createReadStream(bufPathOutput), hash);
+    await pipeline(external_fs_.createReadStream(bufFullPath), hash);
     const computedChecksum = hash.digest("hex");
     if (computedChecksum !== checksum) {
         throw new Error(`Checksum verification failed. Expected: ${checksum}, Computed: ${computedChecksum}`);
