@@ -48266,11 +48266,15 @@ function createSummary(inputs, steps, moduleNames) {
     ];
     // If push or archive is enabled add a link to the registry.
     let output = core.summary.addTable(table);
-    if (inputs.push && moduleNames.length > 0) {
+    if (inputs.push &&
+        moduleNames.length > 0 &&
+        steps.push?.status == Status.Passed) {
         const modules = moduleNames.map((moduleName) => `<a href="https://${moduleName.name}">${moduleName.name}</a>`);
         output = output.addRaw(`Pushed to ${modules.join(", ")}.`, true);
     }
-    if (inputs.archive && moduleNames.length > 0) {
+    if (inputs.archive &&
+        moduleNames.length > 0 &&
+        steps.archive?.status == Status.Passed) {
         const modules = moduleNames.map((moduleName) => `<a href="https://${moduleName.name}">${moduleName.name}</a>`);
         output = output.addRaw(`Archived labels ${inputs.archive_labels.join(", ")} to ${modules.join(", ")}.`, true);
     }
