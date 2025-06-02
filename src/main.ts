@@ -300,13 +300,12 @@ async function breaking(bufPath: string, inputs: Inputs): Promise<Result> {
     core.debug("Skipping breaking");
     return skip();
   }
-  const args = [
-    "breaking",
-    "--error-format",
-    "github-actions",
-    "--against",
-    inputs.breaking_against,
-  ];
+  const args = ["breaking", "--error-format", "github-actions"];
+  if (inputs.breaking_against_registry) {
+    args.push("--against-registry");
+  } else {
+    args.push("--against", inputs.breaking_against);
+  }
   if (inputs.input) {
     args.push(inputs.input);
   }

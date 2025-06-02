@@ -120,6 +120,13 @@ inputs:
       Input to compare against for breaking change detection.
       Defaults to the base branch of the pull request or the commit before the push.
     required: false
+  breaking_against_registry:
+    description: |-
+      Whether to use the Buf Schema Registry for breaking change detection.
+      If true, the `breaking_against` input is ignored.
+      Defaults to false.
+    required: false
+    default: "false"
 
   push:
     description: |-

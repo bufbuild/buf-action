@@ -41,6 +41,7 @@ export interface Inputs {
   format: boolean;
   breaking: boolean;
   breaking_against: string;
+  breaking_against_registry: boolean;
   push: boolean;
   push_disable_create: boolean;
   archive: boolean;
@@ -69,6 +70,9 @@ export function getInputs(): Inputs {
     format: core.getBooleanInput("format"),
     breaking: core.getBooleanInput("breaking"),
     breaking_against: core.getInput("breaking_against"),
+    breaking_against_registry: core.getBooleanInput(
+      "breaking_against_registry",
+    ),
     push: core.getBooleanInput("push"),
     push_disable_create: core.getBooleanInput("push_disable_create"),
     archive: core.getBooleanInput("archive"),
@@ -76,7 +80,7 @@ export function getInputs(): Inputs {
   };
   if (github.context.eventName === "push") {
     const event = github.context.payload as PushEvent;
-    if (inputs.breaking_against === "") {
+    if (inputs.breaking_against === "" && !inputs.breaking_against_registry) {
       inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.before}`;
       if (inputs.input) {
         inputs.breaking_against += `,subdir=${inputs.input}`;
@@ -86,7 +90,7 @@ export function getInputs(): Inputs {
   }
   if (github.context.eventName === "pull_request") {
     const event = github.context.payload as PullRequestEvent;
-    if (inputs.breaking_against === "") {
+    if (inputs.breaking_against === "" && !inputs.breaking_against_registry) {
       inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.pull_request.base.sha}`;
       if (inputs.input) {
         inputs.breaking_against += `,subdir=${inputs.input}`;
