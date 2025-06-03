@@ -47805,6 +47805,7 @@ function getInputs() {
         format: core.getBooleanInput("format"),
         breaking: core.getBooleanInput("breaking"),
         breaking_against: core.getInput("breaking_against"),
+        breaking_against_registry: core.getBooleanInput("breaking_against_registry"),
         push: core.getBooleanInput("push"),
         push_disable_create: core.getBooleanInput("push_disable_create"),
         archive: core.getBooleanInput("archive"),
@@ -47812,7 +47813,7 @@ function getInputs() {
     };
     if (lib_github.context.eventName === "push") {
         const event = lib_github.context.payload;
-        if (inputs.breaking_against === "") {
+        if (inputs.breaking_against === "" && !inputs.breaking_against_registry) {
             inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.before}`;
             if (inputs.input) {
                 inputs.breaking_against += `,subdir=${inputs.input}`;
@@ -47822,7 +47823,7 @@ function getInputs() {
     }
     if (lib_github.context.eventName === "pull_request") {
         const event = lib_github.context.payload;
-        if (inputs.breaking_against === "") {
+        if (inputs.breaking_against === "" && !inputs.breaking_against_registry) {
             inputs.breaking_against = `${event.repository.clone_url}#format=git,commit=${event.pull_request.base.sha}`;
             if (inputs.input) {
                 inputs.breaking_against += `,subdir=${inputs.input}`;
@@ -47903,6 +47904,9 @@ var semver = __nccwpck_require__(2088);
 
 // requiredVersion is the minimum version of buf required.
 const requiredVersion = ">=1.35.0";
+// requiredVersionForBreakingAgainstRegistry is the minimum version of buf
+// required for breaking against registry checks.
+const requiredVersionForBreakingAgainstRegistry = ">=1.51.0";
 // installBuf installs the buf binary and returns the path to the binary. The
 // versionInput should be an explicit version of buf.
 async function installBuf(github, githubToken, inputVersion) {
@@ -48004,6 +48008,20 @@ async function downloadBuf(version, githubToken) {
     }
     catch (error) {
         throw new Error(`Failed to download buf version ${version} from "${downloadURL}": ${error}`);
+    }
+}
+// assertBufForInputs checks the buf binary is valid for the inputs provided.
+async function assertBufForInputs(bufPath, bufVersion, inputs) {
+    if (inputs.checksum) {
+        core.info(`Verifying checksum ${inputs.checksum}`);
+        await assertChecksum(bufPath, inputs.checksum);
+        core.info("Checksum verification passed");
+    }
+    if (inputs.breaking_against_registry) {
+        core.info(`Asserting buf version (${bufVersion}) for breaking against registry`);
+        if (!semver.satisfies(bufVersion, requiredVersionForBreakingAgainstRegistry)) {
+            throw new Error(`The version of buf (${bufVersion}) does not satisfy the required version for breaking against registry (${requiredVersionForBreakingAgainstRegistry})`);
+        }
     }
 }
 // assertChecksum verifies the sha256 checksum of the buf binary.
@@ -48196,11 +48214,7 @@ async function main() {
         }
     }
     const [bufPath, bufVersion] = await installBuf(publicGithub, publicGithubToken, inputs.version);
-    if (inputs.checksum) {
-        core.info(`Verifying checksum ${inputs.checksum}`);
-        await assertChecksum(bufPath, inputs.checksum);
-        core.info("Checksum verification passed");
-    }
+    await assertBufForInputs(bufPath, bufVersion, inputs);
     core.setOutput(Outputs.BufVersion, bufVersion);
     core.setOutput(Outputs.BufPath, bufPath);
     core.saveState(Outputs.BufPath, bufPath);
@@ -48391,13 +48405,13 @@ async function breaking(bufPath, inputs) {
         core.debug("Skipping breaking");
         return skip();
     }
-    const args = [
-        "breaking",
-        "--error-format",
-        "github-actions",
-        "--against",
-        inputs.breaking_against,
-    ];
+    const args = ["breaking", "--error-format", "github-actions"];
+    if (inputs.breaking_against_registry) {
+        args.push("--against-registry");
+    }
+    else {
+        args.push("--against", inputs.breaking_against);
+    }
     if (inputs.input) {
         args.push(inputs.input);
     }

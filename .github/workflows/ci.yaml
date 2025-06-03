@@ -335,13 +335,35 @@ jobs:
           push: true
           archive: false
           pr_comment: false
-  test-archive:
-    if: github.event_name == 'push' && github.ref_name != github.event.repository.default_branch
+  test-breaking-against-registry:
     runs-on: ubuntu-latest
     needs:
       - test-push
       - test-push-token-only
       - test-push-unnamed
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir -p proto/foo/v1
+          printf "version: v2\nmodules:\n  - path: proto\n    name: ${BUF_MODULE}\n" > buf.yaml
+          printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > proto/foo/v1/bar.proto
+      - uses: ./
+        with:
+          token: ${{ secrets.BUF_TOKEN }}
+          version: 1.51.0 # Version that supports --against-registry.
+          input: .
+          lint: false
+          format: false
+          breaking: true
+          breaking_against_registry: true
+          push: false
+          archive: false
+          pr_comment: false
+  test-archive:
+    if: github.event_name == 'push' && github.ref_name != github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    needs:
+      - test-breaking-against-registry
     steps:
       - uses: actions/checkout@v4
       - run: |
@@ -361,9 +383,7 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     needs:
-      - test-push
-      - test-push-token-only
-      - test-push-unnamed
+      - test-breaking-against-registry
     steps:
       - uses: actions/checkout@v4
       - run: |

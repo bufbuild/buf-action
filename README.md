@@ -73,6 +73,7 @@ Add these parameters under the `with` section of the `uses` step in the workflow
 | `lint`                          | Whether to run the linting step. | Runs on pushes to Git PR |
 | `breaking`                      | Whether to run the breaking change detection step. | Runs on pushes to Git PR |
 | `breaking_against`              | [Input](https://buf.build/docs/reference/inputs) to compare against. | Base of the PR or the commit before the event |
+| `breaking_against_registry`     | Whether to use the Buf Schema Registry for breaking change detection. If true, the `breaking_against` parameter is ignored. | False |
 | `push`                          | Whether to run the push step. | Runs on Git pushes (non forks) |
 | `push_disable_create`           | Disables repository creation if it does not exist. | False |
 | `archive`                       | Whether to run the archive step. | Runs on Git deletes (non forks) |
