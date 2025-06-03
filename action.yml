@@ -123,7 +123,7 @@ inputs:
   breaking_against_registry:
     description: |-
       Whether to use the Buf Schema Registry for breaking change detection.
-      If true, the `breaking_against` input is ignored.
+      If true, the `breaking_against` parameter is ignored.
       Defaults to false.
     required: false
     default: "false"
