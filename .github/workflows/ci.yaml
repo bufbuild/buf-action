@@ -350,7 +350,7 @@ jobs:
       - uses: ./
         with:
           token: ${{ secrets.BUF_TOKEN }}
-          version: v1.51.0 # Version that supports --against-registry.
+          version: 1.51.0 # Version that supports --against-registry.
           input: .
           lint: false
           format: false
