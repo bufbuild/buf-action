@@ -27,8 +27,8 @@ import { getEnv, Inputs } from "./inputs";
 // requiredVersion is the minimum version of buf required.
 const requiredVersion = ">=1.35.0";
 
-// requiredVersionForBreaking is the minimum version of buf required for breaking
-// against registry checks.
+// requiredVersionForBreakingAgainstRegistry is the minimum version of buf
+// required for breaking against registry checks.
 const requiredVersionForBreakingAgainstRegistry = ">=1.51.0";
 
 // installBuf installs the buf binary and returns the path to the binary. The
