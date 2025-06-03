@@ -349,6 +349,8 @@ jobs:
           printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > proto/foo/v1/bar.proto
       - uses: ./
         with:
+          token: ${{ secrets.BUF_TOKEN }}
+          version: v1.51.0 # Version that supports --against-registry.
           input: .
           lint: false
           format: false

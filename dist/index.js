@@ -47904,6 +47904,9 @@ var semver = __nccwpck_require__(2088);
 
 // requiredVersion is the minimum version of buf required.
 const requiredVersion = ">=1.35.0";
+// requiredVersionForBreaking is the minimum version of buf required for breaking
+// against registry checks.
+const requiredVersionForBreakingAgainstRegistry = ">=1.51.0";
 // installBuf installs the buf binary and returns the path to the binary. The
 // versionInput should be an explicit version of buf.
 async function installBuf(github, githubToken, inputVersion) {
@@ -48005,6 +48008,20 @@ async function downloadBuf(version, githubToken) {
     }
     catch (error) {
         throw new Error(`Failed to download buf version ${version} from "${downloadURL}": ${error}`);
+    }
+}
+// assertBufForInputs checks the buf binary is valid for the inputs provided.
+async function assertBufForInputs(bufPath, bufVersion, inputs) {
+    if (inputs.checksum) {
+        core.info(`Verifying checksum ${inputs.checksum}`);
+        await assertChecksum(bufPath, inputs.checksum);
+        core.info("Checksum verification passed");
+    }
+    if (inputs.breaking_against_registry) {
+        core.info(`Asserting buf version (${bufVersion}) for breaking against registry`);
+        if (!semver.satisfies(bufVersion, requiredVersionForBreakingAgainstRegistry)) {
+            throw new Error(`The version of buf (${bufVersion}) does not satisfy the required version for breaking against registry (${requiredVersionForBreakingAgainstRegistry})`);
+        }
     }
 }
 // assertChecksum verifies the sha256 checksum of the buf binary.
@@ -48197,11 +48214,7 @@ async function main() {
         }
     }
     const [bufPath, bufVersion] = await installBuf(publicGithub, publicGithubToken, inputs.version);
-    if (inputs.checksum) {
-        core.info(`Verifying checksum ${inputs.checksum}`);
-        await assertChecksum(bufPath, inputs.checksum);
-        core.info("Checksum verification passed");
-    }
+    await assertBufForInputs(bufPath, bufVersion, inputs);
     core.setOutput(Outputs.BufVersion, bufVersion);
     core.setOutput(Outputs.BufPath, bufPath);
     core.saveState(Outputs.BufPath, bufPath);

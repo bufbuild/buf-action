@@ -22,10 +22,14 @@ import * as fs from "fs";
 import * as util from "util";
 import * as stream from "stream";
 import * as semver from "semver";
-import { getEnv } from "./inputs";
+import { getEnv, Inputs } from "./inputs";
 
 // requiredVersion is the minimum version of buf required.
 const requiredVersion = ">=1.35.0";
+
+// requiredVersionForBreaking is the minimum version of buf required for breaking
+// against registry checks.
+const requiredVersionForBreakingAgainstRegistry = ">=1.51.0";
 
 // installBuf installs the buf binary and returns the path to the binary. The
 // versionInput should be an explicit version of buf.
@@ -173,8 +177,33 @@ async function downloadBuf(
   }
 }
 
+// assertBufForInputs checks the buf binary is valid for the inputs provided.
+export async function assertBufForInputs(
+  bufPath: string,
+  bufVersion: string,
+  inputs: Inputs,
+): Promise<void> {
+  if (inputs.checksum) {
+    core.info(`Verifying checksum ${inputs.checksum}`);
+    await assertChecksum(bufPath, inputs.checksum);
+    core.info("Checksum verification passed");
+  }
+  if (inputs.breaking_against_registry) {
+    core.info(
+      `Asserting buf version (${bufVersion}) for breaking against registry`,
+    );
+    if (
+      !semver.satisfies(bufVersion, requiredVersionForBreakingAgainstRegistry)
+    ) {
+      throw new Error(
+        `The version of buf (${bufVersion}) does not satisfy the required version for breaking against registry (${requiredVersionForBreakingAgainstRegistry})`,
+      );
+    }
+  }
+}
+
 // assertChecksum verifies the sha256 checksum of the buf binary.
-export async function assertChecksum(
+async function assertChecksum(
   bufPath: string,
   checksum: string,
 ): Promise<void> {
