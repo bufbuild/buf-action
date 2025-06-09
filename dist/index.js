@@ -39883,7 +39883,7 @@ function safeObjectProperty(name) {
     return reservedObjectProperties.has(name) ? name + "$" : name;
 }
 
-;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/codegenv1/restore-json-names.js
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/codegenv2/restore-json-names.js
 // Copyright 2021-2025 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -41119,7 +41119,7 @@ function assert(condition, msg) {
     }
 }
 
-;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/codegenv1/boot.js
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/codegenv2/boot.js
 // Copyright 2021-2025 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -41216,7 +41216,7 @@ function bootEnumDescriptorProto(init) {
     };
 }
 
-;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/codegenv1/message.js
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/codegenv2/message.js
 // Copyright 2021-2025 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -42262,7 +42262,7 @@ function readScalar(reader, type) {
     }
 }
 
-;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/codegenv1/file.js
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/codegenv2/file.js
 // Copyright 2021-2025 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -47505,6 +47505,29 @@ const CommitSchema = /*@__PURE__*/
   (/* unused pure expression or super */ null && (messageDesc(file_buf_registry_module_v1_commit, 0)));
 
 
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/codegenv1/message.js
+// Copyright 2021-2025 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/**
+ * Hydrate a message descriptor.
+ *
+ * @private
+ */
+function codegenv1_message_messageDesc(file, path, ...paths) {
+    return paths.reduce((acc, cur) => acc.nestedMessages[cur], file.messages[path]);
+}
+
 ;// CONCATENATED MODULE: ./node_modules/@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/label_pb.js
 // Copyright 2023-2025 Buf Technologies, Inc.
 //
@@ -47554,7 +47577,7 @@ const CommitCheckStateSchema = /*@__PURE__*/
  * Use `create(LabelRefSchema)` to create a new message.
  */
 const LabelRefSchema = /*@__PURE__*/
-  message_messageDesc(file_buf_registry_module_v1_label, 2);
+  codegenv1_message_messageDesc(file_buf_registry_module_v1_label, 2);
 
 /**
  * Describes the message buf.registry.module.v1.LabelRef.Name.
