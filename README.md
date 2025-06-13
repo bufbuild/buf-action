@@ -86,11 +86,34 @@ Add these parameters under the `with` section of the `uses` step in the workflow
 ### Skip the breaking change detection step
 
 By default, the action runs the breaking change detection step on every pull request.
-To skip this step, add the label `buf skip breaking` to the PR.
+To skip this step for a specific pull request, you can add the `buf skip breaking` label to the PR. 
+This is useful for cases where breaking changes are intentional or when you want to bypass the check temporarily, such as during prototyping or non-production changes.
 
 ![Skip breaking changes example](./static/img/skip-breaking-example.png "Skip breaking changes example")
 
-Ensure the workflow file includes the `pull_request` event types `labeled` and `unlabeled` so checks re-run on label changes.
+Using labels provides a transparent way to bypass breaking change detection while making the decision visible and documented in the pull request.
+
+#### Creating the `buf skip breaking` label in GitHub
+
+To enable skipping the breaking change detection step, you first need to add a label named `buf skip breaking` in your GitHub repository.
+This can be done through the GitHub UI on the current PR or via the repository settings.
+For the current PR, click on the "Labels" section in the right sidebar and select "Edit label".
+Add a new label with the name `buf skip breaking` and a color of your choice.
+
+See [GitHub documentation on managing labels](https://docs.github.com/en/issues/using-labels-and-milestones-to-track-work/managing-labels#creating-a-label) for more information.
+
+#### Ensuring the workflow responds to label changes
+
+For the action to re-run checks when the `buf skip breaking` label is added or removed, ensure your workflow file includes the `labeled` and `unlabeled` event types in the `pull_request` trigger.
+This is already included in the default workflow configuration:
+
+```yaml
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+```
+
+#### Disabling the ability to skip breaking change checks
 
 To disable the ability to skip breaking change checks via a label, set the `breaking` parameter to the value `${{ github.event_name == 'pull_request' }}` so it runs on all PRs.
 See [examples/disable-skip/buf-ci.yaml](examples/disable-skip/buf-ci.yaml) for an example.
