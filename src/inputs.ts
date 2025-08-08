@@ -75,7 +75,7 @@ export function getInputs(): Inputs {
       "breaking_against_registry",
     ),
     push: core.getBooleanInput("push"),
-    push_create_visibility: core.getInput("push_create_visibility"),
+    push_create_visibility: core.getInput("push_create_visibiltiy"),
     push_disable_create: core.getBooleanInput("push_disable_create"),
     archive: core.getBooleanInput("archive"),
     archive_labels: [],
