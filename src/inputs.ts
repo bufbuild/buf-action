@@ -43,6 +43,7 @@ export interface Inputs {
   breaking_against: string;
   breaking_against_registry: boolean;
   push: boolean;
+  push_create_visibility: string;
   push_disable_create: boolean;
   archive: boolean;
   archive_labels: string[];
@@ -74,6 +75,7 @@ export function getInputs(): Inputs {
       "breaking_against_registry",
     ),
     push: core.getBooleanInput("push"),
+    push_create_visibility: core.getInput("push_create_visibility"),
     push_disable_create: core.getBooleanInput("push_disable_create"),
     archive: core.getBooleanInput("archive"),
     archive_labels: [],

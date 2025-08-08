@@ -133,6 +133,12 @@ inputs:
       Whether to run the push step. Runs by default on pushes, for non forked repositories.
     required: false
     default: ${{ github.event_name == 'push' }}
+  push_create_visibility:
+    description: |-
+      Repository's visibility setting if created.
+      Must be either "public" or "private". Defaults to "private".
+    required: false
+    default: "private"
   push_disable_create:
     description: |-
       Disables repository creation if it does not exist. Defaults to false.

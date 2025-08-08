@@ -354,6 +354,9 @@ async function push(
   ];
   if (!inputs.push_disable_create) {
     args.push("--create");
+    if (inputs.push_create_visibility) {
+      args.push("--create-visibility", inputs.push_create_visibility);
+    }
   }
   if (inputs.input) {
     args.push(inputs.input);

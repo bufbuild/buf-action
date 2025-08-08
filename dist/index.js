@@ -47943,6 +47943,7 @@ function getInputs() {
         breaking_against: core.getInput("breaking_against"),
         breaking_against_registry: core.getBooleanInput("breaking_against_registry"),
         push: core.getBooleanInput("push"),
+        push_create_visibility: core.getInput("push_create_visibility"),
         push_disable_create: core.getBooleanInput("push_disable_create"),
         archive: core.getBooleanInput("archive"),
         archive_labels: [],
@@ -48591,6 +48592,9 @@ async function push(bufPath, inputs, moduleNames) {
     ];
     if (!inputs.push_disable_create) {
         args.push("--create");
+        if (inputs.push_create_visibility) {
+            args.push("--create-visibility", inputs.push_create_visibility);
+        }
     }
     if (inputs.input) {
         args.push(inputs.input);
