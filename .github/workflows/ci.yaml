@@ -263,6 +263,7 @@ jobs:
           format: false
           breaking: false
           push: true
+          push_create_visibility: private # Push to the public registry.
           archive: false
           pr_comment: false
   test-push-token-only:

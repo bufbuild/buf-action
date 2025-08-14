@@ -1,0 +1,19 @@
+# This workflow shows pushing new modules with public visibility.
+name: Buf CI
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  delete:
+permissions:
+  contents: read
+jobs:
+  buf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-action@v1
+        with:
+          token: ${{ secrets.BUF_TOKEN }}
+          # The `push_create_visibility` option is used to set the visibility of the new module.
+          push_create_visibility: public
