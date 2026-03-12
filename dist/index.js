@@ -10382,6 +10382,7 @@ const isSatisfiable = (comparators, options) => {
 // already replaced the hyphen ranges
 // turn into a set of JUST comparators.
 const parseComparator = (comp, options) => {
+  comp = comp.replace(re[t.BUILD], '')
   debug('comp', comp, options)
   comp = replaceCarets(comp, options)
   debug('caret', comp)
@@ -10802,11 +10803,25 @@ class SemVer {
       other = new SemVer(other, this.options)
     }
 
-    return (
-      compareIdentifiers(this.major, other.major) ||
-      compareIdentifiers(this.minor, other.minor) ||
-      compareIdentifiers(this.patch, other.patch)
-    )
+    if (this.major < other.major) {
+      return -1
+    }
+    if (this.major > other.major) {
+      return 1
+    }
+    if (this.minor < other.minor) {
+      return -1
+    }
+    if (this.minor > other.minor) {
+      return 1
+    }
+    if (this.patch < other.patch) {
+      return -1
+    }
+    if (this.patch > other.patch) {
+      return 1
+    }
+    return 0
   }
 
   comparePre (other) {
@@ -11264,7 +11279,7 @@ const diff = (version1, version2) => {
     return prefix + 'patch'
   }
 
-  // high and low are preleases
+  // high and low are prereleases
   return 'prerelease'
 }
 
@@ -11707,6 +11722,10 @@ module.exports = debug
 
 const numeric = /^[0-9]+$/
 const compareIdentifiers = (a, b) => {
+  if (typeof a === 'number' && typeof b === 'number') {
+    return a === b ? 0 : a < b ? -1 : 1
+  }
+
   const anum = numeric.test(a)
   const bnum = numeric.test(b)
 
@@ -11891,8 +11910,8 @@ createToken('MAINVERSIONLOOSE', `(${src[t.NUMERICIDENTIFIERLOOSE]})\\.` +
 
 // ## Pre-release Version Identifier
 // A numeric identifier, or a non-numeric identifier.
-// Non-numberic identifiers include numberic identifiers but can be longer.
-// Therefore non-numberic identifiers must go first.
+// Non-numeric identifiers include numeric identifiers but can be longer.
+// Therefore non-numeric identifiers must go first.
 
 createToken('PRERELEASEIDENTIFIER', `(?:${src[t.NONNUMERICIDENTIFIER]
 }|${src[t.NUMERICIDENTIFIER]})`)
@@ -12414,7 +12433,7 @@ const compare = __nccwpck_require__(8469)
 // - If LT
 //   - If LT.semver is greater than any < or <= comp in C, return false
 //   - If LT is <=, and LT.semver does not satisfy every C, return false
-//   - If GT.semver has a prerelease, and not in prerelease mode
+//   - If LT.semver has a prerelease, and not in prerelease mode
 //     - If no C has a prerelease and the LT.semver tuple, return false
 // - Else return true
 
@@ -37103,7 +37122,7 @@ var exec = __nccwpck_require__(5236);
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
 var lib_github = __nccwpck_require__(3228);
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/is-message.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37135,7 +37154,7 @@ function isMessage(arg, schema) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/descriptors.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37502,7 +37521,7 @@ function varint32read() {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/proto-int64.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37528,7 +37547,8 @@ function makeInt64Support() {
         typeof dv.getBigUint64 === "function" &&
         typeof dv.setBigInt64 === "function" &&
         typeof dv.setBigUint64 === "function" &&
-        (typeof process != "object" ||
+        (!!globalThis.Deno ||
+            typeof process != "object" ||
             typeof process.env != "object" ||
             process.env.BUF_BIGINT_DISABLE !== "1");
     if (ok) {
@@ -37630,7 +37650,7 @@ function assertUInt64String(value) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/reflect/scalar.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37729,7 +37749,7 @@ function isScalarZeroValue(type, value) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/reflect/unsafe.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37871,7 +37891,7 @@ target, field) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/reflect/guard.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37944,7 +37964,7 @@ function isReflectMessage(arg, messageDesc) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/wrappers.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37984,7 +38004,7 @@ function isWrapperTypeName(name) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/create.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38242,7 +38262,7 @@ function createZeroField(field) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/reflect/error.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38275,7 +38295,7 @@ function error_isFieldError(arg) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wire/text-encoding.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38327,7 +38347,7 @@ function getTextEncoding() {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38654,7 +38674,7 @@ class binary_encoding_BinaryReader {
                     // ignore
                 }
                 break;
-            // @ts-expect-error TS7029: Fallthrough case in switch
+            // @ts-ignore TS7029: Fallthrough case in switch -- ignore instead of expect-error for compiler settings without noFallthroughCasesInSwitch: true
             case WireType.Bit64:
                 this.pos += 4;
             case WireType.Bit32:
@@ -38839,7 +38859,7 @@ function assertFloat32(arg) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/reflect/reflect-check.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38874,10 +38894,10 @@ function checkField(field, value) {
     let reason;
     switch (field.fieldKind) {
         case "list":
-            reason = `expected ${formatReflectList(field)}, got ${reflect_check_formatVal(value)}`;
+            reason = `expected ${formatReflectList(field)}, got ${formatVal(value)}`;
             break;
         case "map":
-            reason = `expected ${formatReflectMap(field)}, got ${reflect_check_formatVal(value)}`;
+            reason = `expected ${formatReflectMap(field)}, got ${formatVal(value)}`;
             break;
         default: {
             reason = reasonSingular(field, value, check);
@@ -38905,7 +38925,7 @@ function checkMapEntry(field, key, value) {
     }
     const checkVal = checkSingular(field, value);
     if (checkVal !== true) {
-        return new FieldError(field, `map entry ${reflect_check_formatVal(key)}: ${reasonSingular(field, value, checkVal)}`);
+        return new FieldError(field, `map entry ${formatVal(key)}: ${reasonSingular(field, value, checkVal)}`);
     }
     return undefined;
 }
@@ -39001,7 +39021,7 @@ function checkScalarValue(value, scalar) {
 }
 function reasonSingular(field, val, details) {
     details =
-        typeof details == "string" ? `: ${details}` : `, got ${reflect_check_formatVal(val)}`;
+        typeof details == "string" ? `: ${details}` : `, got ${formatVal(val)}`;
     if (field.scalar !== undefined) {
         return `expected ${scalarTypeDescription(field.scalar)}` + details;
     }
@@ -39010,7 +39030,7 @@ function reasonSingular(field, val, details) {
     }
     return `expected ${formatReflectMessage(field.message)}` + details;
 }
-function reflect_check_formatVal(val) {
+function formatVal(val) {
     switch (typeof val) {
         case "object":
             if (val === null) {
@@ -39101,7 +39121,7 @@ function scalarTypeDescription(scalar) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/reflect/reflect.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39137,14 +39157,18 @@ function reflect_reflect(messageDesc, message,
 check = true) {
     return new ReflectMessageImpl(messageDesc, message, check);
 }
+const messageSortedFields = new WeakMap();
 class ReflectMessageImpl {
     get sortedFields() {
-        var _a;
-        return ((_a = this._sortedFields) !== null && _a !== void 0 ? _a : 
-        // biome-ignore lint/suspicious/noAssignInExpressions: no
-        (this._sortedFields = this.desc.fields
+        const cached = messageSortedFields.get(this.desc);
+        if (cached) {
+            return cached;
+        }
+        const sortedFields = this.desc.fields
             .concat()
-            .sort((a, b) => a.number - b.number)));
+            .sort((a, b) => a.number - b.number);
+        messageSortedFields.set(this.desc, sortedFields);
+        return sortedFields;
     }
     constructor(messageDesc, message, check = true) {
         this.lists = new Map();
@@ -39638,8 +39662,119 @@ function wktValueToReflect(json) {
     return value;
 }
 
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/reflect/names.js
+// Copyright 2021-2026 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/**
+ * Return a fully-qualified name for a Protobuf descriptor.
+ * For a file descriptor, return the original file path.
+ *
+ * See https://protobuf.com/docs/language-spec#fully-qualified-names
+ */
+function qualifiedName(desc) {
+    switch (desc.kind) {
+        case "field":
+        case "oneof":
+        case "rpc":
+            return desc.parent.typeName + "." + desc.name;
+        case "enum_value": {
+            const p = desc.parent.parent
+                ? desc.parent.parent.typeName
+                : desc.parent.file.proto.package;
+            return p + (p.length > 0 ? "." : "") + desc.name;
+        }
+        case "service":
+        case "message":
+        case "enum":
+        case "extension":
+            return desc.typeName;
+        case "file":
+            return desc.proto.name;
+    }
+}
+/**
+ * Converts snake_case to protoCamelCase according to the convention
+ * used by protoc to convert a field name to a JSON name.
+ *
+ * See https://protobuf.com/docs/language-spec#default-json-names
+ *
+ * The function protoSnakeCase provides the reverse.
+ */
+function protoCamelCase(snakeCase) {
+    let capNext = false;
+    const b = [];
+    for (let i = 0; i < snakeCase.length; i++) {
+        let c = snakeCase.charAt(i);
+        switch (c) {
+            case "_":
+                capNext = true;
+                break;
+            case "0":
+            case "1":
+            case "2":
+            case "3":
+            case "4":
+            case "5":
+            case "6":
+            case "7":
+            case "8":
+            case "9":
+                b.push(c);
+                capNext = false;
+                break;
+            default:
+                if (capNext) {
+                    capNext = false;
+                    c = c.toUpperCase();
+                }
+                b.push(c);
+                break;
+        }
+    }
+    return b.join("");
+}
+/**
+ * Converts protoCamelCase to snake_case.
+ *
+ * This function is the reverse of function protoCamelCase. Note that some names
+ * are not reversible - for example, "foo__bar" -> "fooBar" -> "foo_bar".
+ */
+function protoSnakeCase(lowerCamelCase) {
+    return lowerCamelCase.replace(/[A-Z]/g, (letter) => "_" + letter.toLowerCase());
+}
+/**
+ * Names that cannot be used for object properties because they are reserved
+ * by built-in JavaScript properties.
+ */
+const reservedObjectProperties = new Set([
+    // names reserved by JavaScript
+    "constructor",
+    "toString",
+    "toJSON",
+    "valueOf",
+]);
+/**
+ * Escapes names that are reserved for ECMAScript built-in object properties.
+ *
+ * Also see safeIdentifier() from @bufbuild/protoplugin.
+ */
+function safeObjectProperty(name) {
+    return reservedObjectProperties.has(name) ? name + "$" : name;
+}
+
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wire/base64-encoding.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39679,7 +39814,7 @@ function base64_encoding_base64Decode(base64Str) {
         b = table[base64Str.charCodeAt(i)];
         if (b === undefined) {
             switch (base64Str[i]) {
-                // @ts-expect-error TS7029: Fallthrough case in switch
+                // @ts-ignore TS7029: Fallthrough case in switch -- ignore instead of expect-error for compiler settings without noFallthroughCasesInSwitch: true
                 case "=":
                     groupPos = 0; // reset state when padding found
                 case "\n":
@@ -39792,106 +39927,8 @@ function getDecodeTable() {
     return decodeTable;
 }
 
-;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/reflect/names.js
-// Copyright 2021-2025 Buf Technologies, Inc.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-/**
- * Return a fully-qualified name for a Protobuf descriptor.
- * For a file descriptor, return the original file path.
- *
- * See https://protobuf.com/docs/language-spec#fully-qualified-names
- */
-function qualifiedName(desc) {
-    switch (desc.kind) {
-        case "field":
-        case "oneof":
-        case "rpc":
-            return desc.parent.typeName + "." + desc.name;
-        case "enum_value": {
-            const p = desc.parent.parent
-                ? desc.parent.parent.typeName
-                : desc.parent.file.proto.package;
-            return p + (p.length > 0 ? "." : "") + desc.name;
-        }
-        case "service":
-        case "message":
-        case "enum":
-        case "extension":
-            return desc.typeName;
-        case "file":
-            return desc.proto.name;
-    }
-}
-/**
- * Converts snake_case to protoCamelCase according to the convention
- * used by protoc to convert a field name to a JSON name.
- */
-function protoCamelCase(snakeCase) {
-    let capNext = false;
-    const b = [];
-    for (let i = 0; i < snakeCase.length; i++) {
-        let c = snakeCase.charAt(i);
-        switch (c) {
-            case "_":
-                capNext = true;
-                break;
-            case "0":
-            case "1":
-            case "2":
-            case "3":
-            case "4":
-            case "5":
-            case "6":
-            case "7":
-            case "8":
-            case "9":
-                b.push(c);
-                capNext = false;
-                break;
-            default:
-                if (capNext) {
-                    capNext = false;
-                    c = c.toUpperCase();
-                }
-                b.push(c);
-                break;
-        }
-    }
-    return b.join("");
-}
-/**
- * Names that cannot be used for object properties because they are reserved
- * by built-in JavaScript properties.
- */
-const reservedObjectProperties = new Set([
-    // names reserved by JavaScript
-    "constructor",
-    "toString",
-    "toJSON",
-    "valueOf",
-]);
-/**
- * Escapes names that are reserved for ECMAScript built-in object properties.
- *
- * Also see safeIdentifier() from @bufbuild/protoplugin.
- */
-function safeObjectProperty(name) {
-    return reservedObjectProperties.has(name) ? name + "$" : name;
-}
-
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/codegenv2/restore-json-names.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39919,7 +39956,7 @@ function restoreJsonNames(message) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wire/text-format.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -40116,7 +40153,7 @@ function unescapeBytesDefaultValue(str) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/reflect/nested-types.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -40223,7 +40260,7 @@ function nested_types_parent(desc) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/registry.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -40447,9 +40484,9 @@ const DELIMITED = 2;
 // bootstrap-inject google.protobuf.FeatureSet.EnumType.OPEN: const $name: FeatureSet_EnumType.$localName = $number;
 const OPEN = 1;
 // biome-ignore format: want this to read well
-// bootstrap-inject defaults: EDITION_PROTO2 to EDITION_2023: export const minimumEdition: SupportedEdition = $minimumEdition, maximumEdition: SupportedEdition = $maximumEdition;
-// generated from protoc v31.1
-const minimumEdition = 998, maximumEdition = 1000;
+// bootstrap-inject defaults: EDITION_PROTO2 to EDITION_2024: export const minimumEdition: SupportedEdition = $minimumEdition, maximumEdition: SupportedEdition = $maximumEdition;
+// generated from protoc v33.2
+const minimumEdition = 998, maximumEdition = 1001;
 const featureDefaults = {
     // EDITION_PROTO2
     998: {
@@ -40483,6 +40520,17 @@ const featureDefaults = {
         jsonFormat: 1, // ALLOW,
         enforceNamingStyle: 2, // STYLE_LEGACY,
         defaultSymbolVisibility: 1, // EXPORT_ALL,
+    },
+    // EDITION_2024
+    1001: {
+        fieldPresence: 1, // EXPLICIT,
+        enumType: 1, // OPEN,
+        repeatedFieldEncoding: 1, // PACKED,
+        utf8Validation: 2, // VERIFY,
+        messageEncoding: 1, // LENGTH_PREFIXED,
+        jsonFormat: 1, // ALLOW,
+        enforceNamingStyle: 1, // STYLE2024,
+        defaultSymbolVisibility: 2, // EXPORT_TOP_LEVEL,
     },
 };
 /**
@@ -41130,7 +41178,7 @@ function assert(condition, msg) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/codegenv2/boot.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41233,7 +41281,7 @@ function bootEnumDescriptorProto(init) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/codegenv2/message.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41256,7 +41304,7 @@ function message_messageDesc(file, path, ...paths) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/gen/google/protobuf/descriptor_pb.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41275,7 +41323,7 @@ function message_messageDesc(file, path, ...paths) {
 /**
  * Describes the file google/protobuf/descriptor.proto.
  */
-const file_google_protobuf_descriptor = /*@__PURE__*/ boot({ "name": "google/protobuf/descriptor.proto", "package": "google.protobuf", "messageType": [{ "name": "FileDescriptorSet", "field": [{ "name": "file", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.FileDescriptorProto" }], "extensionRange": [{ "start": 536000000, "end": 536000001 }] }, { "name": "FileDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "package", "number": 2, "type": 9, "label": 1 }, { "name": "dependency", "number": 3, "type": 9, "label": 3 }, { "name": "public_dependency", "number": 10, "type": 5, "label": 3 }, { "name": "weak_dependency", "number": 11, "type": 5, "label": 3 }, { "name": "option_dependency", "number": 15, "type": 9, "label": 3 }, { "name": "message_type", "number": 4, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto" }, { "name": "enum_type", "number": 5, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumDescriptorProto" }, { "name": "service", "number": 6, "type": 11, "label": 3, "typeName": ".google.protobuf.ServiceDescriptorProto" }, { "name": "extension", "number": 7, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldDescriptorProto" }, { "name": "options", "number": 8, "type": 11, "label": 1, "typeName": ".google.protobuf.FileOptions" }, { "name": "source_code_info", "number": 9, "type": 11, "label": 1, "typeName": ".google.protobuf.SourceCodeInfo" }, { "name": "syntax", "number": 12, "type": 9, "label": 1 }, { "name": "edition", "number": 14, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }] }, { "name": "DescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "field", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldDescriptorProto" }, { "name": "extension", "number": 6, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldDescriptorProto" }, { "name": "nested_type", "number": 3, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto" }, { "name": "enum_type", "number": 4, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumDescriptorProto" }, { "name": "extension_range", "number": 5, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto.ExtensionRange" }, { "name": "oneof_decl", "number": 8, "type": 11, "label": 3, "typeName": ".google.protobuf.OneofDescriptorProto" }, { "name": "options", "number": 7, "type": 11, "label": 1, "typeName": ".google.protobuf.MessageOptions" }, { "name": "reserved_range", "number": 9, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto.ReservedRange" }, { "name": "reserved_name", "number": 10, "type": 9, "label": 3 }, { "name": "visibility", "number": 11, "type": 14, "label": 1, "typeName": ".google.protobuf.SymbolVisibility" }], "nestedType": [{ "name": "ExtensionRange", "field": [{ "name": "start", "number": 1, "type": 5, "label": 1 }, { "name": "end", "number": 2, "type": 5, "label": 1 }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.ExtensionRangeOptions" }] }, { "name": "ReservedRange", "field": [{ "name": "start", "number": 1, "type": 5, "label": 1 }, { "name": "end", "number": 2, "type": 5, "label": 1 }] }] }, { "name": "ExtensionRangeOptions", "field": [{ "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }, { "name": "declaration", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.ExtensionRangeOptions.Declaration", "options": { "retention": 2 } }, { "name": "features", "number": 50, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "verification", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.ExtensionRangeOptions.VerificationState", "defaultValue": "UNVERIFIED", "options": { "retention": 2 } }], "nestedType": [{ "name": "Declaration", "field": [{ "name": "number", "number": 1, "type": 5, "label": 1 }, { "name": "full_name", "number": 2, "type": 9, "label": 1 }, { "name": "type", "number": 3, "type": 9, "label": 1 }, { "name": "reserved", "number": 5, "type": 8, "label": 1 }, { "name": "repeated", "number": 6, "type": 8, "label": 1 }] }], "enumType": [{ "name": "VerificationState", "value": [{ "name": "DECLARATION", "number": 0 }, { "name": "UNVERIFIED", "number": 1 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "FieldDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "number", "number": 3, "type": 5, "label": 1 }, { "name": "label", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldDescriptorProto.Label" }, { "name": "type", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldDescriptorProto.Type" }, { "name": "type_name", "number": 6, "type": 9, "label": 1 }, { "name": "extendee", "number": 2, "type": 9, "label": 1 }, { "name": "default_value", "number": 7, "type": 9, "label": 1 }, { "name": "oneof_index", "number": 9, "type": 5, "label": 1 }, { "name": "json_name", "number": 10, "type": 9, "label": 1 }, { "name": "options", "number": 8, "type": 11, "label": 1, "typeName": ".google.protobuf.FieldOptions" }, { "name": "proto3_optional", "number": 17, "type": 8, "label": 1 }], "enumType": [{ "name": "Type", "value": [{ "name": "TYPE_DOUBLE", "number": 1 }, { "name": "TYPE_FLOAT", "number": 2 }, { "name": "TYPE_INT64", "number": 3 }, { "name": "TYPE_UINT64", "number": 4 }, { "name": "TYPE_INT32", "number": 5 }, { "name": "TYPE_FIXED64", "number": 6 }, { "name": "TYPE_FIXED32", "number": 7 }, { "name": "TYPE_BOOL", "number": 8 }, { "name": "TYPE_STRING", "number": 9 }, { "name": "TYPE_GROUP", "number": 10 }, { "name": "TYPE_MESSAGE", "number": 11 }, { "name": "TYPE_BYTES", "number": 12 }, { "name": "TYPE_UINT32", "number": 13 }, { "name": "TYPE_ENUM", "number": 14 }, { "name": "TYPE_SFIXED32", "number": 15 }, { "name": "TYPE_SFIXED64", "number": 16 }, { "name": "TYPE_SINT32", "number": 17 }, { "name": "TYPE_SINT64", "number": 18 }] }, { "name": "Label", "value": [{ "name": "LABEL_OPTIONAL", "number": 1 }, { "name": "LABEL_REPEATED", "number": 3 }, { "name": "LABEL_REQUIRED", "number": 2 }] }] }, { "name": "OneofDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "options", "number": 2, "type": 11, "label": 1, "typeName": ".google.protobuf.OneofOptions" }] }, { "name": "EnumDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "value", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumValueDescriptorProto" }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.EnumOptions" }, { "name": "reserved_range", "number": 4, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumDescriptorProto.EnumReservedRange" }, { "name": "reserved_name", "number": 5, "type": 9, "label": 3 }, { "name": "visibility", "number": 6, "type": 14, "label": 1, "typeName": ".google.protobuf.SymbolVisibility" }], "nestedType": [{ "name": "EnumReservedRange", "field": [{ "name": "start", "number": 1, "type": 5, "label": 1 }, { "name": "end", "number": 2, "type": 5, "label": 1 }] }] }, { "name": "EnumValueDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "number", "number": 2, "type": 5, "label": 1 }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.EnumValueOptions" }] }, { "name": "ServiceDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "method", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.MethodDescriptorProto" }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.ServiceOptions" }] }, { "name": "MethodDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "input_type", "number": 2, "type": 9, "label": 1 }, { "name": "output_type", "number": 3, "type": 9, "label": 1 }, { "name": "options", "number": 4, "type": 11, "label": 1, "typeName": ".google.protobuf.MethodOptions" }, { "name": "client_streaming", "number": 5, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "server_streaming", "number": 6, "type": 8, "label": 1, "defaultValue": "false" }] }, { "name": "FileOptions", "field": [{ "name": "java_package", "number": 1, "type": 9, "label": 1 }, { "name": "java_outer_classname", "number": 8, "type": 9, "label": 1 }, { "name": "java_multiple_files", "number": 10, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "java_generate_equals_and_hash", "number": 20, "type": 8, "label": 1, "options": { "deprecated": true } }, { "name": "java_string_check_utf8", "number": 27, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "optimize_for", "number": 9, "type": 14, "label": 1, "typeName": ".google.protobuf.FileOptions.OptimizeMode", "defaultValue": "SPEED" }, { "name": "go_package", "number": 11, "type": 9, "label": 1 }, { "name": "cc_generic_services", "number": 16, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "java_generic_services", "number": 17, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "py_generic_services", "number": 18, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated", "number": 23, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "cc_enable_arenas", "number": 31, "type": 8, "label": 1, "defaultValue": "true" }, { "name": "objc_class_prefix", "number": 36, "type": 9, "label": 1 }, { "name": "csharp_namespace", "number": 37, "type": 9, "label": 1 }, { "name": "swift_prefix", "number": 39, "type": 9, "label": 1 }, { "name": "php_class_prefix", "number": 40, "type": 9, "label": 1 }, { "name": "php_namespace", "number": 41, "type": 9, "label": 1 }, { "name": "php_metadata_namespace", "number": 44, "type": 9, "label": 1 }, { "name": "ruby_package", "number": 45, "type": 9, "label": 1 }, { "name": "features", "number": 50, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "enumType": [{ "name": "OptimizeMode", "value": [{ "name": "SPEED", "number": 1 }, { "name": "CODE_SIZE", "number": 2 }, { "name": "LITE_RUNTIME", "number": 3 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "MessageOptions", "field": [{ "name": "message_set_wire_format", "number": 1, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "no_standard_descriptor_accessor", "number": 2, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "map_entry", "number": 7, "type": 8, "label": 1 }, { "name": "deprecated_legacy_json_field_conflicts", "number": 11, "type": 8, "label": 1, "options": { "deprecated": true } }, { "name": "features", "number": 12, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "FieldOptions", "field": [{ "name": "ctype", "number": 1, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldOptions.CType", "defaultValue": "STRING" }, { "name": "packed", "number": 2, "type": 8, "label": 1 }, { "name": "jstype", "number": 6, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldOptions.JSType", "defaultValue": "JS_NORMAL" }, { "name": "lazy", "number": 5, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "unverified_lazy", "number": 15, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "weak", "number": 10, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "debug_redact", "number": 16, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "retention", "number": 17, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldOptions.OptionRetention" }, { "name": "targets", "number": 19, "type": 14, "label": 3, "typeName": ".google.protobuf.FieldOptions.OptionTargetType" }, { "name": "edition_defaults", "number": 20, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldOptions.EditionDefault" }, { "name": "features", "number": 21, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "feature_support", "number": 22, "type": 11, "label": 1, "typeName": ".google.protobuf.FieldOptions.FeatureSupport" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "nestedType": [{ "name": "EditionDefault", "field": [{ "name": "edition", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "value", "number": 2, "type": 9, "label": 1 }] }, { "name": "FeatureSupport", "field": [{ "name": "edition_introduced", "number": 1, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "edition_deprecated", "number": 2, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "deprecation_warning", "number": 3, "type": 9, "label": 1 }, { "name": "edition_removed", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }] }], "enumType": [{ "name": "CType", "value": [{ "name": "STRING", "number": 0 }, { "name": "CORD", "number": 1 }, { "name": "STRING_PIECE", "number": 2 }] }, { "name": "JSType", "value": [{ "name": "JS_NORMAL", "number": 0 }, { "name": "JS_STRING", "number": 1 }, { "name": "JS_NUMBER", "number": 2 }] }, { "name": "OptionRetention", "value": [{ "name": "RETENTION_UNKNOWN", "number": 0 }, { "name": "RETENTION_RUNTIME", "number": 1 }, { "name": "RETENTION_SOURCE", "number": 2 }] }, { "name": "OptionTargetType", "value": [{ "name": "TARGET_TYPE_UNKNOWN", "number": 0 }, { "name": "TARGET_TYPE_FILE", "number": 1 }, { "name": "TARGET_TYPE_EXTENSION_RANGE", "number": 2 }, { "name": "TARGET_TYPE_MESSAGE", "number": 3 }, { "name": "TARGET_TYPE_FIELD", "number": 4 }, { "name": "TARGET_TYPE_ONEOF", "number": 5 }, { "name": "TARGET_TYPE_ENUM", "number": 6 }, { "name": "TARGET_TYPE_ENUM_ENTRY", "number": 7 }, { "name": "TARGET_TYPE_SERVICE", "number": 8 }, { "name": "TARGET_TYPE_METHOD", "number": 9 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "OneofOptions", "field": [{ "name": "features", "number": 1, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "EnumOptions", "field": [{ "name": "allow_alias", "number": 2, "type": 8, "label": 1 }, { "name": "deprecated", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated_legacy_json_field_conflicts", "number": 6, "type": 8, "label": 1, "options": { "deprecated": true } }, { "name": "features", "number": 7, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "EnumValueOptions", "field": [{ "name": "deprecated", "number": 1, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "features", "number": 2, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "debug_redact", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "feature_support", "number": 4, "type": 11, "label": 1, "typeName": ".google.protobuf.FieldOptions.FeatureSupport" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "ServiceOptions", "field": [{ "name": "features", "number": 34, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "deprecated", "number": 33, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "MethodOptions", "field": [{ "name": "deprecated", "number": 33, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "idempotency_level", "number": 34, "type": 14, "label": 1, "typeName": ".google.protobuf.MethodOptions.IdempotencyLevel", "defaultValue": "IDEMPOTENCY_UNKNOWN" }, { "name": "features", "number": 35, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "enumType": [{ "name": "IdempotencyLevel", "value": [{ "name": "IDEMPOTENCY_UNKNOWN", "number": 0 }, { "name": "NO_SIDE_EFFECTS", "number": 1 }, { "name": "IDEMPOTENT", "number": 2 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "UninterpretedOption", "field": [{ "name": "name", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption.NamePart" }, { "name": "identifier_value", "number": 3, "type": 9, "label": 1 }, { "name": "positive_int_value", "number": 4, "type": 4, "label": 1 }, { "name": "negative_int_value", "number": 5, "type": 3, "label": 1 }, { "name": "double_value", "number": 6, "type": 1, "label": 1 }, { "name": "string_value", "number": 7, "type": 12, "label": 1 }, { "name": "aggregate_value", "number": 8, "type": 9, "label": 1 }], "nestedType": [{ "name": "NamePart", "field": [{ "name": "name_part", "number": 1, "type": 9, "label": 2 }, { "name": "is_extension", "number": 2, "type": 8, "label": 2 }] }] }, { "name": "FeatureSet", "field": [{ "name": "field_presence", "number": 1, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.FieldPresence", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "EXPLICIT", "edition": 900 }, { "value": "IMPLICIT", "edition": 999 }, { "value": "EXPLICIT", "edition": 1000 }] } }, { "name": "enum_type", "number": 2, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.EnumType", "options": { "retention": 1, "targets": [6, 1], "editionDefaults": [{ "value": "CLOSED", "edition": 900 }, { "value": "OPEN", "edition": 999 }] } }, { "name": "repeated_field_encoding", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.RepeatedFieldEncoding", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "EXPANDED", "edition": 900 }, { "value": "PACKED", "edition": 999 }] } }, { "name": "utf8_validation", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.Utf8Validation", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "NONE", "edition": 900 }, { "value": "VERIFY", "edition": 999 }] } }, { "name": "message_encoding", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.MessageEncoding", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "LENGTH_PREFIXED", "edition": 900 }] } }, { "name": "json_format", "number": 6, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.JsonFormat", "options": { "retention": 1, "targets": [3, 6, 1], "editionDefaults": [{ "value": "LEGACY_BEST_EFFORT", "edition": 900 }, { "value": "ALLOW", "edition": 999 }] } }, { "name": "enforce_naming_style", "number": 7, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.EnforceNamingStyle", "options": { "retention": 2, "targets": [1, 2, 3, 4, 5, 6, 7, 8, 9], "editionDefaults": [{ "value": "STYLE_LEGACY", "edition": 900 }, { "value": "STYLE2024", "edition": 1001 }] } }, { "name": "default_symbol_visibility", "number": 8, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.VisibilityFeature.DefaultSymbolVisibility", "options": { "retention": 2, "targets": [1], "editionDefaults": [{ "value": "EXPORT_ALL", "edition": 900 }, { "value": "EXPORT_TOP_LEVEL", "edition": 1001 }] } }], "nestedType": [{ "name": "VisibilityFeature", "enumType": [{ "name": "DefaultSymbolVisibility", "value": [{ "name": "DEFAULT_SYMBOL_VISIBILITY_UNKNOWN", "number": 0 }, { "name": "EXPORT_ALL", "number": 1 }, { "name": "EXPORT_TOP_LEVEL", "number": 2 }, { "name": "LOCAL_ALL", "number": 3 }, { "name": "STRICT", "number": 4 }] }] }], "enumType": [{ "name": "FieldPresence", "value": [{ "name": "FIELD_PRESENCE_UNKNOWN", "number": 0 }, { "name": "EXPLICIT", "number": 1 }, { "name": "IMPLICIT", "number": 2 }, { "name": "LEGACY_REQUIRED", "number": 3 }] }, { "name": "EnumType", "value": [{ "name": "ENUM_TYPE_UNKNOWN", "number": 0 }, { "name": "OPEN", "number": 1 }, { "name": "CLOSED", "number": 2 }] }, { "name": "RepeatedFieldEncoding", "value": [{ "name": "REPEATED_FIELD_ENCODING_UNKNOWN", "number": 0 }, { "name": "PACKED", "number": 1 }, { "name": "EXPANDED", "number": 2 }] }, { "name": "Utf8Validation", "value": [{ "name": "UTF8_VALIDATION_UNKNOWN", "number": 0 }, { "name": "VERIFY", "number": 2 }, { "name": "NONE", "number": 3 }] }, { "name": "MessageEncoding", "value": [{ "name": "MESSAGE_ENCODING_UNKNOWN", "number": 0 }, { "name": "LENGTH_PREFIXED", "number": 1 }, { "name": "DELIMITED", "number": 2 }] }, { "name": "JsonFormat", "value": [{ "name": "JSON_FORMAT_UNKNOWN", "number": 0 }, { "name": "ALLOW", "number": 1 }, { "name": "LEGACY_BEST_EFFORT", "number": 2 }] }, { "name": "EnforceNamingStyle", "value": [{ "name": "ENFORCE_NAMING_STYLE_UNKNOWN", "number": 0 }, { "name": "STYLE2024", "number": 1 }, { "name": "STYLE_LEGACY", "number": 2 }] }], "extensionRange": [{ "start": 1000, "end": 9995 }, { "start": 9995, "end": 10000 }, { "start": 10000, "end": 10001 }] }, { "name": "FeatureSetDefaults", "field": [{ "name": "defaults", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.FeatureSetDefaults.FeatureSetEditionDefault" }, { "name": "minimum_edition", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "maximum_edition", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }], "nestedType": [{ "name": "FeatureSetEditionDefault", "field": [{ "name": "edition", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "overridable_features", "number": 4, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "fixed_features", "number": 5, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }] }] }, { "name": "SourceCodeInfo", "field": [{ "name": "location", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.SourceCodeInfo.Location" }], "nestedType": [{ "name": "Location", "field": [{ "name": "path", "number": 1, "type": 5, "label": 3, "options": { "packed": true } }, { "name": "span", "number": 2, "type": 5, "label": 3, "options": { "packed": true } }, { "name": "leading_comments", "number": 3, "type": 9, "label": 1 }, { "name": "trailing_comments", "number": 4, "type": 9, "label": 1 }, { "name": "leading_detached_comments", "number": 6, "type": 9, "label": 3 }] }], "extensionRange": [{ "start": 536000000, "end": 536000001 }] }, { "name": "GeneratedCodeInfo", "field": [{ "name": "annotation", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.GeneratedCodeInfo.Annotation" }], "nestedType": [{ "name": "Annotation", "field": [{ "name": "path", "number": 1, "type": 5, "label": 3, "options": { "packed": true } }, { "name": "source_file", "number": 2, "type": 9, "label": 1 }, { "name": "begin", "number": 3, "type": 5, "label": 1 }, { "name": "end", "number": 4, "type": 5, "label": 1 }, { "name": "semantic", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.GeneratedCodeInfo.Annotation.Semantic" }], "enumType": [{ "name": "Semantic", "value": [{ "name": "NONE", "number": 0 }, { "name": "SET", "number": 1 }, { "name": "ALIAS", "number": 2 }] }] }] }], "enumType": [{ "name": "Edition", "value": [{ "name": "EDITION_UNKNOWN", "number": 0 }, { "name": "EDITION_LEGACY", "number": 900 }, { "name": "EDITION_PROTO2", "number": 998 }, { "name": "EDITION_PROTO3", "number": 999 }, { "name": "EDITION_2023", "number": 1000 }, { "name": "EDITION_2024", "number": 1001 }, { "name": "EDITION_1_TEST_ONLY", "number": 1 }, { "name": "EDITION_2_TEST_ONLY", "number": 2 }, { "name": "EDITION_99997_TEST_ONLY", "number": 99997 }, { "name": "EDITION_99998_TEST_ONLY", "number": 99998 }, { "name": "EDITION_99999_TEST_ONLY", "number": 99999 }, { "name": "EDITION_MAX", "number": 2147483647 }] }, { "name": "SymbolVisibility", "value": [{ "name": "VISIBILITY_UNSET", "number": 0 }, { "name": "VISIBILITY_LOCAL", "number": 1 }, { "name": "VISIBILITY_EXPORT", "number": 2 }] }] });
+const file_google_protobuf_descriptor = /*@__PURE__*/ boot({ "name": "google/protobuf/descriptor.proto", "package": "google.protobuf", "messageType": [{ "name": "FileDescriptorSet", "field": [{ "name": "file", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.FileDescriptorProto" }], "extensionRange": [{ "start": 536000000, "end": 536000001 }] }, { "name": "FileDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "package", "number": 2, "type": 9, "label": 1 }, { "name": "dependency", "number": 3, "type": 9, "label": 3 }, { "name": "public_dependency", "number": 10, "type": 5, "label": 3 }, { "name": "weak_dependency", "number": 11, "type": 5, "label": 3 }, { "name": "option_dependency", "number": 15, "type": 9, "label": 3 }, { "name": "message_type", "number": 4, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto" }, { "name": "enum_type", "number": 5, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumDescriptorProto" }, { "name": "service", "number": 6, "type": 11, "label": 3, "typeName": ".google.protobuf.ServiceDescriptorProto" }, { "name": "extension", "number": 7, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldDescriptorProto" }, { "name": "options", "number": 8, "type": 11, "label": 1, "typeName": ".google.protobuf.FileOptions" }, { "name": "source_code_info", "number": 9, "type": 11, "label": 1, "typeName": ".google.protobuf.SourceCodeInfo" }, { "name": "syntax", "number": 12, "type": 9, "label": 1 }, { "name": "edition", "number": 14, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }] }, { "name": "DescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "field", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldDescriptorProto" }, { "name": "extension", "number": 6, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldDescriptorProto" }, { "name": "nested_type", "number": 3, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto" }, { "name": "enum_type", "number": 4, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumDescriptorProto" }, { "name": "extension_range", "number": 5, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto.ExtensionRange" }, { "name": "oneof_decl", "number": 8, "type": 11, "label": 3, "typeName": ".google.protobuf.OneofDescriptorProto" }, { "name": "options", "number": 7, "type": 11, "label": 1, "typeName": ".google.protobuf.MessageOptions" }, { "name": "reserved_range", "number": 9, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto.ReservedRange" }, { "name": "reserved_name", "number": 10, "type": 9, "label": 3 }, { "name": "visibility", "number": 11, "type": 14, "label": 1, "typeName": ".google.protobuf.SymbolVisibility" }], "nestedType": [{ "name": "ExtensionRange", "field": [{ "name": "start", "number": 1, "type": 5, "label": 1 }, { "name": "end", "number": 2, "type": 5, "label": 1 }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.ExtensionRangeOptions" }] }, { "name": "ReservedRange", "field": [{ "name": "start", "number": 1, "type": 5, "label": 1 }, { "name": "end", "number": 2, "type": 5, "label": 1 }] }] }, { "name": "ExtensionRangeOptions", "field": [{ "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }, { "name": "declaration", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.ExtensionRangeOptions.Declaration", "options": { "retention": 2 } }, { "name": "features", "number": 50, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "verification", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.ExtensionRangeOptions.VerificationState", "defaultValue": "UNVERIFIED", "options": { "retention": 2 } }], "nestedType": [{ "name": "Declaration", "field": [{ "name": "number", "number": 1, "type": 5, "label": 1 }, { "name": "full_name", "number": 2, "type": 9, "label": 1 }, { "name": "type", "number": 3, "type": 9, "label": 1 }, { "name": "reserved", "number": 5, "type": 8, "label": 1 }, { "name": "repeated", "number": 6, "type": 8, "label": 1 }] }], "enumType": [{ "name": "VerificationState", "value": [{ "name": "DECLARATION", "number": 0 }, { "name": "UNVERIFIED", "number": 1 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "FieldDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "number", "number": 3, "type": 5, "label": 1 }, { "name": "label", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldDescriptorProto.Label" }, { "name": "type", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldDescriptorProto.Type" }, { "name": "type_name", "number": 6, "type": 9, "label": 1 }, { "name": "extendee", "number": 2, "type": 9, "label": 1 }, { "name": "default_value", "number": 7, "type": 9, "label": 1 }, { "name": "oneof_index", "number": 9, "type": 5, "label": 1 }, { "name": "json_name", "number": 10, "type": 9, "label": 1 }, { "name": "options", "number": 8, "type": 11, "label": 1, "typeName": ".google.protobuf.FieldOptions" }, { "name": "proto3_optional", "number": 17, "type": 8, "label": 1 }], "enumType": [{ "name": "Type", "value": [{ "name": "TYPE_DOUBLE", "number": 1 }, { "name": "TYPE_FLOAT", "number": 2 }, { "name": "TYPE_INT64", "number": 3 }, { "name": "TYPE_UINT64", "number": 4 }, { "name": "TYPE_INT32", "number": 5 }, { "name": "TYPE_FIXED64", "number": 6 }, { "name": "TYPE_FIXED32", "number": 7 }, { "name": "TYPE_BOOL", "number": 8 }, { "name": "TYPE_STRING", "number": 9 }, { "name": "TYPE_GROUP", "number": 10 }, { "name": "TYPE_MESSAGE", "number": 11 }, { "name": "TYPE_BYTES", "number": 12 }, { "name": "TYPE_UINT32", "number": 13 }, { "name": "TYPE_ENUM", "number": 14 }, { "name": "TYPE_SFIXED32", "number": 15 }, { "name": "TYPE_SFIXED64", "number": 16 }, { "name": "TYPE_SINT32", "number": 17 }, { "name": "TYPE_SINT64", "number": 18 }] }, { "name": "Label", "value": [{ "name": "LABEL_OPTIONAL", "number": 1 }, { "name": "LABEL_REPEATED", "number": 3 }, { "name": "LABEL_REQUIRED", "number": 2 }] }] }, { "name": "OneofDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "options", "number": 2, "type": 11, "label": 1, "typeName": ".google.protobuf.OneofOptions" }] }, { "name": "EnumDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "value", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumValueDescriptorProto" }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.EnumOptions" }, { "name": "reserved_range", "number": 4, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumDescriptorProto.EnumReservedRange" }, { "name": "reserved_name", "number": 5, "type": 9, "label": 3 }, { "name": "visibility", "number": 6, "type": 14, "label": 1, "typeName": ".google.protobuf.SymbolVisibility" }], "nestedType": [{ "name": "EnumReservedRange", "field": [{ "name": "start", "number": 1, "type": 5, "label": 1 }, { "name": "end", "number": 2, "type": 5, "label": 1 }] }] }, { "name": "EnumValueDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "number", "number": 2, "type": 5, "label": 1 }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.EnumValueOptions" }] }, { "name": "ServiceDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "method", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.MethodDescriptorProto" }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.ServiceOptions" }] }, { "name": "MethodDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "input_type", "number": 2, "type": 9, "label": 1 }, { "name": "output_type", "number": 3, "type": 9, "label": 1 }, { "name": "options", "number": 4, "type": 11, "label": 1, "typeName": ".google.protobuf.MethodOptions" }, { "name": "client_streaming", "number": 5, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "server_streaming", "number": 6, "type": 8, "label": 1, "defaultValue": "false" }] }, { "name": "FileOptions", "field": [{ "name": "java_package", "number": 1, "type": 9, "label": 1 }, { "name": "java_outer_classname", "number": 8, "type": 9, "label": 1 }, { "name": "java_multiple_files", "number": 10, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "java_generate_equals_and_hash", "number": 20, "type": 8, "label": 1, "options": { "deprecated": true } }, { "name": "java_string_check_utf8", "number": 27, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "optimize_for", "number": 9, "type": 14, "label": 1, "typeName": ".google.protobuf.FileOptions.OptimizeMode", "defaultValue": "SPEED" }, { "name": "go_package", "number": 11, "type": 9, "label": 1 }, { "name": "cc_generic_services", "number": 16, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "java_generic_services", "number": 17, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "py_generic_services", "number": 18, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated", "number": 23, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "cc_enable_arenas", "number": 31, "type": 8, "label": 1, "defaultValue": "true" }, { "name": "objc_class_prefix", "number": 36, "type": 9, "label": 1 }, { "name": "csharp_namespace", "number": 37, "type": 9, "label": 1 }, { "name": "swift_prefix", "number": 39, "type": 9, "label": 1 }, { "name": "php_class_prefix", "number": 40, "type": 9, "label": 1 }, { "name": "php_namespace", "number": 41, "type": 9, "label": 1 }, { "name": "php_metadata_namespace", "number": 44, "type": 9, "label": 1 }, { "name": "ruby_package", "number": 45, "type": 9, "label": 1 }, { "name": "features", "number": 50, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "enumType": [{ "name": "OptimizeMode", "value": [{ "name": "SPEED", "number": 1 }, { "name": "CODE_SIZE", "number": 2 }, { "name": "LITE_RUNTIME", "number": 3 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "MessageOptions", "field": [{ "name": "message_set_wire_format", "number": 1, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "no_standard_descriptor_accessor", "number": 2, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "map_entry", "number": 7, "type": 8, "label": 1 }, { "name": "deprecated_legacy_json_field_conflicts", "number": 11, "type": 8, "label": 1, "options": { "deprecated": true } }, { "name": "features", "number": 12, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "FieldOptions", "field": [{ "name": "ctype", "number": 1, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldOptions.CType", "defaultValue": "STRING" }, { "name": "packed", "number": 2, "type": 8, "label": 1 }, { "name": "jstype", "number": 6, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldOptions.JSType", "defaultValue": "JS_NORMAL" }, { "name": "lazy", "number": 5, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "unverified_lazy", "number": 15, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "weak", "number": 10, "type": 8, "label": 1, "defaultValue": "false", "options": { "deprecated": true } }, { "name": "debug_redact", "number": 16, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "retention", "number": 17, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldOptions.OptionRetention" }, { "name": "targets", "number": 19, "type": 14, "label": 3, "typeName": ".google.protobuf.FieldOptions.OptionTargetType" }, { "name": "edition_defaults", "number": 20, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldOptions.EditionDefault" }, { "name": "features", "number": 21, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "feature_support", "number": 22, "type": 11, "label": 1, "typeName": ".google.protobuf.FieldOptions.FeatureSupport" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "nestedType": [{ "name": "EditionDefault", "field": [{ "name": "edition", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "value", "number": 2, "type": 9, "label": 1 }] }, { "name": "FeatureSupport", "field": [{ "name": "edition_introduced", "number": 1, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "edition_deprecated", "number": 2, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "deprecation_warning", "number": 3, "type": 9, "label": 1 }, { "name": "edition_removed", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }] }], "enumType": [{ "name": "CType", "value": [{ "name": "STRING", "number": 0 }, { "name": "CORD", "number": 1 }, { "name": "STRING_PIECE", "number": 2 }] }, { "name": "JSType", "value": [{ "name": "JS_NORMAL", "number": 0 }, { "name": "JS_STRING", "number": 1 }, { "name": "JS_NUMBER", "number": 2 }] }, { "name": "OptionRetention", "value": [{ "name": "RETENTION_UNKNOWN", "number": 0 }, { "name": "RETENTION_RUNTIME", "number": 1 }, { "name": "RETENTION_SOURCE", "number": 2 }] }, { "name": "OptionTargetType", "value": [{ "name": "TARGET_TYPE_UNKNOWN", "number": 0 }, { "name": "TARGET_TYPE_FILE", "number": 1 }, { "name": "TARGET_TYPE_EXTENSION_RANGE", "number": 2 }, { "name": "TARGET_TYPE_MESSAGE", "number": 3 }, { "name": "TARGET_TYPE_FIELD", "number": 4 }, { "name": "TARGET_TYPE_ONEOF", "number": 5 }, { "name": "TARGET_TYPE_ENUM", "number": 6 }, { "name": "TARGET_TYPE_ENUM_ENTRY", "number": 7 }, { "name": "TARGET_TYPE_SERVICE", "number": 8 }, { "name": "TARGET_TYPE_METHOD", "number": 9 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "OneofOptions", "field": [{ "name": "features", "number": 1, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "EnumOptions", "field": [{ "name": "allow_alias", "number": 2, "type": 8, "label": 1 }, { "name": "deprecated", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated_legacy_json_field_conflicts", "number": 6, "type": 8, "label": 1, "options": { "deprecated": true } }, { "name": "features", "number": 7, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "EnumValueOptions", "field": [{ "name": "deprecated", "number": 1, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "features", "number": 2, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "debug_redact", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "feature_support", "number": 4, "type": 11, "label": 1, "typeName": ".google.protobuf.FieldOptions.FeatureSupport" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "ServiceOptions", "field": [{ "name": "features", "number": 34, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "deprecated", "number": 33, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "MethodOptions", "field": [{ "name": "deprecated", "number": 33, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "idempotency_level", "number": 34, "type": 14, "label": 1, "typeName": ".google.protobuf.MethodOptions.IdempotencyLevel", "defaultValue": "IDEMPOTENCY_UNKNOWN" }, { "name": "features", "number": 35, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "enumType": [{ "name": "IdempotencyLevel", "value": [{ "name": "IDEMPOTENCY_UNKNOWN", "number": 0 }, { "name": "NO_SIDE_EFFECTS", "number": 1 }, { "name": "IDEMPOTENT", "number": 2 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "UninterpretedOption", "field": [{ "name": "name", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption.NamePart" }, { "name": "identifier_value", "number": 3, "type": 9, "label": 1 }, { "name": "positive_int_value", "number": 4, "type": 4, "label": 1 }, { "name": "negative_int_value", "number": 5, "type": 3, "label": 1 }, { "name": "double_value", "number": 6, "type": 1, "label": 1 }, { "name": "string_value", "number": 7, "type": 12, "label": 1 }, { "name": "aggregate_value", "number": 8, "type": 9, "label": 1 }], "nestedType": [{ "name": "NamePart", "field": [{ "name": "name_part", "number": 1, "type": 9, "label": 2 }, { "name": "is_extension", "number": 2, "type": 8, "label": 2 }] }] }, { "name": "FeatureSet", "field": [{ "name": "field_presence", "number": 1, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.FieldPresence", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "EXPLICIT", "edition": 900 }, { "value": "IMPLICIT", "edition": 999 }, { "value": "EXPLICIT", "edition": 1000 }] } }, { "name": "enum_type", "number": 2, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.EnumType", "options": { "retention": 1, "targets": [6, 1], "editionDefaults": [{ "value": "CLOSED", "edition": 900 }, { "value": "OPEN", "edition": 999 }] } }, { "name": "repeated_field_encoding", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.RepeatedFieldEncoding", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "EXPANDED", "edition": 900 }, { "value": "PACKED", "edition": 999 }] } }, { "name": "utf8_validation", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.Utf8Validation", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "NONE", "edition": 900 }, { "value": "VERIFY", "edition": 999 }] } }, { "name": "message_encoding", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.MessageEncoding", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "LENGTH_PREFIXED", "edition": 900 }] } }, { "name": "json_format", "number": 6, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.JsonFormat", "options": { "retention": 1, "targets": [3, 6, 1], "editionDefaults": [{ "value": "LEGACY_BEST_EFFORT", "edition": 900 }, { "value": "ALLOW", "edition": 999 }] } }, { "name": "enforce_naming_style", "number": 7, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.EnforceNamingStyle", "options": { "retention": 2, "targets": [1, 2, 3, 4, 5, 6, 7, 8, 9], "editionDefaults": [{ "value": "STYLE_LEGACY", "edition": 900 }, { "value": "STYLE2024", "edition": 1001 }] } }, { "name": "default_symbol_visibility", "number": 8, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.VisibilityFeature.DefaultSymbolVisibility", "options": { "retention": 2, "targets": [1], "editionDefaults": [{ "value": "EXPORT_ALL", "edition": 900 }, { "value": "EXPORT_TOP_LEVEL", "edition": 1001 }] } }], "nestedType": [{ "name": "VisibilityFeature", "enumType": [{ "name": "DefaultSymbolVisibility", "value": [{ "name": "DEFAULT_SYMBOL_VISIBILITY_UNKNOWN", "number": 0 }, { "name": "EXPORT_ALL", "number": 1 }, { "name": "EXPORT_TOP_LEVEL", "number": 2 }, { "name": "LOCAL_ALL", "number": 3 }, { "name": "STRICT", "number": 4 }] }] }], "enumType": [{ "name": "FieldPresence", "value": [{ "name": "FIELD_PRESENCE_UNKNOWN", "number": 0 }, { "name": "EXPLICIT", "number": 1 }, { "name": "IMPLICIT", "number": 2 }, { "name": "LEGACY_REQUIRED", "number": 3 }] }, { "name": "EnumType", "value": [{ "name": "ENUM_TYPE_UNKNOWN", "number": 0 }, { "name": "OPEN", "number": 1 }, { "name": "CLOSED", "number": 2 }] }, { "name": "RepeatedFieldEncoding", "value": [{ "name": "REPEATED_FIELD_ENCODING_UNKNOWN", "number": 0 }, { "name": "PACKED", "number": 1 }, { "name": "EXPANDED", "number": 2 }] }, { "name": "Utf8Validation", "value": [{ "name": "UTF8_VALIDATION_UNKNOWN", "number": 0 }, { "name": "VERIFY", "number": 2 }, { "name": "NONE", "number": 3 }] }, { "name": "MessageEncoding", "value": [{ "name": "MESSAGE_ENCODING_UNKNOWN", "number": 0 }, { "name": "LENGTH_PREFIXED", "number": 1 }, { "name": "DELIMITED", "number": 2 }] }, { "name": "JsonFormat", "value": [{ "name": "JSON_FORMAT_UNKNOWN", "number": 0 }, { "name": "ALLOW", "number": 1 }, { "name": "LEGACY_BEST_EFFORT", "number": 2 }] }, { "name": "EnforceNamingStyle", "value": [{ "name": "ENFORCE_NAMING_STYLE_UNKNOWN", "number": 0 }, { "name": "STYLE2024", "number": 1 }, { "name": "STYLE_LEGACY", "number": 2 }] }], "extensionRange": [{ "start": 1000, "end": 9995 }, { "start": 9995, "end": 10000 }, { "start": 10000, "end": 10001 }] }, { "name": "FeatureSetDefaults", "field": [{ "name": "defaults", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.FeatureSetDefaults.FeatureSetEditionDefault" }, { "name": "minimum_edition", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "maximum_edition", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }], "nestedType": [{ "name": "FeatureSetEditionDefault", "field": [{ "name": "edition", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "overridable_features", "number": 4, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "fixed_features", "number": 5, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }] }] }, { "name": "SourceCodeInfo", "field": [{ "name": "location", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.SourceCodeInfo.Location" }], "nestedType": [{ "name": "Location", "field": [{ "name": "path", "number": 1, "type": 5, "label": 3, "options": { "packed": true } }, { "name": "span", "number": 2, "type": 5, "label": 3, "options": { "packed": true } }, { "name": "leading_comments", "number": 3, "type": 9, "label": 1 }, { "name": "trailing_comments", "number": 4, "type": 9, "label": 1 }, { "name": "leading_detached_comments", "number": 6, "type": 9, "label": 3 }] }], "extensionRange": [{ "start": 536000000, "end": 536000001 }] }, { "name": "GeneratedCodeInfo", "field": [{ "name": "annotation", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.GeneratedCodeInfo.Annotation" }], "nestedType": [{ "name": "Annotation", "field": [{ "name": "path", "number": 1, "type": 5, "label": 3, "options": { "packed": true } }, { "name": "source_file", "number": 2, "type": 9, "label": 1 }, { "name": "begin", "number": 3, "type": 5, "label": 1 }, { "name": "end", "number": 4, "type": 5, "label": 1 }, { "name": "semantic", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.GeneratedCodeInfo.Annotation.Semantic" }], "enumType": [{ "name": "Semantic", "value": [{ "name": "NONE", "number": 0 }, { "name": "SET", "number": 1 }, { "name": "ALIAS", "number": 2 }] }] }] }], "enumType": [{ "name": "Edition", "value": [{ "name": "EDITION_UNKNOWN", "number": 0 }, { "name": "EDITION_LEGACY", "number": 900 }, { "name": "EDITION_PROTO2", "number": 998 }, { "name": "EDITION_PROTO3", "number": 999 }, { "name": "EDITION_2023", "number": 1000 }, { "name": "EDITION_2024", "number": 1001 }, { "name": "EDITION_UNSTABLE", "number": 9999 }, { "name": "EDITION_1_TEST_ONLY", "number": 1 }, { "name": "EDITION_2_TEST_ONLY", "number": 2 }, { "name": "EDITION_99997_TEST_ONLY", "number": 99997 }, { "name": "EDITION_99998_TEST_ONLY", "number": 99998 }, { "name": "EDITION_99999_TEST_ONLY", "number": 99999 }, { "name": "EDITION_MAX", "number": 2147483647 }] }, { "name": "SymbolVisibility", "value": [{ "name": "VISIBILITY_UNSET", "number": 0 }, { "name": "VISIBILITY_LOCAL", "number": 1 }, { "name": "VISIBILITY_EXPORT", "number": 2 }] }] });
 /**
  * Describes the message google.protobuf.FileDescriptorSet.
  * Use `create(FileDescriptorSetSchema)` to create a new message.
@@ -42075,6 +42123,12 @@ var Edition;
      */
     Edition[Edition["EDITION_2024"] = 1001] = "EDITION_2024";
     /**
+     * A placeholder edition for developing and testing unscheduled features.
+     *
+     * @generated from enum value: EDITION_UNSTABLE = 9999;
+     */
+    Edition[Edition["EDITION_UNSTABLE"] = 9999] = "EDITION_UNSTABLE";
+    /**
      * Placeholder editions for testing feature resolution.  These should not be
      * used or relied on outside of tests.
      *
@@ -42140,7 +42194,7 @@ var SymbolVisibility;
 const SymbolVisibilitySchema = /*@__PURE__*/ (/* unused pure expression or super */ null && (enumDesc(file_google_protobuf_descriptor, 1)));
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/from-binary.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42153,6 +42207,7 @@ const SymbolVisibilitySchema = /*@__PURE__*/ (/* unused pure expression or super
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 
 
 
@@ -42243,9 +42298,14 @@ function readField(message, reader, field, wireType, options) {
                     message.set(field, val);
                 }
                 else if (options.readUnknownFields) {
-                    const data = new BinaryWriter().int32(val).finish();
+                    const bytes = [];
+                    varint32write(val, bytes);
                     const unknownFields = (_a = message.getUnknown()) !== null && _a !== void 0 ? _a : [];
-                    unknownFields.push({ no: field.number, wireType, data });
+                    unknownFields.push({
+                        no: field.number,
+                        wireType,
+                        data: new Uint8Array(bytes),
+                    });
                     message.setUnknown(unknownFields);
                 }
             }
@@ -42372,7 +42432,7 @@ function readScalar(reader, type) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/codegenv2/file.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42406,7 +42466,7 @@ function fileDesc(b64, imports) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/gen/google/protobuf/any_pb.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42432,7 +42492,7 @@ const file_google_protobuf_any = /*@__PURE__*/ fileDesc("Chlnb29nbGUvcHJvdG9idWY
 const AnySchema = /*@__PURE__*/ message_messageDesc(file_google_protobuf_any, 0);
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/to-binary.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42629,7 +42689,7 @@ function writeTypeOfScalar(type) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/any.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42700,7 +42760,7 @@ function typeUrlToName(url) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/gen/google/protobuf/struct_pb.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42758,7 +42818,7 @@ var NullValue;
 const NullValueSchema = /*@__PURE__*/ (/* unused pure expression or super */ null && (enumDesc(file_google_protobuf_struct, 0)));
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/extensions.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42920,7 +42980,7 @@ function assertExtendee(extension, message) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/from-json.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -43015,11 +43075,7 @@ function mergeFromJson(schema, target, json, options) {
  * Parses an enum value from JSON.
  */
 function enumFromJson(descEnum, json) {
-    const val = readEnum(descEnum, json, false, false);
-    if (val === tokenIgnoredUnknownEnum) {
-        throw new Error(`cannot decode ${descEnum} from JSON: ${formatVal(json)}`);
-    }
-    return val;
+    return readEnum(descEnum, json, false);
 }
 /**
  * Is the given value a JSON enum value?
@@ -43027,21 +43083,29 @@ function enumFromJson(descEnum, json) {
 function isEnumJson(descEnum, value) {
     return undefined !== descEnum.values.find((v) => v.name === value);
 }
+const messageJsonFields = new WeakMap();
+function getJsonField(desc, jsonKey) {
+    var _a;
+    if (!messageJsonFields.has(desc)) {
+        const jsonNames = new Map();
+        for (const field of desc.fields) {
+            jsonNames.set(field.name, field).set(field.jsonName, field);
+        }
+        messageJsonFields.set(desc, jsonNames);
+    }
+    return (_a = messageJsonFields.get(desc)) === null || _a === void 0 ? void 0 : _a.get(jsonKey);
+}
 function from_json_readMessage(msg, json, opts) {
     var _a;
     if (tryWktFromJson(msg, json, opts)) {
         return;
     }
     if (json == null || Array.isArray(json) || typeof json != "object") {
-        throw new Error(`cannot decode ${msg.desc} from JSON: ${reflect_check_formatVal(json)}`);
+        throw new Error(`cannot decode ${msg.desc} from JSON: ${formatVal(json)}`);
     }
     const oneofSeen = new Map();
-    const jsonNames = new Map();
-    for (const field of msg.desc.fields) {
-        jsonNames.set(field.name, field).set(field.jsonName, field);
-    }
     for (const [jsonKey, jsonValue] of Object.entries(json)) {
-        const field = jsonNames.get(jsonKey);
+        const field = getJsonField(msg.desc, jsonKey);
         if (field) {
             if (field.oneof) {
                 if (jsonValue === null && field.fieldKind == "scalar") {
@@ -43092,37 +43156,34 @@ function from_json_readField(msg, field, json, opts) {
             break;
     }
 }
+function readListOrMapItem(field, json, opts) {
+    if (field.scalar && json !== null) {
+        return scalarFromJson(field, json);
+    }
+    if (field.message && !isResetSentinelNullValue(field, json)) {
+        const msgValue = reflect_reflect(field.message);
+        from_json_readMessage(msgValue, json, opts);
+        return msgValue;
+    }
+    if (field.enum && !isResetSentinelNullValue(field, json)) {
+        return readEnum(field.enum, json, opts.ignoreUnknownFields);
+    }
+    throw new FieldError(field, `${field.fieldKind === "list" ? "list item" : "map value"} must not be null`);
+}
 function readMapField(map, json, opts) {
     if (json === null) {
         return;
     }
     const field = map.field();
     if (typeof json != "object" || Array.isArray(json)) {
-        throw new FieldError(field, "expected object, got " + reflect_check_formatVal(json));
+        throw new FieldError(field, "expected object, got " + formatVal(json));
     }
     for (const [jsonMapKey, jsonMapValue] of Object.entries(json)) {
-        if (jsonMapValue === null) {
-            throw new FieldError(field, "map value must not be null");
-        }
-        let value;
-        switch (field.mapKind) {
-            case "message":
-                const msgValue = reflect_reflect(field.message);
-                from_json_readMessage(msgValue, jsonMapValue, opts);
-                value = msgValue;
-                break;
-            case "enum":
-                value = readEnum(field.enum, jsonMapValue, opts.ignoreUnknownFields, true);
-                if (value === tokenIgnoredUnknownEnum) {
-                    return;
-                }
-                break;
-            case "scalar":
-                value = scalarFromJson(field, jsonMapValue, true);
-                break;
-        }
         const key = mapKeyFromJson(field.mapKey, jsonMapKey);
-        map.set(key, value);
+        const value = readListOrMapItem(field, jsonMapValue, opts);
+        if (value !== tokenIgnoredUnknownEnum) {
+            map.set(key, value);
+        }
     }
 }
 function from_json_readListField(list, json, opts) {
@@ -43131,32 +43192,17 @@ function from_json_readListField(list, json, opts) {
     }
     const field = list.field();
     if (!Array.isArray(json)) {
-        throw new FieldError(field, "expected Array, got " + reflect_check_formatVal(json));
+        throw new FieldError(field, "expected Array, got " + formatVal(json));
     }
     for (const jsonItem of json) {
-        if (jsonItem === null) {
-            throw new FieldError(field, "list item must not be null");
-        }
-        switch (field.listKind) {
-            case "message":
-                const msgValue = reflect_reflect(field.message);
-                from_json_readMessage(msgValue, jsonItem, opts);
-                list.add(msgValue);
-                break;
-            case "enum":
-                const enumValue = readEnum(field.enum, jsonItem, opts.ignoreUnknownFields, true);
-                if (enumValue !== tokenIgnoredUnknownEnum) {
-                    list.add(enumValue);
-                }
-                break;
-            case "scalar":
-                list.add(scalarFromJson(field, jsonItem, true));
-                break;
+        const value = readListOrMapItem(field, jsonItem, opts);
+        if (value !== tokenIgnoredUnknownEnum) {
+            list.add(value);
         }
     }
 }
 function from_json_readMessageField(msg, field, json, opts) {
-    if (json === null && field.message.typeName != "google.protobuf.Value") {
+    if (isResetSentinelNullValue(field, json)) {
         msg.clear(field);
         return;
     }
@@ -43165,30 +43211,44 @@ function from_json_readMessageField(msg, field, json, opts) {
     msg.set(field, msgValue);
 }
 function readEnumField(msg, field, json, opts) {
-    const enumValue = readEnum(field.enum, json, opts.ignoreUnknownFields, false);
-    if (enumValue === tokenNull) {
+    if (isResetSentinelNullValue(field, json)) {
         msg.clear(field);
+        return;
     }
-    else if (enumValue !== tokenIgnoredUnknownEnum) {
+    const enumValue = readEnum(field.enum, json, opts.ignoreUnknownFields);
+    if (enumValue !== tokenIgnoredUnknownEnum) {
         msg.set(field, enumValue);
     }
 }
 function readScalarField(msg, field, json) {
-    const scalarValue = scalarFromJson(field, json, false);
-    if (scalarValue === tokenNull) {
+    if (json === null) {
         msg.clear(field);
     }
     else {
-        msg.set(field, scalarValue);
+        msg.set(field, scalarFromJson(field, json));
     }
 }
+/**
+ * Indicates whether a value is a sentinel for reseting a field.
+ *
+ * For this to be true, the value must be a JSON null and the field must not
+ * permit a present, Protobuf-serializable null.
+ *
+ * Only message google.protobuf.Value and enum google.protobuf.NullValue fields
+ * permit Protobuf-serializable nulls.
+ *
+ * Note that field-resetting sentinel nulls are not permitted in lists and maps.
+ */
+function isResetSentinelNullValue(field, json) {
+    var _a, _b;
+    return (json === null &&
+        ((_a = field.message) === null || _a === void 0 ? void 0 : _a.typeName) != "google.protobuf.Value" &&
+        ((_b = field.enum) === null || _b === void 0 ? void 0 : _b.typeName) != "google.protobuf.NullValue");
+}
 const tokenIgnoredUnknownEnum = Symbol();
-function readEnum(desc, json, ignoreUnknownFields, nullAsZeroValue) {
+function readEnum(desc, json, ignoreUnknownFields) {
     if (json === null) {
-        if (desc.typeName == "google.protobuf.NullValue") {
-            return 0; // google.protobuf.NullValue.NULL_VALUE = 0
-        }
-        return nullAsZeroValue ? desc.values[0].number : tokenNull;
+        return desc.values[0].number;
     }
     switch (typeof json) {
         case "number":
@@ -43206,16 +43266,15 @@ function readEnum(desc, json, ignoreUnknownFields, nullAsZeroValue) {
             }
             break;
     }
-    throw new Error(`cannot decode ${desc} from JSON: ${reflect_check_formatVal(json)}`);
+    throw new Error(`cannot decode ${desc} from JSON: ${formatVal(json)}`);
 }
-const tokenNull = Symbol();
-function scalarFromJson(field, json, nullAsZeroValue) {
-    if (json === null) {
-        if (nullAsZeroValue) {
-            return scalarZeroValue(field.scalar, false);
-        }
-        return tokenNull;
-    }
+/**
+ * Try to parse a JSON value to a scalar value for the reflect API.
+ *
+ * Returns the input if the JSON value cannot be converted. Raises a FieldError
+ * if conversion would be ambiguous.
+ */
+function scalarFromJson(field, json) {
     // int64, sfixed64, sint64, fixed64, uint64: Reflect supports string and number.
     // string, bool: Supported by reflect.
     switch (field.scalar) {
@@ -43288,24 +43347,24 @@ function scalarFromJson(field, json, nullAsZeroValue) {
  *
  * Returns the input if the JSON value cannot be converted.
  */
-function mapKeyFromJson(type, json) {
+function mapKeyFromJson(type, jsonString) {
     switch (type) {
         case descriptors_ScalarType.BOOL:
-            switch (json) {
+            switch (jsonString) {
                 case "true":
                     return true;
                 case "false":
                     return false;
             }
-            return json;
+            return jsonString;
         case descriptors_ScalarType.INT32:
         case descriptors_ScalarType.FIXED32:
         case descriptors_ScalarType.UINT32:
         case descriptors_ScalarType.SFIXED32:
         case descriptors_ScalarType.SINT32:
-            return int32FromJson(json);
+            return int32FromJson(jsonString);
         default:
-            return json;
+            return jsonString;
     }
 }
 /**
@@ -43376,7 +43435,7 @@ function tryWktFromJson(msg, jsonValue, opts) {
                     msg.clear(valueField);
                 }
                 else {
-                    msg.set(valueField, scalarFromJson(valueField, jsonValue, true));
+                    msg.set(valueField, scalarFromJson(valueField, jsonValue));
                 }
                 return true;
             }
@@ -43386,7 +43445,7 @@ function tryWktFromJson(msg, jsonValue, opts) {
 function anyFromJson(any, json, opts) {
     var _a;
     if (json === null || Array.isArray(json) || typeof json != "object") {
-        throw new Error(`cannot decode message ${any.$typeName} from JSON: expected object but got ${reflect_check_formatVal(json)}`);
+        throw new Error(`cannot decode message ${any.$typeName} from JSON: expected object but got ${formatVal(json)}`);
     }
     if (Object.keys(json).length == 0) {
         return;
@@ -43421,7 +43480,7 @@ function anyFromJson(any, json, opts) {
 }
 function timestampFromJson(timestamp, json) {
     if (typeof json !== "string") {
-        throw new Error(`cannot decode message ${timestamp.$typeName} from JSON: ${reflect_check_formatVal(json)}`);
+        throw new Error(`cannot decode message ${timestamp.$typeName} from JSON: ${formatVal(json)}`);
     }
     const matches = json.match(/^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]{1,9}))?(?:Z|([+-][0-9][0-9]:[0-9][0-9]))$/);
     if (!matches) {
@@ -43447,15 +43506,15 @@ function timestampFromJson(timestamp, json) {
 }
 function durationFromJson(duration, json) {
     if (typeof json !== "string") {
-        throw new Error(`cannot decode message ${duration.$typeName} from JSON: ${reflect_check_formatVal(json)}`);
+        throw new Error(`cannot decode message ${duration.$typeName} from JSON: ${formatVal(json)}`);
     }
     const match = json.match(/^(-?[0-9]+)(?:\.([0-9]+))?s/);
     if (match === null) {
-        throw new Error(`cannot decode message ${duration.$typeName} from JSON: ${reflect_check_formatVal(json)}`);
+        throw new Error(`cannot decode message ${duration.$typeName} from JSON: ${formatVal(json)}`);
     }
     const longSeconds = Number(match[1]);
     if (longSeconds > 315576000000 || longSeconds < -315576000000) {
-        throw new Error(`cannot decode message ${duration.$typeName} from JSON: ${reflect_check_formatVal(json)}`);
+        throw new Error(`cannot decode message ${duration.$typeName} from JSON: ${formatVal(json)}`);
     }
     duration.seconds = protoInt64.parse(longSeconds);
     if (typeof match[2] !== "string") {
@@ -43469,23 +43528,21 @@ function durationFromJson(duration, json) {
 }
 function fieldMaskFromJson(fieldMask, json) {
     if (typeof json !== "string") {
-        throw new Error(`cannot decode message ${fieldMask.$typeName} from JSON: ${reflect_check_formatVal(json)}`);
+        throw new Error(`cannot decode message ${fieldMask.$typeName} from JSON: ${formatVal(json)}`);
     }
     if (json === "") {
         return;
     }
-    function camelToSnake(str) {
-        if (str.includes("_")) {
+    fieldMask.paths = json.split(",").map((path) => {
+        if (path.includes("_")) {
             throw new Error(`cannot decode message ${fieldMask.$typeName} from JSON: path names must be lowerCamelCase`);
         }
-        const sc = str.replace(/[A-Z]/g, (letter) => "_" + letter.toLowerCase());
-        return sc[0] === "_" ? sc.substring(1) : sc;
-    }
-    fieldMask.paths = json.split(",").map(camelToSnake);
+        return protoSnakeCase(path);
+    });
 }
 function structFromJson(struct, json) {
     if (typeof json != "object" || json == null || Array.isArray(json)) {
-        throw new Error(`cannot decode message ${struct.$typeName} from JSON ${reflect_check_formatVal(json)}`);
+        throw new Error(`cannot decode message ${struct.$typeName} from JSON ${formatVal(json)}`);
     }
     for (const [k, v] of Object.entries(json)) {
         const parsedV = create_create(ValueSchema);
@@ -43520,13 +43577,13 @@ function valueFromJson(value, json) {
             }
             break;
         default:
-            throw new Error(`cannot decode message ${value.$typeName} from JSON ${reflect_check_formatVal(json)}`);
+            throw new Error(`cannot decode message ${value.$typeName} from JSON ${formatVal(json)}`);
     }
     return value;
 }
 function listValueFromJson(listValue, json) {
     if (!Array.isArray(json)) {
-        throw new Error(`cannot decode message ${listValue.$typeName} from JSON ${reflect_check_formatVal(json)}`);
+        throw new Error(`cannot decode message ${listValue.$typeName} from JSON ${formatVal(json)}`);
     }
     for (const e of json) {
         const value = create_create(ValueSchema);
@@ -43660,7 +43717,7 @@ function http_headers_appendHeaders(...headers) {
 var code_Code;
 (function (Code) {
     /**
-     * Canceled, usually be the user
+     * Canceled, usually by the user
      */
     Code[Code["Canceled"] = 1] = "Canceled";
     /**
@@ -43811,7 +43868,7 @@ class connect_error_ConnectError extends Error {
      * If no code is provided, code "unknown" is used.
      * Outgoing details are only relevant for the server side - a service may
      * raise an error with details, and it is up to the protocol implementation
-     * to encode and send the details along with error.
+     * to encode and send the details along with the error.
      */
     constructor(message, code = code_Code.Unknown, metadata, outgoingDetails, cause) {
         super(createMessage(message, code));
@@ -43908,7 +43965,7 @@ function createMessage(message, code) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/to-json.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44075,7 +44132,7 @@ function listToJson(list, opts) {
 function enumToJsonInternal(desc, value, enumAsInteger) {
     var _a;
     if (typeof value != "number") {
-        throw new Error(`cannot encode ${desc} to JSON: expected number, got ${reflect_check_formatVal(value)}`);
+        throw new Error(`cannot encode ${desc} to JSON: expected number, got ${formatVal(value)}`);
     }
     if (desc.typeName == "google.protobuf.NullValue") {
         return null;
@@ -44202,13 +44259,17 @@ function anyToJson(val, opts) {
     return json;
 }
 function durationToJson(val) {
-    if (Number(val.seconds) > 315576000000 ||
-        Number(val.seconds) < -315576000000) {
+    const seconds = Number(val.seconds);
+    const nanos = val.nanos;
+    if (seconds > 315576000000 || seconds < -315576000000) {
         throw new Error(`cannot encode message ${val.$typeName} to JSON: value out of range`);
     }
+    if ((seconds > 0 && nanos < 0) || (seconds < 0 && nanos > 0)) {
+        throw new Error(`cannot encode message ${val.$typeName} to JSON: nanos sign must match seconds sign`);
+    }
     let text = val.seconds.toString();
-    if (val.nanos !== 0) {
-        let nanosStr = Math.abs(val.nanos).toString();
+    if (nanos !== 0) {
+        let nanosStr = Math.abs(nanos).toString();
         nanosStr = "0".repeat(9 - nanosStr.length) + nanosStr;
         if (nanosStr.substring(3) === "000000") {
             nanosStr = nanosStr.substring(0, 3);
@@ -44217,7 +44278,7 @@ function durationToJson(val) {
             nanosStr = nanosStr.substring(0, 6);
         }
         text += "." + nanosStr;
-        if (val.nanos < 0 && Number(val.seconds) == 0) {
+        if (nanos < 0 && seconds == 0) {
             text = "-" + text;
         }
     }
@@ -44226,10 +44287,8 @@ function durationToJson(val) {
 function fieldMaskToJson(val) {
     return val.paths
         .map((p) => {
-        if (p.match(/_[0-9]?_/g) || p.match(/[A-Z]/g)) {
-            throw new Error(`cannot encode message ${val.$typeName} to JSON: lowerCamelCase of path name "` +
-                p +
-                '" is irreversible');
+        if (protoSnakeCase(protoCamelCase(p)) !== p) {
+            throw new Error(`cannot encode message ${val.$typeName} to JSON: lowerCamelCase of path name "${p}" is irreversible`);
         }
         return protoCamelCase(p);
     })
@@ -44274,6 +44333,9 @@ function timestampToJson(val) {
     }
     if (val.nanos < 0) {
         throw new Error(`cannot encode message ${val.$typeName} to JSON: nanos must not be negative`);
+    }
+    if (val.nanos > 999999999) {
+        throw new Error(`cannot encode message ${val.$typeName} to JSON: nanos must not be greater than 99999999`);
     }
     let z = "Z";
     if (val.nanos > 0) {
@@ -45312,7 +45374,7 @@ function requestHeader(methodKind, useBinaryFormat, timeoutMs, userProvidedHeade
         // Note that we do not strictly comply with gRPC user agents.
         // We use "connect-es/1.2.3" where gRPC would use "grpc-es/1.2.3".
         // See https://github.com/grpc/grpc/blob/c462bb8d485fc1434ecfae438823ca8d14cf3154/doc/PROTOCOL-HTTP2.md#user-agents
-        result.set(headerUserAgent, "connect-es/2.0.4");
+        result.set(headerUserAgent, "connect-es/2.1.1");
     }
     return result;
 }
@@ -47173,7 +47235,7 @@ function handleStreamResponse(stream, options) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/codegenv1/service.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47199,7 +47261,7 @@ function serviceDesc(file, path, ...paths) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/gen/google/protobuf/duration_pb.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47225,7 +47287,7 @@ const file_google_protobuf_duration = /*@__PURE__*/ fileDesc("Ch5nb29nbGUvcHJvdG
 const DurationSchema = /*@__PURE__*/ (/* unused pure expression or super */ null && (messageDesc(file_google_protobuf_duration, 0)));
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/gen/google/protobuf/timestamp_pb.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47712,7 +47774,7 @@ const CommitSchema = /*@__PURE__*/
 
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/codegenv1/message.js
-// Copyright 2021-2025 Buf Technologies, Inc.
+// Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
