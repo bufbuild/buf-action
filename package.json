@@ -41,7 +41,7 @@
     "@actions/exec": "^1.1.1",
     "@actions/github": "^9.0.0",
     "@actions/io": "^3.0.2",
-    "@actions/tool-cache": "^2.0.2",
+    "@actions/tool-cache": "^4.0.0",
     "@buf/bufbuild_registry.bufbuild_es": "^2.2.3-20250116203702-1c024d64352b.1",
     "@bufbuild/protobuf": "^2.2.5",
     "@connectrpc/connect": "^2.0.1",
