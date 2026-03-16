@@ -19,4 +19,5 @@ jobs:
           # Specify the public GitHub token to authenticate requests to github.com.
           # This is required when running on a private GitHub Enterprise instance.
           # Will be used when resolving buf versions and downloading buf binaries.
+          # The token only needs read access to public repositories.
           public_github_token: ${{ secrets.PUBLIC_GITHUB_TOKEN }}

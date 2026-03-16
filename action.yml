@@ -54,7 +54,7 @@ inputs:
     default: ${{ github.token }}
   public_github_token:
     description: |-
-      GitHub token for github.com. Must be set when running on a private GitHub Enterprise instance to authenticate requests, otherwise ignored.
+      GitHub token for github.com. Must be set when running on a private GitHub Enterprise instance to authenticate requests, otherwise ignored. Used to resolve buf versions and download buf binaries from github.com. The token only needs read access to public repositories.
   setup_only:
     description: |-
       Setup only the buf environment, optionally logging into the BSR, but without executing other commands.
