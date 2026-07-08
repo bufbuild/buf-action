@@ -105975,10 +105975,6 @@ async function main() {
     lib_core.setOutput(Outputs.BufVersion, bufVersion);
     lib_core.setOutput(Outputs.BufPath, bufPath);
     lib_core.saveState(Outputs.BufPath, bufPath);
-    if (inputs.github_actor == "dependabot[bot]") {
-        lib_core.info("Skipping steps for dependabot");
-        return;
-    }
     await login(bufPath, inputs);
     if (inputs.setup_only) {
         lib_core.info("Setup only, skipping steps");
