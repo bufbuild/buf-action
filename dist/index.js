@@ -1,1237 +1,6 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 5236:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getExecOutput = exports.exec = void 0;
-const string_decoder_1 = __nccwpck_require__(3193);
-const tr = __importStar(__nccwpck_require__(6665));
-/**
- * Exec a command.
- * Output will be streamed to the live console.
- * Returns promise with return code
- *
- * @param     commandLine        command to execute (can include additional args). Must be correctly escaped.
- * @param     args               optional arguments for tool. Escaping is handled by the lib.
- * @param     options            optional exec options.  See ExecOptions
- * @returns   Promise<number>    exit code
- */
-function exec(commandLine, args, options) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const commandArgs = tr.argStringToArray(commandLine);
-        if (commandArgs.length === 0) {
-            throw new Error(`Parameter 'commandLine' cannot be null or empty.`);
-        }
-        // Path to tool to execute should be first arg
-        const toolPath = commandArgs[0];
-        args = commandArgs.slice(1).concat(args || []);
-        const runner = new tr.ToolRunner(toolPath, args, options);
-        return runner.exec();
-    });
-}
-exports.exec = exec;
-/**
- * Exec a command and get the output.
- * Output will be streamed to the live console.
- * Returns promise with the exit code and collected stdout and stderr
- *
- * @param     commandLine           command to execute (can include additional args). Must be correctly escaped.
- * @param     args                  optional arguments for tool. Escaping is handled by the lib.
- * @param     options               optional exec options.  See ExecOptions
- * @returns   Promise<ExecOutput>   exit code, stdout, and stderr
- */
-function getExecOutput(commandLine, args, options) {
-    var _a, _b;
-    return __awaiter(this, void 0, void 0, function* () {
-        let stdout = '';
-        let stderr = '';
-        //Using string decoder covers the case where a mult-byte character is split
-        const stdoutDecoder = new string_decoder_1.StringDecoder('utf8');
-        const stderrDecoder = new string_decoder_1.StringDecoder('utf8');
-        const originalStdoutListener = (_a = options === null || options === void 0 ? void 0 : options.listeners) === null || _a === void 0 ? void 0 : _a.stdout;
-        const originalStdErrListener = (_b = options === null || options === void 0 ? void 0 : options.listeners) === null || _b === void 0 ? void 0 : _b.stderr;
-        const stdErrListener = (data) => {
-            stderr += stderrDecoder.write(data);
-            if (originalStdErrListener) {
-                originalStdErrListener(data);
-            }
-        };
-        const stdOutListener = (data) => {
-            stdout += stdoutDecoder.write(data);
-            if (originalStdoutListener) {
-                originalStdoutListener(data);
-            }
-        };
-        const listeners = Object.assign(Object.assign({}, options === null || options === void 0 ? void 0 : options.listeners), { stdout: stdOutListener, stderr: stdErrListener });
-        const exitCode = yield exec(commandLine, args, Object.assign(Object.assign({}, options), { listeners }));
-        //flush any remaining characters
-        stdout += stdoutDecoder.end();
-        stderr += stderrDecoder.end();
-        return {
-            exitCode,
-            stdout,
-            stderr
-        };
-    });
-}
-exports.getExecOutput = getExecOutput;
-//# sourceMappingURL=exec.js.map
-
-/***/ }),
-
-/***/ 6665:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.argStringToArray = exports.ToolRunner = void 0;
-const os = __importStar(__nccwpck_require__(857));
-const events = __importStar(__nccwpck_require__(4434));
-const child = __importStar(__nccwpck_require__(5317));
-const path = __importStar(__nccwpck_require__(6928));
-const io = __importStar(__nccwpck_require__(8191));
-const ioUtil = __importStar(__nccwpck_require__(7120));
-const timers_1 = __nccwpck_require__(3557);
-/* eslint-disable @typescript-eslint/unbound-method */
-const IS_WINDOWS = process.platform === 'win32';
-/*
- * Class for running command line tools. Handles quoting and arg parsing in a platform agnostic way.
- */
-class ToolRunner extends events.EventEmitter {
-    constructor(toolPath, args, options) {
-        super();
-        if (!toolPath) {
-            throw new Error("Parameter 'toolPath' cannot be null or empty.");
-        }
-        this.toolPath = toolPath;
-        this.args = args || [];
-        this.options = options || {};
-    }
-    _debug(message) {
-        if (this.options.listeners && this.options.listeners.debug) {
-            this.options.listeners.debug(message);
-        }
-    }
-    _getCommandString(options, noPrefix) {
-        const toolPath = this._getSpawnFileName();
-        const args = this._getSpawnArgs(options);
-        let cmd = noPrefix ? '' : '[command]'; // omit prefix when piped to a second tool
-        if (IS_WINDOWS) {
-            // Windows + cmd file
-            if (this._isCmdFile()) {
-                cmd += toolPath;
-                for (const a of args) {
-                    cmd += ` ${a}`;
-                }
-            }
-            // Windows + verbatim
-            else if (options.windowsVerbatimArguments) {
-                cmd += `"${toolPath}"`;
-                for (const a of args) {
-                    cmd += ` ${a}`;
-                }
-            }
-            // Windows (regular)
-            else {
-                cmd += this._windowsQuoteCmdArg(toolPath);
-                for (const a of args) {
-                    cmd += ` ${this._windowsQuoteCmdArg(a)}`;
-                }
-            }
-        }
-        else {
-            // OSX/Linux - this can likely be improved with some form of quoting.
-            // creating processes on Unix is fundamentally different than Windows.
-            // on Unix, execvp() takes an arg array.
-            cmd += toolPath;
-            for (const a of args) {
-                cmd += ` ${a}`;
-            }
-        }
-        return cmd;
-    }
-    _processLineBuffer(data, strBuffer, onLine) {
-        try {
-            let s = strBuffer + data.toString();
-            let n = s.indexOf(os.EOL);
-            while (n > -1) {
-                const line = s.substring(0, n);
-                onLine(line);
-                // the rest of the string ...
-                s = s.substring(n + os.EOL.length);
-                n = s.indexOf(os.EOL);
-            }
-            return s;
-        }
-        catch (err) {
-            // streaming lines to console is best effort.  Don't fail a build.
-            this._debug(`error processing line. Failed with error ${err}`);
-            return '';
-        }
-    }
-    _getSpawnFileName() {
-        if (IS_WINDOWS) {
-            if (this._isCmdFile()) {
-                return process.env['COMSPEC'] || 'cmd.exe';
-            }
-        }
-        return this.toolPath;
-    }
-    _getSpawnArgs(options) {
-        if (IS_WINDOWS) {
-            if (this._isCmdFile()) {
-                let argline = `/D /S /C "${this._windowsQuoteCmdArg(this.toolPath)}`;
-                for (const a of this.args) {
-                    argline += ' ';
-                    argline += options.windowsVerbatimArguments
-                        ? a
-                        : this._windowsQuoteCmdArg(a);
-                }
-                argline += '"';
-                return [argline];
-            }
-        }
-        return this.args;
-    }
-    _endsWith(str, end) {
-        return str.endsWith(end);
-    }
-    _isCmdFile() {
-        const upperToolPath = this.toolPath.toUpperCase();
-        return (this._endsWith(upperToolPath, '.CMD') ||
-            this._endsWith(upperToolPath, '.BAT'));
-    }
-    _windowsQuoteCmdArg(arg) {
-        // for .exe, apply the normal quoting rules that libuv applies
-        if (!this._isCmdFile()) {
-            return this._uvQuoteCmdArg(arg);
-        }
-        // otherwise apply quoting rules specific to the cmd.exe command line parser.
-        // the libuv rules are generic and are not designed specifically for cmd.exe
-        // command line parser.
-        //
-        // for a detailed description of the cmd.exe command line parser, refer to
-        // http://stackoverflow.com/questions/4094699/how-does-the-windows-command-interpreter-cmd-exe-parse-scripts/7970912#7970912
-        // need quotes for empty arg
-        if (!arg) {
-            return '""';
-        }
-        // determine whether the arg needs to be quoted
-        const cmdSpecialChars = [
-            ' ',
-            '\t',
-            '&',
-            '(',
-            ')',
-            '[',
-            ']',
-            '{',
-            '}',
-            '^',
-            '=',
-            ';',
-            '!',
-            "'",
-            '+',
-            ',',
-            '`',
-            '~',
-            '|',
-            '<',
-            '>',
-            '"'
-        ];
-        let needsQuotes = false;
-        for (const char of arg) {
-            if (cmdSpecialChars.some(x => x === char)) {
-                needsQuotes = true;
-                break;
-            }
-        }
-        // short-circuit if quotes not needed
-        if (!needsQuotes) {
-            return arg;
-        }
-        // the following quoting rules are very similar to the rules that by libuv applies.
-        //
-        // 1) wrap the string in quotes
-        //
-        // 2) double-up quotes - i.e. " => ""
-        //
-        //    this is different from the libuv quoting rules. libuv replaces " with \", which unfortunately
-        //    doesn't work well with a cmd.exe command line.
-        //
-        //    note, replacing " with "" also works well if the arg is passed to a downstream .NET console app.
-        //    for example, the command line:
-        //          foo.exe "myarg:""my val"""
-        //    is parsed by a .NET console app into an arg array:
-        //          [ "myarg:\"my val\"" ]
-        //    which is the same end result when applying libuv quoting rules. although the actual
-        //    command line from libuv quoting rules would look like:
-        //          foo.exe "myarg:\"my val\""
-        //
-        // 3) double-up slashes that precede a quote,
-        //    e.g.  hello \world    => "hello \world"
-        //          hello\"world    => "hello\\""world"
-        //          hello\\"world   => "hello\\\\""world"
-        //          hello world\    => "hello world\\"
-        //
-        //    technically this is not required for a cmd.exe command line, or the batch argument parser.
-        //    the reasons for including this as a .cmd quoting rule are:
-        //
-        //    a) this is optimized for the scenario where the argument is passed from the .cmd file to an
-        //       external program. many programs (e.g. .NET console apps) rely on the slash-doubling rule.
-        //
-        //    b) it's what we've been doing previously (by deferring to node default behavior) and we
-        //       haven't heard any complaints about that aspect.
-        //
-        // note, a weakness of the quoting rules chosen here, is that % is not escaped. in fact, % cannot be
-        // escaped when used on the command line directly - even though within a .cmd file % can be escaped
-        // by using %%.
-        //
-        // the saving grace is, on the command line, %var% is left as-is if var is not defined. this contrasts
-        // the line parsing rules within a .cmd file, where if var is not defined it is replaced with nothing.
-        //
-        // one option that was explored was replacing % with ^% - i.e. %var% => ^%var^%. this hack would
-        // often work, since it is unlikely that var^ would exist, and the ^ character is removed when the
-        // variable is used. the problem, however, is that ^ is not removed when %* is used to pass the args
-        // to an external program.
-        //
-        // an unexplored potential solution for the % escaping problem, is to create a wrapper .cmd file.
-        // % can be escaped within a .cmd file.
-        let reverse = '"';
-        let quoteHit = true;
-        for (let i = arg.length; i > 0; i--) {
-            // walk the string in reverse
-            reverse += arg[i - 1];
-            if (quoteHit && arg[i - 1] === '\\') {
-                reverse += '\\'; // double the slash
-            }
-            else if (arg[i - 1] === '"') {
-                quoteHit = true;
-                reverse += '"'; // double the quote
-            }
-            else {
-                quoteHit = false;
-            }
-        }
-        reverse += '"';
-        return reverse
-            .split('')
-            .reverse()
-            .join('');
-    }
-    _uvQuoteCmdArg(arg) {
-        // Tool runner wraps child_process.spawn() and needs to apply the same quoting as
-        // Node in certain cases where the undocumented spawn option windowsVerbatimArguments
-        // is used.
-        //
-        // Since this function is a port of quote_cmd_arg from Node 4.x (technically, lib UV,
-        // see https://github.com/nodejs/node/blob/v4.x/deps/uv/src/win/process.c for details),
-        // pasting copyright notice from Node within this function:
-        //
-        //      Copyright Joyent, Inc. and other Node contributors. All rights reserved.
-        //
-        //      Permission is hereby granted, free of charge, to any person obtaining a copy
-        //      of this software and associated documentation files (the "Software"), to
-        //      deal in the Software without restriction, including without limitation the
-        //      rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-        //      sell copies of the Software, and to permit persons to whom the Software is
-        //      furnished to do so, subject to the following conditions:
-        //
-        //      The above copyright notice and this permission notice shall be included in
-        //      all copies or substantial portions of the Software.
-        //
-        //      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-        //      IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-        //      FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-        //      AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-        //      LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-        //      FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-        //      IN THE SOFTWARE.
-        if (!arg) {
-            // Need double quotation for empty argument
-            return '""';
-        }
-        if (!arg.includes(' ') && !arg.includes('\t') && !arg.includes('"')) {
-            // No quotation needed
-            return arg;
-        }
-        if (!arg.includes('"') && !arg.includes('\\')) {
-            // No embedded double quotes or backslashes, so I can just wrap
-            // quote marks around the whole thing.
-            return `"${arg}"`;
-        }
-        // Expected input/output:
-        //   input : hello"world
-        //   output: "hello\"world"
-        //   input : hello""world
-        //   output: "hello\"\"world"
-        //   input : hello\world
-        //   output: hello\world
-        //   input : hello\\world
-        //   output: hello\\world
-        //   input : hello\"world
-        //   output: "hello\\\"world"
-        //   input : hello\\"world
-        //   output: "hello\\\\\"world"
-        //   input : hello world\
-        //   output: "hello world\\" - note the comment in libuv actually reads "hello world\"
-        //                             but it appears the comment is wrong, it should be "hello world\\"
-        let reverse = '"';
-        let quoteHit = true;
-        for (let i = arg.length; i > 0; i--) {
-            // walk the string in reverse
-            reverse += arg[i - 1];
-            if (quoteHit && arg[i - 1] === '\\') {
-                reverse += '\\';
-            }
-            else if (arg[i - 1] === '"') {
-                quoteHit = true;
-                reverse += '\\';
-            }
-            else {
-                quoteHit = false;
-            }
-        }
-        reverse += '"';
-        return reverse
-            .split('')
-            .reverse()
-            .join('');
-    }
-    _cloneExecOptions(options) {
-        options = options || {};
-        const result = {
-            cwd: options.cwd || process.cwd(),
-            env: options.env || process.env,
-            silent: options.silent || false,
-            windowsVerbatimArguments: options.windowsVerbatimArguments || false,
-            failOnStdErr: options.failOnStdErr || false,
-            ignoreReturnCode: options.ignoreReturnCode || false,
-            delay: options.delay || 10000
-        };
-        result.outStream = options.outStream || process.stdout;
-        result.errStream = options.errStream || process.stderr;
-        return result;
-    }
-    _getSpawnOptions(options, toolPath) {
-        options = options || {};
-        const result = {};
-        result.cwd = options.cwd;
-        result.env = options.env;
-        result['windowsVerbatimArguments'] =
-            options.windowsVerbatimArguments || this._isCmdFile();
-        if (options.windowsVerbatimArguments) {
-            result.argv0 = `"${toolPath}"`;
-        }
-        return result;
-    }
-    /**
-     * Exec a tool.
-     * Output will be streamed to the live console.
-     * Returns promise with return code
-     *
-     * @param     tool     path to tool to exec
-     * @param     options  optional exec options.  See ExecOptions
-     * @returns   number
-     */
-    exec() {
-        return __awaiter(this, void 0, void 0, function* () {
-            // root the tool path if it is unrooted and contains relative pathing
-            if (!ioUtil.isRooted(this.toolPath) &&
-                (this.toolPath.includes('/') ||
-                    (IS_WINDOWS && this.toolPath.includes('\\')))) {
-                // prefer options.cwd if it is specified, however options.cwd may also need to be rooted
-                this.toolPath = path.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
-            }
-            // if the tool is only a file name, then resolve it from the PATH
-            // otherwise verify it exists (add extension on Windows if necessary)
-            this.toolPath = yield io.which(this.toolPath, true);
-            return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-                this._debug(`exec tool: ${this.toolPath}`);
-                this._debug('arguments:');
-                for (const arg of this.args) {
-                    this._debug(`   ${arg}`);
-                }
-                const optionsNonNull = this._cloneExecOptions(this.options);
-                if (!optionsNonNull.silent && optionsNonNull.outStream) {
-                    optionsNonNull.outStream.write(this._getCommandString(optionsNonNull) + os.EOL);
-                }
-                const state = new ExecState(optionsNonNull, this.toolPath);
-                state.on('debug', (message) => {
-                    this._debug(message);
-                });
-                if (this.options.cwd && !(yield ioUtil.exists(this.options.cwd))) {
-                    return reject(new Error(`The cwd: ${this.options.cwd} does not exist!`));
-                }
-                const fileName = this._getSpawnFileName();
-                const cp = child.spawn(fileName, this._getSpawnArgs(optionsNonNull), this._getSpawnOptions(this.options, fileName));
-                let stdbuffer = '';
-                if (cp.stdout) {
-                    cp.stdout.on('data', (data) => {
-                        if (this.options.listeners && this.options.listeners.stdout) {
-                            this.options.listeners.stdout(data);
-                        }
-                        if (!optionsNonNull.silent && optionsNonNull.outStream) {
-                            optionsNonNull.outStream.write(data);
-                        }
-                        stdbuffer = this._processLineBuffer(data, stdbuffer, (line) => {
-                            if (this.options.listeners && this.options.listeners.stdline) {
-                                this.options.listeners.stdline(line);
-                            }
-                        });
-                    });
-                }
-                let errbuffer = '';
-                if (cp.stderr) {
-                    cp.stderr.on('data', (data) => {
-                        state.processStderr = true;
-                        if (this.options.listeners && this.options.listeners.stderr) {
-                            this.options.listeners.stderr(data);
-                        }
-                        if (!optionsNonNull.silent &&
-                            optionsNonNull.errStream &&
-                            optionsNonNull.outStream) {
-                            const s = optionsNonNull.failOnStdErr
-                                ? optionsNonNull.errStream
-                                : optionsNonNull.outStream;
-                            s.write(data);
-                        }
-                        errbuffer = this._processLineBuffer(data, errbuffer, (line) => {
-                            if (this.options.listeners && this.options.listeners.errline) {
-                                this.options.listeners.errline(line);
-                            }
-                        });
-                    });
-                }
-                cp.on('error', (err) => {
-                    state.processError = err.message;
-                    state.processExited = true;
-                    state.processClosed = true;
-                    state.CheckComplete();
-                });
-                cp.on('exit', (code) => {
-                    state.processExitCode = code;
-                    state.processExited = true;
-                    this._debug(`Exit code ${code} received from tool '${this.toolPath}'`);
-                    state.CheckComplete();
-                });
-                cp.on('close', (code) => {
-                    state.processExitCode = code;
-                    state.processExited = true;
-                    state.processClosed = true;
-                    this._debug(`STDIO streams have closed for tool '${this.toolPath}'`);
-                    state.CheckComplete();
-                });
-                state.on('done', (error, exitCode) => {
-                    if (stdbuffer.length > 0) {
-                        this.emit('stdline', stdbuffer);
-                    }
-                    if (errbuffer.length > 0) {
-                        this.emit('errline', errbuffer);
-                    }
-                    cp.removeAllListeners();
-                    if (error) {
-                        reject(error);
-                    }
-                    else {
-                        resolve(exitCode);
-                    }
-                });
-                if (this.options.input) {
-                    if (!cp.stdin) {
-                        throw new Error('child process missing stdin');
-                    }
-                    cp.stdin.end(this.options.input);
-                }
-            }));
-        });
-    }
-}
-exports.ToolRunner = ToolRunner;
-/**
- * Convert an arg string to an array of args. Handles escaping
- *
- * @param    argString   string of arguments
- * @returns  string[]    array of arguments
- */
-function argStringToArray(argString) {
-    const args = [];
-    let inQuotes = false;
-    let escaped = false;
-    let arg = '';
-    function append(c) {
-        // we only escape double quotes.
-        if (escaped && c !== '"') {
-            arg += '\\';
-        }
-        arg += c;
-        escaped = false;
-    }
-    for (let i = 0; i < argString.length; i++) {
-        const c = argString.charAt(i);
-        if (c === '"') {
-            if (!escaped) {
-                inQuotes = !inQuotes;
-            }
-            else {
-                append(c);
-            }
-            continue;
-        }
-        if (c === '\\' && escaped) {
-            append(c);
-            continue;
-        }
-        if (c === '\\' && inQuotes) {
-            escaped = true;
-            continue;
-        }
-        if (c === ' ' && !inQuotes) {
-            if (arg.length > 0) {
-                args.push(arg);
-                arg = '';
-            }
-            continue;
-        }
-        append(c);
-    }
-    if (arg.length > 0) {
-        args.push(arg.trim());
-    }
-    return args;
-}
-exports.argStringToArray = argStringToArray;
-class ExecState extends events.EventEmitter {
-    constructor(options, toolPath) {
-        super();
-        this.processClosed = false; // tracks whether the process has exited and stdio is closed
-        this.processError = '';
-        this.processExitCode = 0;
-        this.processExited = false; // tracks whether the process has exited
-        this.processStderr = false; // tracks whether stderr was written to
-        this.delay = 10000; // 10 seconds
-        this.done = false;
-        this.timeout = null;
-        if (!toolPath) {
-            throw new Error('toolPath must not be empty');
-        }
-        this.options = options;
-        this.toolPath = toolPath;
-        if (options.delay) {
-            this.delay = options.delay;
-        }
-    }
-    CheckComplete() {
-        if (this.done) {
-            return;
-        }
-        if (this.processClosed) {
-            this._setResult();
-        }
-        else if (this.processExited) {
-            this.timeout = timers_1.setTimeout(ExecState.HandleTimeout, this.delay, this);
-        }
-    }
-    _debug(message) {
-        this.emit('debug', message);
-    }
-    _setResult() {
-        // determine whether there is an error
-        let error;
-        if (this.processExited) {
-            if (this.processError) {
-                error = new Error(`There was an error when attempting to execute the process '${this.toolPath}'. This may indicate the process failed to start. Error: ${this.processError}`);
-            }
-            else if (this.processExitCode !== 0 && !this.options.ignoreReturnCode) {
-                error = new Error(`The process '${this.toolPath}' failed with exit code ${this.processExitCode}`);
-            }
-            else if (this.processStderr && this.options.failOnStdErr) {
-                error = new Error(`The process '${this.toolPath}' failed because one or more lines were written to the STDERR stream`);
-            }
-        }
-        // clear the timeout
-        if (this.timeout) {
-            clearTimeout(this.timeout);
-            this.timeout = null;
-        }
-        this.done = true;
-        this.emit('done', error, this.processExitCode);
-    }
-    static HandleTimeout(state) {
-        if (state.done) {
-            return;
-        }
-        if (!state.processClosed && state.processExited) {
-            const message = `The STDIO streams did not close within ${state.delay /
-                1000} seconds of the exit event from process '${state.toolPath}'. This may indicate a child process inherited the STDIO streams and has not yet exited.`;
-            state._debug(message);
-        }
-        state._setResult();
-    }
-}
-//# sourceMappingURL=toolrunner.js.map
-
-/***/ }),
-
-/***/ 7120:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var _a;
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getCmdPath = exports.tryGetExecutablePath = exports.isRooted = exports.isDirectory = exports.exists = exports.READONLY = exports.UV_FS_O_EXLOCK = exports.IS_WINDOWS = exports.unlink = exports.symlink = exports.stat = exports.rmdir = exports.rm = exports.rename = exports.readlink = exports.readdir = exports.open = exports.mkdir = exports.lstat = exports.copyFile = exports.chmod = void 0;
-const fs = __importStar(__nccwpck_require__(9896));
-const path = __importStar(__nccwpck_require__(6928));
-_a = fs.promises
-// export const {open} = 'fs'
-, exports.chmod = _a.chmod, exports.copyFile = _a.copyFile, exports.lstat = _a.lstat, exports.mkdir = _a.mkdir, exports.open = _a.open, exports.readdir = _a.readdir, exports.readlink = _a.readlink, exports.rename = _a.rename, exports.rm = _a.rm, exports.rmdir = _a.rmdir, exports.stat = _a.stat, exports.symlink = _a.symlink, exports.unlink = _a.unlink;
-// export const {open} = 'fs'
-exports.IS_WINDOWS = process.platform === 'win32';
-// See https://github.com/nodejs/node/blob/d0153aee367422d0858105abec186da4dff0a0c5/deps/uv/include/uv/win.h#L691
-exports.UV_FS_O_EXLOCK = 0x10000000;
-exports.READONLY = fs.constants.O_RDONLY;
-function exists(fsPath) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            yield exports.stat(fsPath);
-        }
-        catch (err) {
-            if (err.code === 'ENOENT') {
-                return false;
-            }
-            throw err;
-        }
-        return true;
-    });
-}
-exports.exists = exists;
-function isDirectory(fsPath, useStat = false) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const stats = useStat ? yield exports.stat(fsPath) : yield exports.lstat(fsPath);
-        return stats.isDirectory();
-    });
-}
-exports.isDirectory = isDirectory;
-/**
- * On OSX/Linux, true if path starts with '/'. On Windows, true for paths like:
- * \, \hello, \\hello\share, C:, and C:\hello (and corresponding alternate separator cases).
- */
-function isRooted(p) {
-    p = normalizeSeparators(p);
-    if (!p) {
-        throw new Error('isRooted() parameter "p" cannot be empty');
-    }
-    if (exports.IS_WINDOWS) {
-        return (p.startsWith('\\') || /^[A-Z]:/i.test(p) // e.g. \ or \hello or \\hello
-        ); // e.g. C: or C:\hello
-    }
-    return p.startsWith('/');
-}
-exports.isRooted = isRooted;
-/**
- * Best effort attempt to determine whether a file exists and is executable.
- * @param filePath    file path to check
- * @param extensions  additional file extensions to try
- * @return if file exists and is executable, returns the file path. otherwise empty string.
- */
-function tryGetExecutablePath(filePath, extensions) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let stats = undefined;
-        try {
-            // test file exists
-            stats = yield exports.stat(filePath);
-        }
-        catch (err) {
-            if (err.code !== 'ENOENT') {
-                // eslint-disable-next-line no-console
-                console.log(`Unexpected error attempting to determine if executable file exists '${filePath}': ${err}`);
-            }
-        }
-        if (stats && stats.isFile()) {
-            if (exports.IS_WINDOWS) {
-                // on Windows, test for valid extension
-                const upperExt = path.extname(filePath).toUpperCase();
-                if (extensions.some(validExt => validExt.toUpperCase() === upperExt)) {
-                    return filePath;
-                }
-            }
-            else {
-                if (isUnixExecutable(stats)) {
-                    return filePath;
-                }
-            }
-        }
-        // try each extension
-        const originalFilePath = filePath;
-        for (const extension of extensions) {
-            filePath = originalFilePath + extension;
-            stats = undefined;
-            try {
-                stats = yield exports.stat(filePath);
-            }
-            catch (err) {
-                if (err.code !== 'ENOENT') {
-                    // eslint-disable-next-line no-console
-                    console.log(`Unexpected error attempting to determine if executable file exists '${filePath}': ${err}`);
-                }
-            }
-            if (stats && stats.isFile()) {
-                if (exports.IS_WINDOWS) {
-                    // preserve the case of the actual file (since an extension was appended)
-                    try {
-                        const directory = path.dirname(filePath);
-                        const upperName = path.basename(filePath).toUpperCase();
-                        for (const actualName of yield exports.readdir(directory)) {
-                            if (upperName === actualName.toUpperCase()) {
-                                filePath = path.join(directory, actualName);
-                                break;
-                            }
-                        }
-                    }
-                    catch (err) {
-                        // eslint-disable-next-line no-console
-                        console.log(`Unexpected error attempting to determine the actual case of the file '${filePath}': ${err}`);
-                    }
-                    return filePath;
-                }
-                else {
-                    if (isUnixExecutable(stats)) {
-                        return filePath;
-                    }
-                }
-            }
-        }
-        return '';
-    });
-}
-exports.tryGetExecutablePath = tryGetExecutablePath;
-function normalizeSeparators(p) {
-    p = p || '';
-    if (exports.IS_WINDOWS) {
-        // convert slashes on Windows
-        p = p.replace(/\//g, '\\');
-        // remove redundant slashes
-        return p.replace(/\\\\+/g, '\\');
-    }
-    // remove redundant slashes
-    return p.replace(/\/\/+/g, '/');
-}
-// on Mac/Linux, test the execute bit
-//     R   W  X  R  W X R W X
-//   256 128 64 32 16 8 4 2 1
-function isUnixExecutable(stats) {
-    return ((stats.mode & 1) > 0 ||
-        ((stats.mode & 8) > 0 && stats.gid === process.getgid()) ||
-        ((stats.mode & 64) > 0 && stats.uid === process.getuid()));
-}
-// Get the path of cmd.exe in windows
-function getCmdPath() {
-    var _a;
-    return (_a = process.env['COMSPEC']) !== null && _a !== void 0 ? _a : `cmd.exe`;
-}
-exports.getCmdPath = getCmdPath;
-//# sourceMappingURL=io-util.js.map
-
-/***/ }),
-
-/***/ 8191:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.findInPath = exports.which = exports.mkdirP = exports.rmRF = exports.mv = exports.cp = void 0;
-const assert_1 = __nccwpck_require__(2613);
-const path = __importStar(__nccwpck_require__(6928));
-const ioUtil = __importStar(__nccwpck_require__(7120));
-/**
- * Copies a file or folder.
- * Based off of shelljs - https://github.com/shelljs/shelljs/blob/9237f66c52e5daa40458f94f9565e18e8132f5a6/src/cp.js
- *
- * @param     source    source path
- * @param     dest      destination path
- * @param     options   optional. See CopyOptions.
- */
-function cp(source, dest, options = {}) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const { force, recursive, copySourceDirectory } = readCopyOptions(options);
-        const destStat = (yield ioUtil.exists(dest)) ? yield ioUtil.stat(dest) : null;
-        // Dest is an existing file, but not forcing
-        if (destStat && destStat.isFile() && !force) {
-            return;
-        }
-        // If dest is an existing directory, should copy inside.
-        const newDest = destStat && destStat.isDirectory() && copySourceDirectory
-            ? path.join(dest, path.basename(source))
-            : dest;
-        if (!(yield ioUtil.exists(source))) {
-            throw new Error(`no such file or directory: ${source}`);
-        }
-        const sourceStat = yield ioUtil.stat(source);
-        if (sourceStat.isDirectory()) {
-            if (!recursive) {
-                throw new Error(`Failed to copy. ${source} is a directory, but tried to copy without recursive flag.`);
-            }
-            else {
-                yield cpDirRecursive(source, newDest, 0, force);
-            }
-        }
-        else {
-            if (path.relative(source, newDest) === '') {
-                // a file cannot be copied to itself
-                throw new Error(`'${newDest}' and '${source}' are the same file`);
-            }
-            yield copyFile(source, newDest, force);
-        }
-    });
-}
-exports.cp = cp;
-/**
- * Moves a path.
- *
- * @param     source    source path
- * @param     dest      destination path
- * @param     options   optional. See MoveOptions.
- */
-function mv(source, dest, options = {}) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (yield ioUtil.exists(dest)) {
-            let destExists = true;
-            if (yield ioUtil.isDirectory(dest)) {
-                // If dest is directory copy src into dest
-                dest = path.join(dest, path.basename(source));
-                destExists = yield ioUtil.exists(dest);
-            }
-            if (destExists) {
-                if (options.force == null || options.force) {
-                    yield rmRF(dest);
-                }
-                else {
-                    throw new Error('Destination already exists');
-                }
-            }
-        }
-        yield mkdirP(path.dirname(dest));
-        yield ioUtil.rename(source, dest);
-    });
-}
-exports.mv = mv;
-/**
- * Remove a path recursively with force
- *
- * @param inputPath path to remove
- */
-function rmRF(inputPath) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (ioUtil.IS_WINDOWS) {
-            // Check for invalid characters
-            // https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
-            if (/[*"<>|]/.test(inputPath)) {
-                throw new Error('File path must not contain `*`, `"`, `<`, `>` or `|` on Windows');
-            }
-        }
-        try {
-            // note if path does not exist, error is silent
-            yield ioUtil.rm(inputPath, {
-                force: true,
-                maxRetries: 3,
-                recursive: true,
-                retryDelay: 300
-            });
-        }
-        catch (err) {
-            throw new Error(`File was unable to be removed ${err}`);
-        }
-    });
-}
-exports.rmRF = rmRF;
-/**
- * Make a directory.  Creates the full path with folders in between
- * Will throw if it fails
- *
- * @param   fsPath        path to create
- * @returns Promise<void>
- */
-function mkdirP(fsPath) {
-    return __awaiter(this, void 0, void 0, function* () {
-        assert_1.ok(fsPath, 'a path argument must be provided');
-        yield ioUtil.mkdir(fsPath, { recursive: true });
-    });
-}
-exports.mkdirP = mkdirP;
-/**
- * Returns path of a tool had the tool actually been invoked.  Resolves via paths.
- * If you check and the tool does not exist, it will throw.
- *
- * @param     tool              name of the tool
- * @param     check             whether to check if tool exists
- * @returns   Promise<string>   path to tool
- */
-function which(tool, check) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (!tool) {
-            throw new Error("parameter 'tool' is required");
-        }
-        // recursive when check=true
-        if (check) {
-            const result = yield which(tool, false);
-            if (!result) {
-                if (ioUtil.IS_WINDOWS) {
-                    throw new Error(`Unable to locate executable file: ${tool}. Please verify either the file path exists or the file can be found within a directory specified by the PATH environment variable. Also verify the file has a valid extension for an executable file.`);
-                }
-                else {
-                    throw new Error(`Unable to locate executable file: ${tool}. Please verify either the file path exists or the file can be found within a directory specified by the PATH environment variable. Also check the file mode to verify the file is executable.`);
-                }
-            }
-            return result;
-        }
-        const matches = yield findInPath(tool);
-        if (matches && matches.length > 0) {
-            return matches[0];
-        }
-        return '';
-    });
-}
-exports.which = which;
-/**
- * Returns a list of all occurrences of the given tool on the system path.
- *
- * @returns   Promise<string[]>  the paths of the tool
- */
-function findInPath(tool) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (!tool) {
-            throw new Error("parameter 'tool' is required");
-        }
-        // build the list of extensions to try
-        const extensions = [];
-        if (ioUtil.IS_WINDOWS && process.env['PATHEXT']) {
-            for (const extension of process.env['PATHEXT'].split(path.delimiter)) {
-                if (extension) {
-                    extensions.push(extension);
-                }
-            }
-        }
-        // if it's rooted, return it if exists. otherwise return empty.
-        if (ioUtil.isRooted(tool)) {
-            const filePath = yield ioUtil.tryGetExecutablePath(tool, extensions);
-            if (filePath) {
-                return [filePath];
-            }
-            return [];
-        }
-        // if any path separators, return empty
-        if (tool.includes(path.sep)) {
-            return [];
-        }
-        // build the list of directories
-        //
-        // Note, technically "where" checks the current directory on Windows. From a toolkit perspective,
-        // it feels like we should not do this. Checking the current directory seems like more of a use
-        // case of a shell, and the which() function exposed by the toolkit should strive for consistency
-        // across platforms.
-        const directories = [];
-        if (process.env.PATH) {
-            for (const p of process.env.PATH.split(path.delimiter)) {
-                if (p) {
-                    directories.push(p);
-                }
-            }
-        }
-        // find all matches
-        const matches = [];
-        for (const directory of directories) {
-            const filePath = yield ioUtil.tryGetExecutablePath(path.join(directory, tool), extensions);
-            if (filePath) {
-                matches.push(filePath);
-            }
-        }
-        return matches;
-    });
-}
-exports.findInPath = findInPath;
-function readCopyOptions(options) {
-    const force = options.force == null ? true : options.force;
-    const recursive = Boolean(options.recursive);
-    const copySourceDirectory = options.copySourceDirectory == null
-        ? true
-        : Boolean(options.copySourceDirectory);
-    return { force, recursive, copySourceDirectory };
-}
-function cpDirRecursive(sourceDir, destDir, currentDepth, force) {
-    return __awaiter(this, void 0, void 0, function* () {
-        // Ensure there is not a run away recursive copy
-        if (currentDepth >= 255)
-            return;
-        currentDepth++;
-        yield mkdirP(destDir);
-        const files = yield ioUtil.readdir(sourceDir);
-        for (const fileName of files) {
-            const srcFile = `${sourceDir}/${fileName}`;
-            const destFile = `${destDir}/${fileName}`;
-            const srcFileStat = yield ioUtil.lstat(srcFile);
-            if (srcFileStat.isDirectory()) {
-                // Recurse
-                yield cpDirRecursive(srcFile, destFile, currentDepth, force);
-            }
-            else {
-                yield copyFile(srcFile, destFile, force);
-            }
-        }
-        // Change the mode for the newly created directory
-        yield ioUtil.chmod(destDir, (yield ioUtil.stat(sourceDir)).mode);
-    });
-}
-// Buffered file copy
-function copyFile(srcFile, destFile, force) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if ((yield ioUtil.lstat(srcFile)).isSymbolicLink()) {
-            // unlink/re-link it
-            try {
-                yield ioUtil.lstat(destFile);
-                yield ioUtil.unlink(destFile);
-            }
-            catch (e) {
-                // Try to override file permission
-                if (e.code === 'EPERM') {
-                    yield ioUtil.chmod(destFile, '0666');
-                    yield ioUtil.unlink(destFile);
-                }
-                // other errors = it doesn't exist, no work to do
-            }
-            // Copy over symlink
-            const symlinkFull = yield ioUtil.readlink(srcFile);
-            yield ioUtil.symlink(symlinkFull, destFile, ioUtil.IS_WINDOWS ? 'junction' : null);
-        }
-        else if (!(yield ioUtil.exists(destFile)) || force) {
-            yield ioUtil.copyFile(srcFile, destFile);
-        }
-    });
-}
-//# sourceMappingURL=io.js.map
-
-/***/ }),
-
 /***/ 9659:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -2080,8 +849,8 @@ class DecodedURL extends URL {
 /***/ 2673:
 /***/ ((module) => {
 
-"use strict";
-function _typeof(obj){"@babel/helpers - typeof";return _typeof="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(obj){return typeof obj}:function(obj){return obj&&"function"==typeof Symbol&&obj.constructor===Symbol&&obj!==Symbol.prototype?"symbol":typeof obj},_typeof(obj)}function _createForOfIteratorHelper(o,allowArrayLike){var it=typeof Symbol!=="undefined"&&o[Symbol.iterator]||o["@@iterator"];if(!it){if(Array.isArray(o)||(it=_unsupportedIterableToArray(o))||allowArrayLike&&o&&typeof o.length==="number"){if(it)o=it;var i=0;var F=function F(){};return{s:F,n:function n(){if(i>=o.length)return{done:true};return{done:false,value:o[i++]}},e:function e(_e2){throw _e2},f:F}}throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.")}var normalCompletion=true,didErr=false,err;return{s:function s(){it=it.call(o)},n:function n(){var step=it.next();normalCompletion=step.done;return step},e:function e(_e3){didErr=true;err=_e3},f:function f(){try{if(!normalCompletion&&it["return"]!=null)it["return"]()}finally{if(didErr)throw err}}}}function _defineProperty(obj,key,value){key=_toPropertyKey(key);if(key in obj){Object.defineProperty(obj,key,{value:value,enumerable:true,configurable:true,writable:true})}else{obj[key]=value}return obj}function _toPropertyKey(arg){var key=_toPrimitive(arg,"string");return _typeof(key)==="symbol"?key:String(key)}function _toPrimitive(input,hint){if(_typeof(input)!=="object"||input===null)return input;var prim=input[Symbol.toPrimitive];if(prim!==undefined){var res=prim.call(input,hint||"default");if(_typeof(res)!=="object")return res;throw new TypeError("@@toPrimitive must return a primitive value.")}return(hint==="string"?String:Number)(input)}function _slicedToArray(arr,i){return _arrayWithHoles(arr)||_iterableToArrayLimit(arr,i)||_unsupportedIterableToArray(arr,i)||_nonIterableRest()}function _nonIterableRest(){throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.")}function _unsupportedIterableToArray(o,minLen){if(!o)return;if(typeof o==="string")return _arrayLikeToArray(o,minLen);var n=Object.prototype.toString.call(o).slice(8,-1);if(n==="Object"&&o.constructor)n=o.constructor.name;if(n==="Map"||n==="Set")return Array.from(o);if(n==="Arguments"||/^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n))return _arrayLikeToArray(o,minLen)}function _arrayLikeToArray(arr,len){if(len==null||len>arr.length)len=arr.length;for(var i=0,arr2=new Array(len);i<len;i++){arr2[i]=arr[i]}return arr2}function _iterableToArrayLimit(arr,i){var _i=null==arr?null:"undefined"!=typeof Symbol&&arr[Symbol.iterator]||arr["@@iterator"];if(null!=_i){var _s,_e,_x,_r,_arr=[],_n=!0,_d=!1;try{if(_x=(_i=_i.call(arr)).next,0===i){if(Object(_i)!==_i)return;_n=!1}else for(;!(_n=(_s=_x.call(_i)).done)&&(_arr.push(_s.value),_arr.length!==i);_n=!0){;}}catch(err){_d=!0,_e=err}finally{try{if(!_n&&null!=_i["return"]&&(_r=_i["return"](),Object(_r)!==_r))return}finally{if(_d)throw _e}}return _arr}}function _arrayWithHoles(arr){if(Array.isArray(arr))return arr}module.exports=function(input){if(!input)return[];if(typeof input!=="string"||input.match(/^\s+$/))return[];var lines=input.split("\n");if(lines.length===0)return[];var files=[];var currentFile=null;var currentChunk=null;var deletedLineCounter=0;var addedLineCounter=0;var currentFileChanges=null;var normal=function normal(line){var _currentChunk;(_currentChunk=currentChunk)===null||_currentChunk===void 0?void 0:_currentChunk.changes.push({type:"normal",normal:true,ln1:deletedLineCounter++,ln2:addedLineCounter++,content:line});currentFileChanges.oldLines--;currentFileChanges.newLines--};var start=function start(line){var _parseFiles;var _ref=(_parseFiles=parseFiles(line))!==null&&_parseFiles!==void 0?_parseFiles:[],_ref2=_slicedToArray(_ref,2),fromFileName=_ref2[0],toFileName=_ref2[1];currentFile={chunks:[],deletions:0,additions:0,from:fromFileName,to:toFileName};files.push(currentFile)};var restart=function restart(){if(!currentFile||currentFile.chunks.length)start()};var newFile=function newFile(_,match){restart();currentFile["new"]=true;currentFile.newMode=match[1];currentFile.from="/dev/null"};var deletedFile=function deletedFile(_,match){restart();currentFile.deleted=true;currentFile.oldMode=match[1];currentFile.to="/dev/null"};var oldMode=function oldMode(_,match){restart();currentFile.oldMode=match[1]};var newMode=function newMode(_,match){restart();currentFile.newMode=match[1]};var index=function index(line,match){restart();currentFile.index=line.split(" ").slice(1);if(match[1]){currentFile.oldMode=currentFile.newMode=match[1].trim()}};var fromFile=function fromFile(line){restart();currentFile.from=parseOldOrNewFile(line)};var toFile=function toFile(line){restart();currentFile.to=parseOldOrNewFile(line)};var toNumOfLines=function toNumOfLines(number){return+(number||1)};var chunk=function chunk(line,match){if(!currentFile){start(line)}var _match$slice=match.slice(1),_match$slice2=_slicedToArray(_match$slice,4),oldStart=_match$slice2[0],oldNumLines=_match$slice2[1],newStart=_match$slice2[2],newNumLines=_match$slice2[3];deletedLineCounter=+oldStart;addedLineCounter=+newStart;currentChunk={content:line,changes:[],oldStart:+oldStart,oldLines:toNumOfLines(oldNumLines),newStart:+newStart,newLines:toNumOfLines(newNumLines)};currentFileChanges={oldLines:toNumOfLines(oldNumLines),newLines:toNumOfLines(newNumLines)};currentFile.chunks.push(currentChunk)};var del=function del(line){if(!currentChunk)return;currentChunk.changes.push({type:"del",del:true,ln:deletedLineCounter++,content:line});currentFile.deletions++;currentFileChanges.oldLines--};var add=function add(line){if(!currentChunk)return;currentChunk.changes.push({type:"add",add:true,ln:addedLineCounter++,content:line});currentFile.additions++;currentFileChanges.newLines--};var eof=function eof(line){var _currentChunk$changes3;if(!currentChunk)return;var _currentChunk$changes=currentChunk.changes.slice(-1),_currentChunk$changes2=_slicedToArray(_currentChunk$changes,1),mostRecentChange=_currentChunk$changes2[0];currentChunk.changes.push((_currentChunk$changes3={type:mostRecentChange.type},_defineProperty(_currentChunk$changes3,mostRecentChange.type,true),_defineProperty(_currentChunk$changes3,"ln1",mostRecentChange.ln1),_defineProperty(_currentChunk$changes3,"ln2",mostRecentChange.ln2),_defineProperty(_currentChunk$changes3,"ln",mostRecentChange.ln),_defineProperty(_currentChunk$changes3,"content",line),_currentChunk$changes3))};var schemaHeaders=[[/^diff\s/,start],[/^new file mode (\d+)$/,newFile],[/^deleted file mode (\d+)$/,deletedFile],[/^old mode (\d+)$/,oldMode],[/^new mode (\d+)$/,newMode],[/^index\s[\da-zA-Z]+\.\.[\da-zA-Z]+(\s(\d+))?$/,index],[/^---\s/,fromFile],[/^\+\+\+\s/,toFile],[/^@@\s+-(\d+),?(\d+)?\s+\+(\d+),?(\d+)?\s@@/,chunk],[/^\\ No newline at end of file$/,eof]];var schemaContent=[[/^\\ No newline at end of file$/,eof],[/^-/,del],[/^\+/,add],[/^\s+/,normal]];var parseContentLine=function parseContentLine(line){for(var _i2=0,_schemaContent=schemaContent;_i2<_schemaContent.length;_i2++){var _schemaContent$_i=_slicedToArray(_schemaContent[_i2],2),pattern=_schemaContent$_i[0],handler=_schemaContent$_i[1];var match=line.match(pattern);if(match){handler(line,match);break}}if(currentFileChanges.oldLines===0&&currentFileChanges.newLines===0){currentFileChanges=null}};var parseHeaderLine=function parseHeaderLine(line){for(var _i3=0,_schemaHeaders=schemaHeaders;_i3<_schemaHeaders.length;_i3++){var _schemaHeaders$_i=_slicedToArray(_schemaHeaders[_i3],2),pattern=_schemaHeaders$_i[0],handler=_schemaHeaders$_i[1];var match=line.match(pattern);if(match){handler(line,match);break}}};var parseLine=function parseLine(line){if(currentFileChanges){parseContentLine(line)}else{parseHeaderLine(line)}return};var _iterator=_createForOfIteratorHelper(lines),_step;try{for(_iterator.s();!(_step=_iterator.n()).done;){var line=_step.value;parseLine(line)}}catch(err){_iterator.e(err)}finally{_iterator.f()}return files};var fileNameDiffRegex=/(a|i|w|c|o|1|2)\/.*(?=["']? ["']?(b|i|w|c|o|1|2)\/)|(b|i|w|c|o|1|2)\/.*$/g;var gitFileHeaderRegex=/^(a|b|i|w|c|o|1|2)\//;var parseFiles=function parseFiles(line){var fileNames=line===null||line===void 0?void 0:line.match(fileNameDiffRegex);return fileNames===null||fileNames===void 0?void 0:fileNames.map(function(fileName){return fileName.replace(gitFileHeaderRegex,"").replace(/("|')$/,"")})};var qoutedFileNameRegex=/^\\?['"]|\\?['"]$/g;var parseOldOrNewFile=function parseOldOrNewFile(line){var fileName=leftTrimChars(line,"-+").trim();fileName=removeTimeStamp(fileName);return fileName.replace(qoutedFileNameRegex,"").replace(gitFileHeaderRegex,"")};var leftTrimChars=function leftTrimChars(string,trimmingChars){string=makeString(string);if(!trimmingChars&&String.prototype.trimLeft)return string.trimLeft();var trimmingString=formTrimmingString(trimmingChars);return string.replace(new RegExp("^".concat(trimmingString,"+")),"")};var timeStampRegex=/\t.*|\d{4}-\d\d-\d\d\s\d\d:\d\d:\d\d(.\d+)?\s(\+|-)\d\d\d\d/;var removeTimeStamp=function removeTimeStamp(string){var timeStamp=timeStampRegex.exec(string);if(timeStamp){string=string.substring(0,timeStamp.index).trim()}return string};var formTrimmingString=function formTrimmingString(trimmingChars){if(trimmingChars===null||trimmingChars===undefined)return"\\s";else if(trimmingChars instanceof RegExp)return trimmingChars.source;return"[".concat(makeString(trimmingChars).replace(/([.*+?^=!:${}()|[\]/\\])/g,"\\$1"),"]")};var makeString=function makeString(itemToConvert){return(itemToConvert!==null&&itemToConvert!==void 0?itemToConvert:"")+""};
+module.exports=n=>{if(!n)return[];if(typeof n!="string"||n.match(/^\s+$/))return[];const s=n.split(`
+`);if(s.length===0)return[];const a=[];let o=null,d=null,u=0,m=0,l=null;const g=e=>{d?.changes.push({type:"normal",normal:!0,ln1:u++,ln2:m++,content:e}),l.oldLines--,l.newLines--},p=e=>{const[t,r]=parseFiles(e)??[];o={chunks:[],deletions:0,additions:0,from:t,to:r},a.push(o)},i=()=>{(!o||o.chunks.length)&&p()},$=(e,t)=>{i(),o.new=!0,o.newMode=t[1],o.from="/dev/null"},N=(e,t)=>{i(),o.deleted=!0,o.oldMode=t[1],o.to="/dev/null"},x=(e,t)=>{i(),o.oldMode=t[1]},F=(e,t)=>{i(),o.newMode=t[1]},S=(e,t)=>{i(),o.index=e.split(" ").slice(1),t[1]&&(o.oldMode=o.newMode=t[1].trim())},k=e=>{i(),o.from=parseOldOrNewFile(e)},y=e=>{i(),o.to=parseOldOrNewFile(e)},f=e=>+(e||1),M=(e,t)=>{o||p(e);const[r,c,w,L]=t.slice(1);u=+r,m=+w,d={content:e,changes:[],oldStart:+r,oldLines:f(c),newStart:+w,newLines:f(L)},l={oldLines:f(c),newLines:f(L)},o.chunks.push(d)},R=e=>{d&&(d.changes.push({type:"del",del:!0,ln:u++,content:e}),o.deletions++,l.oldLines--)},b=e=>{d&&(d.changes.push({type:"add",add:!0,ln:m++,content:e}),o.additions++,l.newLines--)},h=e=>{if(!d)return;const[t]=d.changes.slice(-1);d.changes.push({type:t.type,[t.type]:!0,ln1:t.ln1,ln2:t.ln2,ln:t.ln,content:e})},_=[[/^diff\s/,p],[/^new file mode (\d+)$/,$],[/^deleted file mode (\d+)$/,N],[/^old mode (\d+)$/,x],[/^new mode (\d+)$/,F],[/^index\s[\da-zA-Z]+\.\.[\da-zA-Z]+(\s(\d+))?$/,S],[/^---\s/,k],[/^\+\+\+\s/,y],[/^@@\s+-(\d+),?(\d+)?\s+\+(\d+),?(\d+)?\s@@/,M],[/^\\ No newline at end of file$/,h]],v=[[/^\\ No newline at end of file$/,h],[/^-/,R],[/^\+/,b],[/^\s*/,g]],C=e=>{for(const[t,r]of v){const c=e.match(t);if(c){r(e,c);break}}l.oldLines===0&&l.newLines===0&&(l=null)},H=e=>{for(const[t,r]of _){const c=e.match(t);if(c){r(e,c);break}}},O=e=>{l?C(e):H(e)};for(const e of s)O(e);return a};const fileNameDiffRegex=/(a|i|w|c|o|1|2)\/.*(?=["']? ["']?(b|i|w|c|o|1|2)\/)|(b|i|w|c|o|1|2)\/.*$/g,gitFileHeaderRegex=/^(a|b|i|w|c|o|1|2)\//,parseFiles=n=>n?.match(fileNameDiffRegex)?.map(a=>a.replace(gitFileHeaderRegex,"").replace(/("|')$/,"")),qoutedFileNameRegex=/^\\?['"]|\\?['"]$/g,parseOldOrNewFile=n=>{let s=leftTrimChars(n,"-+").trim();return s=removeTimeStamp(s),s.replace(qoutedFileNameRegex,"").replace(gitFileHeaderRegex,"")},leftTrimChars=(n,s)=>{if(n=makeString(n),!s&&String.prototype.trimLeft)return n.trimLeft();const a=formTrimmingString(s);return n.replace(new RegExp(`^${a}+`),"")},timeStampRegex=/\t.*|\d{4}-\d\d-\d\d\s\d\d:\d\d:\d\d(.\d+)?\s(\+|-)\d\d\d\d/,removeTimeStamp=n=>{const s=timeStampRegex.exec(n);return s&&(n=n.substring(0,s.index).trim()),n},formTrimmingString=n=>n==null?"\\s":n instanceof RegExp?n.source:`[${makeString(n).replace(/([.*+?^=!:${}()|[\]/\\])/g,"\\$1")}]`,makeString=n=>`${n??""}`;
 
 
 /***/ }),
@@ -2341,6 +1110,9 @@ class Range {
   }
 
   parseRange (range) {
+    // strip build metadata so it can't bleed into the version
+    range = range.replace(BUILDSTRIPRE, '')
+
     // memoize range parsing for performance.
     // this is a very hot path, and fully deterministic.
     const memoOpts =
@@ -2466,12 +1238,16 @@ const debug = __nccwpck_require__(1159)
 const SemVer = __nccwpck_require__(7163)
 const {
   safeRe: re,
+  src,
   t,
   comparatorTrimReplace,
   tildeTrimReplace,
   caretTrimReplace,
 } = __nccwpck_require__(5471)
 const { FLAG_INCLUDE_PRERELEASE, FLAG_LOOSE } = __nccwpck_require__(5101)
+
+// unbounded global build-metadata stripper used by parseRange
+const BUILDSTRIPRE = new RegExp(src[t.BUILD], 'g')
 
 const isNullSet = c => c.value === '<0.0.0-0'
 const isAny = c => c.value === ''
@@ -2513,6 +1289,11 @@ const parseComparator = (comp, options) => {
 
 const isX = id => !id || id.toLowerCase() === 'x' || id === '*'
 
+const invalidXRangeOrder = (M, m, p) => (
+  (isX(M) && !isX(m)) ||
+  (isX(m) && p && !isX(p))
+)
+
 // ~, ~> --> * (any, kinda silly)
 // ~2, ~2.x, ~2.x.x, ~>2, ~>2.x ~>2.x.x --> >=2.0.0 <3.0.0-0
 // ~2.0, ~2.0.x, ~>2.0, ~>2.0.x --> >=2.0.0 <2.1.0-0
@@ -2530,6 +1311,10 @@ const replaceTildes = (comp, options) => {
 
 const replaceTilde = (comp, options) => {
   const r = options.loose ? re[t.TILDELOOSE] : re[t.TILDE]
+  // if we're including prereleases in the match, then the lower bound is
+  // -0, the lowest possible prerelease value, just like x-ranges and carets.
+  // this keeps `~1.2` equivalent to the `1.2.x` x-range it's documented as.
+  const z = options.includePrerelease ? '-0' : ''
   return comp.replace(r, (_, M, m, p, pr) => {
     debug('tilde', comp, _, M, m, p, pr)
     let ret
@@ -2537,10 +1322,10 @@ const replaceTilde = (comp, options) => {
     if (isX(M)) {
       ret = ''
     } else if (isX(m)) {
-      ret = `>=${M}.0.0 <${+M + 1}.0.0-0`
+      ret = `>=${M}.0.0${z} <${+M + 1}.0.0-0`
     } else if (isX(p)) {
       // ~1.2 == >=1.2.0 <1.3.0-0
-      ret = `>=${M}.${m}.0 <${M}.${+m + 1}.0-0`
+      ret = `>=${M}.${m}.0${z} <${M}.${+m + 1}.0-0`
     } else if (pr) {
       debug('replaceTilde pr', pr)
       ret = `>=${M}.${m}.${p}-${pr
@@ -2609,10 +1394,10 @@ const replaceCaret = (comp, options) => {
       if (M === '0') {
         if (m === '0') {
           ret = `>=${M}.${m}.${p
-          }${z} <${M}.${m}.${+p + 1}-0`
+          } <${M}.${m}.${+p + 1}-0`
         } else {
           ret = `>=${M}.${m}.${p
-          }${z} <${M}.${+m + 1}.0-0`
+          } <${M}.${+m + 1}.0-0`
         }
       } else {
         ret = `>=${M}.${m}.${p
@@ -2638,6 +1423,10 @@ const replaceXRange = (comp, options) => {
   const r = options.loose ? re[t.XRANGELOOSE] : re[t.XRANGE]
   return comp.replace(r, (ret, gtlt, M, m, p, pr) => {
     debug('xRange', comp, ret, gtlt, M, m, p, pr)
+    if (invalidXRangeOrder(M, m, p)) {
+      return comp
+    }
+
     const xM = isX(M)
     const xm = xM || isX(m)
     const xp = xm || isX(p)
@@ -2814,6 +1603,22 @@ const { safeRe: re, t } = __nccwpck_require__(5471)
 
 const parseOptions = __nccwpck_require__(356)
 const { compareIdentifiers } = __nccwpck_require__(3348)
+
+const isPrereleaseIdentifier = (prerelease, identifier) => {
+  const identifiers = identifier.split('.')
+  if (identifiers.length > prerelease.length) {
+    return false
+  }
+
+  for (let i = 0; i < identifiers.length; i++) {
+    if (compareIdentifiers(prerelease[i], identifiers[i]) !== 0) {
+      return false
+    }
+  }
+
+  return true
+}
+
 class SemVer {
   constructor (version, options) {
     options = parseOptions(options)
@@ -3117,8 +1922,9 @@ class SemVer {
           if (identifierBase === false) {
             prerelease = [identifier]
           }
-          if (compareIdentifiers(this.prerelease[0], identifier) === 0) {
-            if (isNaN(this.prerelease[1])) {
+          if (isPrereleaseIdentifier(this.prerelease, identifier)) {
+            const prereleaseBase = this.prerelease[identifier.split('.').length]
+            if (isNaN(prereleaseBase)) {
               this.prerelease = prerelease
             }
           } else {
@@ -3651,6 +2457,62 @@ module.exports = sort
 
 /***/ }),
 
+/***/ 6114:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+const parse = __nccwpck_require__(6353)
+const constants = __nccwpck_require__(5101)
+const SemVer = __nccwpck_require__(7163)
+
+const truncate = (version, truncation, options) => {
+  if (!constants.RELEASE_TYPES.includes(truncation)) {
+    return null
+  }
+
+  const clonedVersion = cloneInputVersion(version, options)
+  return clonedVersion && doTruncation(clonedVersion, truncation)
+}
+
+const cloneInputVersion = (version, options) => {
+  const versionStringToParse = (
+    version instanceof SemVer ? version.version : version
+  )
+
+  return parse(versionStringToParse, options)
+}
+
+const doTruncation = (version, truncation) => {
+  if (isPrerelease(truncation)) {
+    return version.version
+  }
+
+  version.prerelease = []
+
+  switch (truncation) {
+    case 'major':
+      version.minor = 0
+      version.patch = 0
+      break
+    case 'minor':
+      version.patch = 0
+      break
+  }
+
+  return version.format()
+}
+
+const isPrerelease = (type) => {
+  return type.startsWith('pre')
+}
+
+module.exports = truncate
+
+
+/***/ }),
+
 /***/ 8780:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -3701,6 +2563,7 @@ const gte = __nccwpck_require__(1236)
 const lte = __nccwpck_require__(6717)
 const cmp = __nccwpck_require__(8646)
 const coerce = __nccwpck_require__(5385)
+const truncate = __nccwpck_require__(6114)
 const Comparator = __nccwpck_require__(9379)
 const Range = __nccwpck_require__(6782)
 const satisfies = __nccwpck_require__(8011)
@@ -3739,6 +2602,7 @@ module.exports = {
   lte,
   cmp,
   coerce,
+  truncate,
   Comparator,
   Range,
   satisfies,
@@ -4084,7 +2948,7 @@ createToken('LOOSE', `^${src[t.LOOSEPLAIN]}$`)
 createToken('GTLT', '((?:<|>)?=?)')
 
 // Something like "2.*" or "1.2.x".
-// Note that "x.x" is a valid xRange identifer, meaning "any version"
+// Note that "x.x" is a valid xRange identifier, meaning "any version"
 // Only the first item is strictly required.
 createToken('XRANGEIDENTIFIERLOOSE', `${src[t.NUMERICIDENTIFIERLOOSE]}|x|X|\\*`)
 createToken('XRANGEIDENTIFIER', `${src[t.NUMERICIDENTIFIER]}|x|X|\\*`)
@@ -4685,7 +3549,7 @@ const simpleSubset = (sub, dom, options) => {
         if (higher === c && higher !== gt) {
           return false
         }
-      } else if (gt.operator === '>=' && !satisfies(gt.semver, String(c), options)) {
+      } else if (gt.operator === '>=' && !c.test(gt.semver)) {
         return false
       }
     }
@@ -4703,7 +3567,7 @@ const simpleSubset = (sub, dom, options) => {
         if (lower === c && lower !== lt) {
           return false
         }
-      } else if (lt.operator === '<=' && !satisfies(lt.semver, String(c), options)) {
+      } else if (lt.operator === '<=' && !c.test(lt.semver)) {
         return false
       }
     }
@@ -32775,27 +31639,11 @@ module.exports = require("assert");
 
 /***/ }),
 
-/***/ 5317:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("child_process");
-
-/***/ }),
-
 /***/ 4434:
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("events");
-
-/***/ }),
-
-/***/ 9896:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("fs");
 
 /***/ }),
 
@@ -32983,35 +31831,11 @@ module.exports = require("node:zlib");
 
 /***/ }),
 
-/***/ 857:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("os");
-
-/***/ }),
-
-/***/ 6928:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("path");
-
-/***/ }),
-
 /***/ 3193:
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("string_decoder");
-
-/***/ }),
-
-/***/ 3557:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("timers");
 
 /***/ }),
 
@@ -33031,181 +31855,181 @@ module.exports = require("util");
 
 /***/ }),
 
-/***/ 1120:
-/***/ ((module) => {
+/***/ 4649:
+/***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 var __webpack_unused_export__;
 
-
-const NullObject = function NullObject () { }
-NullObject.prototype = Object.create(null)
-
-/**
- * RegExp to match *( ";" parameter ) in RFC 7231 sec 3.1.1.1
- *
- * parameter     = token "=" ( token / quoted-string )
- * token         = 1*tchar
- * tchar         = "!" / "#" / "$" / "%" / "&" / "'" / "*"
- *               / "+" / "-" / "." / "^" / "_" / "`" / "|" / "~"
- *               / DIGIT / ALPHA
- *               ; any VCHAR, except delimiters
- * quoted-string = DQUOTE *( qdtext / quoted-pair ) DQUOTE
- * qdtext        = HTAB / SP / %x21 / %x23-5B / %x5D-7E / obs-text
- * obs-text      = %x80-FF
- * quoted-pair   = "\" ( HTAB / SP / VCHAR / obs-text )
+/*!
+ * content-type
+ * Copyright(c) 2015 Douglas Christopher Wilson
+ * MIT Licensed
  */
-const paramRE = /; *([!#$%&'*+.^\w`|~-]+)=("(?:[\v\u0020\u0021\u0023-\u005b\u005d-\u007e\u0080-\u00ff]|\\[\v\u0020-\u00ff])*"|[!#$%&'*+.^\w`|~-]+) */gu
-
+__webpack_unused_export__ = ({ value: true });
+__webpack_unused_export__ = format;
+exports.qg = parse;
+const TEXT_REGEXP = /^[\u0009\u0020-\u007e\u0080-\u00ff]*$/;
+const TOKEN_REGEXP = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
 /**
- * RegExp to match quoted-pair in RFC 7230 sec 3.2.6
- *
- * quoted-pair = "\" ( HTAB / SP / VCHAR / obs-text )
- * obs-text    = %x80-FF
+ * RegExp to match chars that must be quoted-pair in RFC 9110 sec 5.6.4
  */
-const quotedPairRE = /\\([\v\u0020-\u00ff])/gu
-
+const QUOTE_REGEXP = /[\\"]/g;
 /**
- * RegExp to match type in RFC 7231 sec 3.1.1.1
+ * RegExp to match type in RFC 9110 sec 8.3.1
  *
  * media-type = type "/" subtype
  * type       = token
  * subtype    = token
  */
-const mediaTypeRE = /^[!#$%&'*+.^\w|~-]+\/[!#$%&'*+.^\w|~-]+$/u
-
-// default ContentType to prevent repeated object creation
-const defaultContentType = { type: '', parameters: new NullObject() }
-Object.freeze(defaultContentType.parameters)
-Object.freeze(defaultContentType)
-
+const TYPE_REGEXP = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+\/[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
 /**
- * Parse media type to object.
- *
- * @param {string|object} header
- * @return {Object}
- * @public
+ * Null object perf optimization. Faster than `Object.create(null)` and `{ __proto__: null }`.
  */
-
-function parse (header) {
-  if (typeof header !== 'string') {
-    throw new TypeError('argument header is required and must be a string')
-  }
-
-  let index = header.indexOf(';')
-  const type = index !== -1
-    ? header.slice(0, index).trim()
-    : header.trim()
-
-  if (mediaTypeRE.test(type) === false) {
-    throw new TypeError('invalid media type')
-  }
-
-  const result = {
-    type: type.toLowerCase(),
-    parameters: new NullObject()
-  }
-
-  // parse parameters
-  if (index === -1) {
-    return result
-  }
-
-  let key
-  let match
-  let value
-
-  paramRE.lastIndex = index
-
-  while ((match = paramRE.exec(header))) {
-    if (match.index !== index) {
-      throw new TypeError('invalid parameter format')
+const NullObject = /* @__PURE__ */ (() => {
+    const C = function () { };
+    C.prototype = Object.create(null);
+    return C;
+})();
+/**
+ * Format an object into a `Content-Type` header.
+ */
+function format(obj) {
+    const { type, parameters } = obj;
+    if (!type || !TYPE_REGEXP.test(type)) {
+        throw new TypeError(`Invalid type: ${type}`);
     }
-
-    index += match[0].length
-    key = match[1].toLowerCase()
-    value = match[2]
-
-    if (value[0] === '"') {
-      // remove quotes and escapes
-      value = value
-        .slice(1, value.length - 1)
-
-      quotedPairRE.test(value) && (value = value.replace(quotedPairRE, '$1'))
+    let result = type;
+    if (parameters) {
+        for (const param of Object.keys(parameters)) {
+            if (!TOKEN_REGEXP.test(param)) {
+                throw new TypeError(`Invalid parameter name: ${param}`);
+            }
+            result += `; ${param}=${qstring(parameters[param])}`;
+        }
     }
-
-    result.parameters[key] = value
-  }
-
-  if (index !== header.length) {
-    throw new TypeError('invalid parameter format')
-  }
-
-  return result
+    return result;
 }
-
-function safeParse (header) {
-  if (typeof header !== 'string') {
-    return defaultContentType
-  }
-
-  let index = header.indexOf(';')
-  const type = index !== -1
-    ? header.slice(0, index).trim()
-    : header.trim()
-
-  if (mediaTypeRE.test(type) === false) {
-    return defaultContentType
-  }
-
-  const result = {
-    type: type.toLowerCase(),
-    parameters: new NullObject()
-  }
-
-  // parse parameters
-  if (index === -1) {
-    return result
-  }
-
-  let key
-  let match
-  let value
-
-  paramRE.lastIndex = index
-
-  while ((match = paramRE.exec(header))) {
-    if (match.index !== index) {
-      return defaultContentType
-    }
-
-    index += match[0].length
-    key = match[1].toLowerCase()
-    value = match[2]
-
-    if (value[0] === '"') {
-      // remove quotes and escapes
-      value = value
-        .slice(1, value.length - 1)
-
-      quotedPairRE.test(value) && (value = value.replace(quotedPairRE, '$1'))
-    }
-
-    result.parameters[key] = value
-  }
-
-  if (index !== header.length) {
-    return defaultContentType
-  }
-
-  return result
+/**
+ * Parse a `Content-Type` header.
+ */
+function parse(header, options) {
+    const len = header.length;
+    let index = skipOWS(header, 0, len);
+    const valueStart = index;
+    index = skipValue(header, index, len);
+    const valueEnd = trailingOWS(header, valueStart, index);
+    const type = header.slice(valueStart, valueEnd).toLowerCase();
+    const parameters = options?.parameters === false
+        ? new NullObject()
+        : parseParameters(header, index, len);
+    return { type, parameters };
 }
-
-__webpack_unused_export__ = { parse, safeParse }
-__webpack_unused_export__ = parse
-module.exports.xL = safeParse
-__webpack_unused_export__ = defaultContentType
-
+const SP = 32; // " "
+const HTAB = 9; // "\t"
+const SEMI = 59; // ";"
+const EQ = 61; // "="
+const DQUOTE = 34; // '"'
+const BSLASH = 92; // "\\"
+/**
+ * Parses the parameters of a `Content-Type` header starting at the given index.
+ */
+function parseParameters(header, index, len) {
+    const parameters = new NullObject();
+    parameter: while (index < len) {
+        index = skipOWS(header, index + 1 /* Skip over ; */, len);
+        const keyStart = index;
+        while (index < len) {
+            const code = header.charCodeAt(index);
+            if (code === SEMI)
+                continue parameter;
+            if (code === EQ) {
+                const keyEnd = trailingOWS(header, keyStart, index);
+                const key = header.slice(keyStart, keyEnd).toLowerCase();
+                index = skipOWS(header, index + 1, len);
+                if (index < len && header.charCodeAt(index) === DQUOTE) {
+                    index++;
+                    let value = "";
+                    while (index < len) {
+                        const code = header.charCodeAt(index++);
+                        if (code === DQUOTE) {
+                            index = skipValue(header, index, len);
+                            if (parameters[key] === undefined)
+                                parameters[key] = value;
+                            break;
+                        }
+                        if (code === BSLASH && index < len) {
+                            value += header[index++];
+                            continue;
+                        }
+                        value += String.fromCharCode(code);
+                    }
+                    continue parameter;
+                }
+                const valueStart = index;
+                index = skipValue(header, index, len);
+                if (parameters[key] === undefined) {
+                    const valueEnd = trailingOWS(header, valueStart, index);
+                    parameters[key] = header.slice(valueStart, valueEnd);
+                }
+                continue parameter;
+            }
+            index++;
+        }
+    }
+    return parameters;
+}
+/**
+ * Skip over characters until a semicolon.
+ */
+function skipValue(str, index, len) {
+    while (index < len) {
+        const char = str.charCodeAt(index);
+        if (char === SEMI)
+            break;
+        index++;
+    }
+    return index;
+}
+/**
+ * Skip optional whitespace (OWS) in an HTTP header value.
+ *
+ * OWS is defined in RFC 9110 sec 5.6.3 as SP (" ") or HTAB ("\t").
+ */
+function skipOWS(header, index, len) {
+    while (index < len) {
+        const char = header.charCodeAt(index);
+        if (char !== SP && char !== HTAB)
+            break;
+        index++;
+    }
+    return index;
+}
+/**
+ * Trim optional whitespace (OWS) from the end of a substring.
+ *
+ * OWS is defined in RFC 9110 sec 5.6.3 as SP (" ") or HTAB ("\t").
+ */
+function trailingOWS(header, start, end) {
+    while (end > start) {
+        const char = header.charCodeAt(end - 1);
+        if (char !== SP && char !== HTAB)
+            break;
+        end--;
+    }
+    return end;
+}
+/**
+ * Serialize a parameter value.
+ */
+function qstring(str) {
+    if (TOKEN_REGEXP.test(str))
+        return str;
+    if (TEXT_REGEXP.test(str))
+        return `"${str.replace(QUOTE_REGEXP, "\\$&")}"`;
+    throw new TypeError(`Invalid parameter value: ${str}`);
+}
+//# sourceMappingURL=index.js.map
 
 /***/ })
 
@@ -33242,6 +32066,18 @@ __webpack_unused_export__ = defaultContentType
 /******/ 	}
 /******/ 	
 /************************************************************************/
+/******/ 	/* webpack/runtime/compat get default export */
+/******/ 	(() => {
+/******/ 		// getDefaultExport function for compatibility with non-harmony modules
+/******/ 		__nccwpck_require__.n = (module) => {
+/******/ 			var getter = module && module.__esModule ?
+/******/ 				() => (module['default']) :
+/******/ 				() => (module);
+/******/ 			__nccwpck_require__.d(getter, { a: getter });
+/******/ 			return getter;
+/******/ 		};
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/create fake namespace object */
 /******/ 	(() => {
 /******/ 		var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
@@ -33310,8 +32146,8 @@ var __webpack_exports__ = {};
 (() => {
 "use strict";
 
-// EXTERNAL MODULE: external "os"
-var external_os_ = __nccwpck_require__(857);
+;// CONCATENATED MODULE: external "os"
+const external_os_namespaceObject = require("os");
 ;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/utils.js
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -33386,7 +32222,7 @@ function utils_toCommandProperties(annotationProperties) {
  */
 function command_issueCommand(command, properties, message) {
     const cmd = new Command(command, properties, message);
-    process.stdout.write(cmd.toString() + external_os_.EOL);
+    process.stdout.write(cmd.toString() + external_os_namespaceObject.EOL);
 }
 function command_issue(name, message = '') {
     command_issueCommand(name, {}, message);
@@ -33442,8 +32278,8 @@ function escapeProperty(s) {
 //# sourceMappingURL=command.js.map
 ;// CONCATENATED MODULE: external "crypto"
 const external_crypto_namespaceObject = require("crypto");
-// EXTERNAL MODULE: external "fs"
-var external_fs_ = __nccwpck_require__(9896);
+;// CONCATENATED MODULE: external "fs"
+const external_fs_namespaceObject = require("fs");
 ;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/file-command.js
 // For internal use, subject to change.
 // We use any as a valid input type
@@ -33457,10 +32293,10 @@ function file_command_issueFileCommand(command, message) {
     if (!filePath) {
         throw new Error(`Unable to find environment variable for file command ${command}`);
     }
-    if (!external_fs_.existsSync(filePath)) {
+    if (!external_fs_namespaceObject.existsSync(filePath)) {
         throw new Error(`Missing file at path: ${filePath}`);
     }
-    external_fs_.appendFileSync(filePath, `${utils_toCommandValue(message)}${external_os_.EOL}`, {
+    external_fs_namespaceObject.appendFileSync(filePath, `${utils_toCommandValue(message)}${external_os_namespaceObject.EOL}`, {
         encoding: 'utf8'
     });
 }
@@ -33476,11 +32312,11 @@ function file_command_prepareKeyValueMessage(key, value) {
     if (convertedValue.includes(delimiter)) {
         throw new Error(`Unexpected input: value should not contain the delimiter "${delimiter}"`);
     }
-    return `${key}<<${delimiter}${external_os_.EOL}${convertedValue}${external_os_.EOL}${delimiter}`;
+    return `${key}<<${delimiter}${external_os_namespaceObject.EOL}${convertedValue}${external_os_namespaceObject.EOL}${delimiter}`;
 }
 //# sourceMappingURL=file-command.js.map
-// EXTERNAL MODULE: external "path"
-var external_path_ = __nccwpck_require__(6928);
+;// CONCATENATED MODULE: external "path"
+const external_path_namespaceObject = require("path");
 // EXTERNAL MODULE: external "http"
 var external_http_ = __nccwpck_require__(8611);
 var external_http_namespaceObject = /*#__PURE__*/__nccwpck_require__.t(external_http_, 2);
@@ -34441,7 +33277,7 @@ var summary_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _
 };
 
 
-const { access, appendFile, writeFile } = external_fs_.promises;
+const { access, appendFile, writeFile } = external_fs_namespaceObject.promises;
 const SUMMARY_ENV_VAR = 'GITHUB_STEP_SUMMARY';
 const SUMMARY_DOCS_URL = 'https://docs.github.com/actions/using-workflows/workflow-commands-for-github-actions#adding-a-job-summary';
 class Summary {
@@ -34464,7 +33300,7 @@ class Summary {
                 throw new Error(`Unable to find environment variable for $${SUMMARY_ENV_VAR}. Check if your runtime environment supports job summaries.`);
             }
             try {
-                yield access(pathFromEnv, external_fs_.constants.R_OK | external_fs_.constants.W_OK);
+                yield access(pathFromEnv, external_fs_namespaceObject.constants.R_OK | external_fs_namespaceObject.constants.W_OK);
             }
             catch (_a) {
                 throw new Error(`Unable to access summary file: '${pathFromEnv}'. Check if the file has correct read/write permissions.`);
@@ -34560,7 +33396,7 @@ class Summary {
      * @returns {Summary} summary instance
      */
     addEOL() {
-        return this.addRaw(external_os_.EOL);
+        return this.addRaw(external_os_namespaceObject.EOL);
     }
     /**
      * Adds an HTML codeblock to the summary buffer
@@ -34748,8 +33584,8 @@ function toPlatformPath(pth) {
 var external_string_decoder_ = __nccwpck_require__(3193);
 // EXTERNAL MODULE: external "events"
 var external_events_ = __nccwpck_require__(4434);
-// EXTERNAL MODULE: external "child_process"
-var external_child_process_ = __nccwpck_require__(5317);
+;// CONCATENATED MODULE: external "child_process"
+const external_child_process_namespaceObject = require("child_process");
 // EXTERNAL MODULE: external "assert"
 var external_assert_ = __nccwpck_require__(2613);
 ;// CONCATENATED MODULE: ./node_modules/@actions/io/lib/io-util.js
@@ -34764,7 +33600,7 @@ var io_util_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _
 };
 
 
-const { chmod, copyFile, lstat, mkdir, open: io_util_open, readdir, rename, rm, rmdir, stat, symlink, unlink } = external_fs_.promises;
+const { chmod, copyFile, lstat, mkdir, open: io_util_open, readdir, rename, rm, rmdir, stat, symlink, unlink } = external_fs_namespaceObject.promises;
 // export const {open} = 'fs'
 const IS_WINDOWS = process.platform === 'win32';
 /**
@@ -34780,7 +33616,7 @@ const IS_WINDOWS = process.platform === 'win32';
  */
 function readlink(fsPath) {
     return io_util_awaiter(this, void 0, void 0, function* () {
-        const result = yield external_fs_.promises.readlink(fsPath);
+        const result = yield external_fs_namespaceObject.promises.readlink(fsPath);
         // On Windows, restore Node 20 behavior: add trailing backslash to all results
         // since junctions on Windows are always directory links
         if (IS_WINDOWS && !result.endsWith('\\')) {
@@ -34791,7 +33627,7 @@ function readlink(fsPath) {
 }
 // See https://github.com/nodejs/node/blob/d0153aee367422d0858105abec186da4dff0a0c5/deps/uv/include/uv/win.h#L691
 const UV_FS_O_EXLOCK = 0x10000000;
-const READONLY = external_fs_.constants.O_RDONLY;
+const READONLY = external_fs_namespaceObject.constants.O_RDONLY;
 function exists(fsPath) {
     return io_util_awaiter(this, void 0, void 0, function* () {
         try {
@@ -34849,7 +33685,7 @@ function tryGetExecutablePath(filePath, extensions) {
         if (stats && stats.isFile()) {
             if (IS_WINDOWS) {
                 // on Windows, test for valid extension
-                const upperExt = external_path_.extname(filePath).toUpperCase();
+                const upperExt = external_path_namespaceObject.extname(filePath).toUpperCase();
                 if (extensions.some(validExt => validExt.toUpperCase() === upperExt)) {
                     return filePath;
                 }
@@ -34878,11 +33714,11 @@ function tryGetExecutablePath(filePath, extensions) {
                 if (IS_WINDOWS) {
                     // preserve the case of the actual file (since an extension was appended)
                     try {
-                        const directory = external_path_.dirname(filePath);
-                        const upperName = external_path_.basename(filePath).toUpperCase();
+                        const directory = external_path_namespaceObject.dirname(filePath);
+                        const upperName = external_path_namespaceObject.basename(filePath).toUpperCase();
                         for (const actualName of yield readdir(directory)) {
                             if (upperName === actualName.toUpperCase()) {
-                                filePath = external_path_.join(directory, actualName);
+                                filePath = external_path_namespaceObject.join(directory, actualName);
                                 break;
                             }
                         }
@@ -34963,7 +33799,7 @@ function io_cp(source_1, dest_1) {
         }
         // If dest is an existing directory, should copy inside.
         const newDest = destStat && destStat.isDirectory() && copySourceDirectory
-            ? external_path_.join(dest, external_path_.basename(source))
+            ? external_path_namespaceObject.join(dest, external_path_namespaceObject.basename(source))
             : dest;
         if (!(yield exists(source))) {
             throw new Error(`no such file or directory: ${source}`);
@@ -34978,7 +33814,7 @@ function io_cp(source_1, dest_1) {
             }
         }
         else {
-            if (external_path_.relative(source, newDest) === '') {
+            if (external_path_namespaceObject.relative(source, newDest) === '') {
                 // a file cannot be copied to itself
                 throw new Error(`'${newDest}' and '${source}' are the same file`);
             }
@@ -35102,7 +33938,7 @@ function findInPath(tool) {
         // build the list of extensions to try
         const extensions = [];
         if (IS_WINDOWS && process.env['PATHEXT']) {
-            for (const extension of process.env['PATHEXT'].split(external_path_.delimiter)) {
+            for (const extension of process.env['PATHEXT'].split(external_path_namespaceObject.delimiter)) {
                 if (extension) {
                     extensions.push(extension);
                 }
@@ -35117,7 +33953,7 @@ function findInPath(tool) {
             return [];
         }
         // if any path separators, return empty
-        if (tool.includes(external_path_.sep)) {
+        if (tool.includes(external_path_namespaceObject.sep)) {
             return [];
         }
         // build the list of directories
@@ -35128,7 +33964,7 @@ function findInPath(tool) {
         // across platforms.
         const directories = [];
         if (process.env.PATH) {
-            for (const p of process.env.PATH.split(external_path_.delimiter)) {
+            for (const p of process.env.PATH.split(external_path_namespaceObject.delimiter)) {
                 if (p) {
                     directories.push(p);
                 }
@@ -35137,7 +33973,7 @@ function findInPath(tool) {
         // find all matches
         const matches = [];
         for (const directory of directories) {
-            const filePath = yield tryGetExecutablePath(external_path_.join(directory, tool), extensions);
+            const filePath = yield tryGetExecutablePath(external_path_namespaceObject.join(directory, tool), extensions);
             if (filePath) {
                 matches.push(filePath);
             }
@@ -35204,9 +34040,9 @@ function io_copyFile(srcFile, destFile, force) {
     });
 }
 //# sourceMappingURL=io.js.map
-// EXTERNAL MODULE: external "timers"
-var external_timers_ = __nccwpck_require__(3557);
-;// CONCATENATED MODULE: ./node_modules/@actions/core/node_modules/@actions/exec/lib/toolrunner.js
+;// CONCATENATED MODULE: external "timers"
+const external_timers_namespaceObject = require("timers");
+;// CONCATENATED MODULE: ./node_modules/@actions/exec/lib/toolrunner.js
 var toolrunner_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -35284,13 +34120,13 @@ class ToolRunner extends external_events_.EventEmitter {
     _processLineBuffer(data, strBuffer, onLine) {
         try {
             let s = strBuffer + data.toString();
-            let n = s.indexOf(external_os_.EOL);
+            let n = s.indexOf(external_os_namespaceObject.EOL);
             while (n > -1) {
                 const line = s.substring(0, n);
                 onLine(line);
                 // the rest of the string ...
-                s = s.substring(n + external_os_.EOL.length);
-                n = s.indexOf(external_os_.EOL);
+                s = s.substring(n + external_os_namespaceObject.EOL.length);
+                n = s.indexOf(external_os_namespaceObject.EOL);
             }
             return s;
         }
@@ -35568,7 +34404,7 @@ class ToolRunner extends external_events_.EventEmitter {
                 (this.toolPath.includes('/') ||
                     (toolrunner_IS_WINDOWS && this.toolPath.includes('\\')))) {
                 // prefer options.cwd if it is specified, however options.cwd may also need to be rooted
-                this.toolPath = external_path_.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
+                this.toolPath = external_path_namespaceObject.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
             }
             // if the tool is only a file name, then resolve it from the PATH
             // otherwise verify it exists (add extension on Windows if necessary)
@@ -35581,7 +34417,7 @@ class ToolRunner extends external_events_.EventEmitter {
                 }
                 const optionsNonNull = this._cloneExecOptions(this.options);
                 if (!optionsNonNull.silent && optionsNonNull.outStream) {
-                    optionsNonNull.outStream.write(this._getCommandString(optionsNonNull) + external_os_.EOL);
+                    optionsNonNull.outStream.write(this._getCommandString(optionsNonNull) + external_os_namespaceObject.EOL);
                 }
                 const state = new ExecState(optionsNonNull, this.toolPath);
                 state.on('debug', (message) => {
@@ -35591,7 +34427,7 @@ class ToolRunner extends external_events_.EventEmitter {
                     return reject(new Error(`The cwd: ${this.options.cwd} does not exist!`));
                 }
                 const fileName = this._getSpawnFileName();
-                const cp = external_child_process_.spawn(fileName, this._getSpawnArgs(optionsNonNull), this._getSpawnOptions(this.options, fileName));
+                const cp = external_child_process_namespaceObject.spawn(fileName, this._getSpawnArgs(optionsNonNull), this._getSpawnOptions(this.options, fileName));
                 let stdbuffer = '';
                 if (cp.stdout) {
                     cp.stdout.on('data', (data) => {
@@ -35754,7 +34590,7 @@ class ExecState extends external_events_.EventEmitter {
             this._setResult();
         }
         else if (this.processExited) {
-            this.timeout = (0,external_timers_.setTimeout)(ExecState.HandleTimeout, this.delay, this);
+            this.timeout = (0,external_timers_namespaceObject.setTimeout)(ExecState.HandleTimeout, this.delay, this);
         }
     }
     _debug(message) {
@@ -35794,7 +34630,7 @@ class ExecState extends external_events_.EventEmitter {
     }
 }
 //# sourceMappingURL=toolrunner.js.map
-;// CONCATENATED MODULE: ./node_modules/@actions/core/node_modules/@actions/exec/lib/exec.js
+;// CONCATENATED MODULE: ./node_modules/@actions/exec/lib/exec.js
 var exec_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -35818,14 +34654,14 @@ var exec_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arg
  */
 function exec_exec(commandLine, args, options) {
     return exec_awaiter(this, void 0, void 0, function* () {
-        const commandArgs = tr.argStringToArray(commandLine);
+        const commandArgs = argStringToArray(commandLine);
         if (commandArgs.length === 0) {
             throw new Error(`Parameter 'commandLine' cannot be null or empty.`);
         }
         // Path to tool to execute should be first arg
         const toolPath = commandArgs[0];
         args = commandArgs.slice(1).concat(args || []);
-        const runner = new tr.ToolRunner(toolPath, args, options);
+        const runner = new ToolRunner(toolPath, args, options);
         return runner.exec();
     });
 }
@@ -35845,8 +34681,8 @@ function getExecOutput(commandLine, args, options) {
         let stdout = '';
         let stderr = '';
         //Using string decoder covers the case where a mult-byte character is split
-        const stdoutDecoder = new StringDecoder('utf8');
-        const stderrDecoder = new StringDecoder('utf8');
+        const stdoutDecoder = new external_string_decoder_.StringDecoder('utf8');
+        const stderrDecoder = new external_string_decoder_.StringDecoder('utf8');
         const originalStdoutListener = (_a = options === null || options === void 0 ? void 0 : options.listeners) === null || _a === void 0 ? void 0 : _a.stdout;
         const originalStdErrListener = (_b = options === null || options === void 0 ? void 0 : options.listeners) === null || _b === void 0 ? void 0 : _b.stderr;
         const stdErrListener = (data) => {
@@ -35920,8 +34756,8 @@ const getLinuxInfo = () => platform_awaiter(void 0, void 0, void 0, function* ()
         version
     };
 });
-const platform = external_os_.platform();
-const arch = external_os_.arch();
+const platform = external_os_namespaceObject.platform();
+const arch = external_os_namespaceObject.arch();
 const isWindows = platform === 'win32';
 const isMacOS = platform === 'darwin';
 const isLinux = platform === 'linux';
@@ -36031,7 +34867,7 @@ function addPath(inputPath) {
     else {
         command_issueCommand('add-path', {}, inputPath);
     }
-    process.env['PATH'] = `${inputPath}${external_path_.delimiter}${process.env['PATH']}`;
+    process.env['PATH'] = `${inputPath}${external_path_namespaceObject.delimiter}${process.env['PATH']}`;
 }
 /**
  * Gets the value of an input.
@@ -36102,7 +34938,7 @@ function setOutput(name, value) {
     if (filePath) {
         return file_command_issueFileCommand('OUTPUT', file_command_prepareKeyValueMessage(name, value));
     }
-    process.stdout.write(external_os_.EOL);
+    process.stdout.write(external_os_namespaceObject.EOL);
     command_issueCommand('set-output', { name }, utils_toCommandValue(value));
 }
 /**
@@ -36170,7 +35006,7 @@ function notice(message, properties = {}) {
  * @param message info message
  */
 function info(message) {
-    process.stdout.write(message + external_os_.EOL);
+    process.stdout.write(message + external_os_namespaceObject.EOL);
 }
 /**
  * Begin an output group.
@@ -36257,8 +35093,6 @@ function getIDToken(aud) {
  */
 
 //# sourceMappingURL=core.js.map
-// EXTERNAL MODULE: ./node_modules/@actions/exec/lib/exec.js
-var lib_exec = __nccwpck_require__(5236);
 ;// CONCATENATED MODULE: ./node_modules/@actions/github/lib/context.js
 
 
@@ -36270,12 +35104,12 @@ class Context {
         var _a, _b, _c;
         this.payload = {};
         if (process.env.GITHUB_EVENT_PATH) {
-            if ((0,external_fs_.existsSync)(process.env.GITHUB_EVENT_PATH)) {
-                this.payload = JSON.parse((0,external_fs_.readFileSync)(process.env.GITHUB_EVENT_PATH, { encoding: 'utf8' }));
+            if ((0,external_fs_namespaceObject.existsSync)(process.env.GITHUB_EVENT_PATH)) {
+                this.payload = JSON.parse((0,external_fs_namespaceObject.readFileSync)(process.env.GITHUB_EVENT_PATH, { encoding: 'utf8' }));
             }
             else {
                 const path = process.env.GITHUB_EVENT_PATH;
-                process.stdout.write(`GITHUB_EVENT_PATH ${path} does not exist${external_os_.EOL}`);
+                process.stdout.write(`GITHUB_EVENT_PATH ${path} does not exist${external_os_namespaceObject.EOL}`);
             }
         }
         this.eventName = process.env.GITHUB_EVENT_NAME;
@@ -36352,6 +35186,19 @@ function getProxyFetch(destinationUrl) {
 }
 function getApiBaseUrl() {
     return process.env['GITHUB_API_URL'] || 'https://api.github.com';
+}
+function getUserAgentWithOrchestrationId(baseUserAgent) {
+    var _a;
+    const orchId = (_a = process.env['ACTIONS_ORCHESTRATION_ID']) === null || _a === void 0 ? void 0 : _a.trim();
+    if (orchId) {
+        const sanitizedId = orchId.replace(/[^a-z0-9_.-]/gi, '_');
+        const tag = `actions_orchestration_id/${sanitizedId}`;
+        if (baseUserAgent === null || baseUserAgent === void 0 ? void 0 : baseUserAgent.includes(tag))
+            return baseUserAgent;
+        const ua = baseUserAgent ? `${baseUserAgent} ` : '';
+        return `${ua}${tag}`;
+    }
+    return baseUserAgent;
 }
 //# sourceMappingURL=utils.js.map
 ;// CONCATENATED MODULE: ./node_modules/universal-user-agent/index.js
@@ -36860,8 +35707,8 @@ function withDefaults(oldDefaults, newDefaults) {
 var endpoint = withDefaults(null, DEFAULTS);
 
 
-// EXTERNAL MODULE: ./node_modules/fast-content-type-parse/index.js
-var fast_content_type_parse = __nccwpck_require__(1120);
+// EXTERNAL MODULE: ./node_modules/content-type/dist/index.js
+var dist = __nccwpck_require__(4649);
 ;// CONCATENATED MODULE: ./node_modules/json-with-bigint/json-with-bigint.js
 const intRegex = /^-?\d+$/;
 const noiseValue = /^-?\d+n+$/; // Noise - strings that match the custom format before being converted to it
@@ -36869,105 +35716,447 @@ const originalStringify = JSON.stringify;
 const originalParse = JSON.parse;
 const customFormat = /^-?\d+n$/;
 
-const bigIntsStringify = /([\[:])?"(-?\d+)n"($|([\\n]|\s)*(\s|[\\n])*[,\}\]])/g;
-const noiseStringify =
-  /([\[:])?("-?\d+n+)n("$|"([\\n]|\s)*(\s|[\\n])*[,\}\]])/g;
-
-/** @typedef {(key: string, value: any, context?: { source: string }) => any} Reviver */
+const bigIntsStringify = /([\[:])?"(-?\d+)n"($|\s*[,\}\]])/g;
+const noiseStringify = /([\[:])?("-?\d+n+)n("$|"\s*[,\}\]])/g;
 
 /**
- * Function to serialize value to a JSON string.
- * Converts BigInt values to a custom format (strings with digits and "n" at the end) and then converts them to proper big integers in a JSON string.
- * @param {*} value - The value to convert to a JSON string.
- * @param {(Function|Array<string>|null)} [replacer] - A function that alters the behavior of the stringification process, or an array of strings to indicate properties to exclude.
- * @param {(string|number)} [space] - A string or number to specify indentation or pretty-printing.
- * @returns {string} The JSON string representation.
+ * @typedef {(this: any, key: string | number | undefined, value: any) => any} Replacer
+ * @typedef {(key: string | number | undefined, value: any, context?: { source: string }) => any} Reviver
  */
-const JSONStringify = (value, replacer, space) => {
-  if ("rawJSON" in JSON) {
-    return originalStringify(
-      value,
-      (key, value) => {
-        if (typeof value === "bigint") return JSON.rawJSON(value.toString());
 
-        if (typeof replacer === "function") return replacer(key, value);
+/**
+ * Checks if a value is unstringifiable according to native JSON.stringify rules.
+ *
+ * @param {any} val The value to check.
+ * @returns {boolean} True if the value is undefined, a function, or a symbol.
+ */
+const isUnstringifiable = (val) =>
+  val === undefined || typeof val === "function" || typeof val === "symbol";
 
-        if (Array.isArray(replacer) && replacer.includes(key)) return value;
+/**
+ * Checks if a value is a native JSON.rawJSON object (Node.js 22+).
+ *
+ * @param {any} val The value to check.
+ * @returns {boolean} True if the value is a RawJSON instance.
+ */
+const isRawJSON = (val) =>
+  val !== null &&
+  typeof val === "object" &&
+  val.constructor &&
+  val.constructor.name === "RawJSON";
 
-        return value;
-      },
-      space,
-    );
+/**
+ * Iteratively converts a JS value to a JSON string.
+ * Used as a fallback when the native JSON.stringify hits the Maximum Call Stack size.
+ * Fully compliant with JSON formatting (space), replacers, and toJSON behaviors.
+ *
+ * @param {any} rootValue The value to stringify.
+ * @param {Replacer | Array<string | number> | null} [replacer] User's custom replacer function.
+ * @param {string | number} [spaceParam] Indentation for pretty-printing.
+ * @returns {string | undefined} The generated JSON string.
+ */
+const stringifyIteratively = (rootValue, replacer, spaceParam) => {
+  let space = "";
+
+  if (typeof spaceParam === "number") {
+    space = " ".repeat(Math.min(10, Math.max(0, Math.floor(spaceParam))));
+  } else if (typeof spaceParam === "string") {
+    space = spaceParam.slice(0, 10);
   }
 
-  if (!value) return originalStringify(value, replacer, space);
+  const isFunctionReplacer = typeof replacer === "function";
+  const propertyList = Array.isArray(replacer)
+    ? new Set(replacer.map(String))
+    : null;
 
-  const convertedToCustomJSON = originalStringify(
-    value,
-    (key, value) => {
-      const isNoise =
-        typeof value === "string" && Boolean(value.match(noiseValue));
+  /**
+   * Prepares a value for stringification by resolving toJSON, handling BigInts,
+   * applying custom replacers, and unwrapping primitive objects.
+   *
+   * @param {object|Array} parent The parent object or array holding the value.
+   * @param {string} key The key associated with the value.
+   * @param {any} val The raw value to process.
+   * @returns {any} The processed value ready for stringification.
+   */
+  const prepareVal = (parent, key, val) => {
+    const isObject = val !== null && typeof val === "object";
+    const hasToJSON = isObject && typeof val.toJSON === "function";
 
-      if (isNoise) return value.toString() + "n"; // Mark noise values with additional "n" to offset the deletion of one "n" during the processing
+    if (hasToJSON) {
+      val = val.toJSON(key);
+    }
 
-      if (typeof value === "bigint") return value.toString() + "n";
+    const isNoise = typeof val === "string" && noiseValue.test(val);
 
-      if (typeof replacer === "function") return replacer(key, value);
+    if (isNoise) return val + "n";
 
-      if (Array.isArray(replacer) && replacer.includes(key)) return value;
+    const isBigInt = typeof val === "bigint";
 
-      return value;
+    if (isBigInt) {
+      const supportsRawJSON = "rawJSON" in JSON;
+
+      if (supportsRawJSON) return JSON.rawJSON(val.toString());
+
+      return val.toString() + "n";
+    }
+
+    if (isFunctionReplacer) {
+      val = replacer.call(parent, key, val);
+    }
+
+    const isPostReplacerObject = val !== null && typeof val === "object";
+
+    if (isPostReplacerObject) {
+      const isPrimitiveWrapper =
+        val instanceof Number ||
+        val instanceof String ||
+        val instanceof Boolean;
+
+      if (isPrimitiveWrapper) {
+        val = val.valueOf();
+      }
+    }
+
+    return val;
+  };
+
+  const rootProcessed = prepareVal({ "": rootValue }, "", rootValue);
+
+  if (isUnstringifiable(rootProcessed)) {
+    return undefined;
+  }
+
+  const isRootPrimitive =
+    rootProcessed === null || typeof rootProcessed !== "object";
+  const isRootNativeRawJSON = isRawJSON(rootProcessed);
+
+  if (isRootPrimitive || isRootNativeRawJSON) {
+    return originalStringify(rootProcessed);
+  }
+
+  const chunks = [];
+  let level = 0;
+
+  const stack = [
+    {
+      parent: { "": rootProcessed },
+      key: "",
+      val: rootProcessed,
+      isArray: Array.isArray(rootProcessed),
+      keys: Array.isArray(rootProcessed) ? null : Object.keys(rootProcessed),
+      index: 0,
+      first: true,
     },
-    space,
-  );
-  const processedJSON = convertedToCustomJSON.replace(
-    bigIntsStringify,
-    "$1$2$3",
-  ); // Delete one "n" off the end of every BigInt value
-  const denoisedJSON = processedJSON.replace(noiseStringify, "$1$2$3"); // Remove one "n" off the end of every noisy string
+  ];
 
-  return denoisedJSON;
+  const visited = new WeakSet([rootProcessed]);
+
+  while (stack.length > 0) {
+    const node = stack[stack.length - 1];
+
+    if (node.index === 0) {
+      chunks.push(node.isArray ? "[" : "{");
+      level++;
+    }
+
+    let isDone = false;
+
+    if (node.isArray) {
+      if (node.index < node.val.length) {
+        if (!node.first) chunks.push(",");
+
+        if (space) chunks.push("\n" + space.repeat(level));
+
+        const childRaw = node.val[node.index];
+        const childVal = prepareVal(node.val, String(node.index), childRaw);
+
+        if (isUnstringifiable(childVal)) {
+          chunks.push("null");
+          node.first = false;
+          node.index++;
+        } else {
+          const isComplexObject =
+            childVal !== null && typeof childVal === "object";
+          const isNativeRaw = isRawJSON(childVal);
+
+          if (isComplexObject && !isNativeRaw) {
+            if (visited.has(childVal)) {
+              throw new TypeError("Converting circular structure to JSON");
+            }
+
+            visited.add(childVal);
+
+            stack.push({
+              parent: node.val,
+              key: String(node.index),
+              val: childVal,
+              isArray: Array.isArray(childVal),
+              keys: Array.isArray(childVal) ? null : Object.keys(childVal),
+              index: 0,
+              first: true,
+            });
+
+            node.first = false;
+            node.index++;
+          } else {
+            chunks.push(originalStringify(childVal));
+            node.first = false;
+            node.index++;
+          }
+        }
+      } else {
+        isDone = true;
+      }
+    } else {
+      while (node.index < node.keys.length) {
+        const k = node.keys[node.index++];
+
+        const isFilteredOutByArray = propertyList && !propertyList.has(k);
+
+        if (isFilteredOutByArray) continue;
+
+        const childRaw = node.val[k];
+        const childVal = prepareVal(node.val, k, childRaw);
+
+        if (isUnstringifiable(childVal)) continue;
+
+        if (!node.first) chunks.push(",");
+
+        if (space) {
+          chunks.push("\n" + space.repeat(level) + originalStringify(k) + ": ");
+        } else {
+          chunks.push(originalStringify(k) + ":");
+        }
+
+        const isComplexObject =
+          childVal !== null && typeof childVal === "object";
+        const isNativeRaw = isRawJSON(childVal);
+
+        if (isComplexObject && !isNativeRaw) {
+          if (visited.has(childVal)) {
+            throw new TypeError("Converting circular structure to JSON");
+          }
+
+          visited.add(childVal);
+
+          stack.push({
+            parent: node.val,
+            key: k,
+            val: childVal,
+            isArray: Array.isArray(childVal),
+            keys: Array.isArray(childVal) ? null : Object.keys(childVal),
+            index: 0,
+            first: true,
+          });
+
+          node.first = false;
+
+          break; // Stop current loop level to process the newly pushed stack node
+        } else {
+          chunks.push(originalStringify(childVal));
+          node.first = false;
+        }
+      }
+
+      const isNodeFullyProcessed =
+        node.index >= node.keys.length && stack[stack.length - 1] === node;
+
+      if (isNodeFullyProcessed) {
+        isDone = true;
+      }
+    }
+
+    if (isDone) {
+      level--;
+
+      if (!node.first && space) chunks.push("\n" + space.repeat(level));
+
+      chunks.push(node.isArray ? "]" : "}");
+      visited.delete(node.val);
+      stack.pop();
+    }
+  }
+
+  return chunks.join("");
 };
 
 /**
- * Support for JSON.parse's context.source feature detection.
- * @type {boolean}
+ * Converts a JavaScript value to a JSON string.
+ *
+ * Supports serialization of BigInt values using two strategies:
+ * 1. Custom format "123n" → "123" (universal fallback)
+ * 2. Native JSON.rawJSON() (Node.js 22+, fastest) when available
+ *
+ * All other values are serialized exactly like native JSON.stringify().
+ *
+ * @param {*} value The value to convert to a JSON string.
+ * @param {Replacer | Array<string | number> | null} [replacer]
+ * A function that alters the behavior of the stringification process,
+ * or an array of strings/numbers to indicate properties to exclude.
+ * @param {string | number} [space]
+ * A string or number to specify indentation or pretty-printing.
+ * @returns {string} The JSON string representation.
  */
-const isContextSourceSupported = () =>
-  JSON.parse("1", (_, __, context) => !!context && context.source === "1");
+const JSONStringify = (value, replacer, space) => {
+  try {
+    const supportsRawJSON = "rawJSON" in JSON;
+
+    if (supportsRawJSON) {
+      return originalStringify(
+        value,
+        (key, val) => {
+          if (typeof val === "bigint") return JSON.rawJSON(val.toString());
+
+          const hasFunctionReplacer = typeof replacer === "function";
+
+          if (hasFunctionReplacer) return replacer(key, val);
+
+          const isKeyInArrayReplacer =
+            Array.isArray(replacer) && replacer.includes(key);
+
+          if (isKeyInArrayReplacer) return val;
+
+          return val;
+        },
+        space,
+      );
+    }
+
+    if (!value) return originalStringify(value, replacer, space);
+
+    const convertedToCustomJSON = originalStringify(
+      value,
+      (key, val) => {
+        const isNoise = typeof val === "string" && noiseValue.test(val);
+
+        if (isNoise) return val.toString() + "n"; // Mark noise values with additional "n" to offset the deletion of one "n" during the processing
+
+        if (typeof val === "bigint") return val.toString() + "n";
+
+        const hasFunctionReplacer = typeof replacer === "function";
+
+        if (hasFunctionReplacer) return replacer(key, val);
+
+        const isKeyInArrayReplacer =
+          Array.isArray(replacer) && replacer.includes(key);
+
+        if (isKeyInArrayReplacer) return val;
+
+        return val;
+      },
+      space,
+    );
+
+    const processedJSON = convertedToCustomJSON.replace(
+      bigIntsStringify,
+      "$1$2$3",
+    ); // Delete one "n" off the end of every BigInt value
+
+    const denoisedJSON = processedJSON.replace(noiseStringify, "$1$2$3"); // Remove one "n" off the end of every noisy string
+
+    return denoisedJSON;
+  } catch (error) {
+    if (error instanceof RangeError) {
+      const convertedJSON = stringifyIteratively(value, replacer, space);
+
+      if (convertedJSON === undefined) return undefined;
+
+      const supportsRawJSON = "rawJSON" in JSON;
+
+      if (supportsRawJSON) return convertedJSON;
+
+      const processedJSON = convertedJSON.replace(bigIntsStringify, "$1$2$3");
+
+      return processedJSON.replace(noiseStringify, "$1$2$3");
+    }
+
+    throw error;
+  }
+};
+
+const featureCache = new Map();
 
 /**
- * Convert marked big numbers to BigInt
- * @type {Reviver}
+ * Detects if the current JSON.parse implementation supports the context.source feature.
+ *
+ * Uses toString() fingerprinting to cache results and automatically detect runtime
+ * replacements of JSON.parse (polyfills, mocks, etc.).
+ *
+ * @returns {boolean} true if context.source is supported, false otherwise.
+ */
+const isContextSourceSupported = () => {
+  const parseFingerprint = JSON.parse.toString();
+
+  if (featureCache.has(parseFingerprint)) {
+    return featureCache.get(parseFingerprint);
+  }
+
+  try {
+    const result = JSON.parse(
+      "1",
+      (_, __, context) => !!context?.source && context.source === "1",
+    );
+    featureCache.set(parseFingerprint, result);
+
+    return result;
+  } catch {
+    featureCache.set(parseFingerprint, false);
+
+    return false;
+  }
+};
+
+/**
+ * Reviver function that converts custom-format BigInt strings back to BigInt values.
+ * Also handles "noise" strings that accidentally match the BigInt format.
+ *
+ * @param {string | number | undefined} key The object key.
+ * @param {*} value The value being parsed.
+ * @param {object} [context] Parse context (if supported by JSON.parse).
+ * @param {Reviver} [userReviver] User's custom reviver function.
+ * @returns {any} The transformed value.
  */
 const convertMarkedBigIntsReviver = (key, value, context, userReviver) => {
   const isCustomFormatBigInt =
-    typeof value === "string" && value.match(customFormat);
+    typeof value === "string" && customFormat.test(value);
+
   if (isCustomFormatBigInt) return BigInt(value.slice(0, -1));
 
-  const isNoiseValue = typeof value === "string" && value.match(noiseValue);
+  const isNoiseValue = typeof value === "string" && noiseValue.test(value);
   if (isNoiseValue) return value.slice(0, -1);
 
-  if (typeof userReviver !== "function") return value;
+  const hasUserReviver = typeof userReviver === "function";
+
+  if (!hasUserReviver) return value;
+
   return userReviver(key, value, context);
 };
 
 /**
- * Faster (2x) and simpler function to parse JSON.
- * Based on JSON.parse's context.source feature, which is not universally available now.
- * Does not support the legacy custom format, used in the first version of this library.
+ * Fast JSON.parse implementation (~2x faster than classic fallback).
+ * Uses JSON.parse's context.source feature to detect integers and convert
+ * large numbers directly to BigInt without string manipulation.
+ *
+ * Does not support legacy custom format from v1 of this library.
+ *
+ * @param {string} text JSON string to parse.
+ * @param {Reviver} [reviver] Transform function to apply to each value.
+ * @returns {any} Parsed JavaScript value.
  */
 const JSONParseV2 = (text, reviver) => {
   return JSON.parse(text, (key, value, context) => {
-    const isBigNumber =
-      typeof value === "number" &&
-      (value > Number.MAX_SAFE_INTEGER || value < Number.MIN_SAFE_INTEGER);
+    const isNumber = typeof value === "number";
+    const isOutOfBounds =
+      value > Number.MAX_SAFE_INTEGER || value < Number.MIN_SAFE_INTEGER;
+    const isBigNumber = isNumber && isOutOfBounds;
     const isInt = context && intRegex.test(context.source);
     const isBigInt = isBigNumber && isInt;
 
     if (isBigInt) return BigInt(context.source);
 
-    if (typeof reviver !== "function") return value;
+    const hasCustomReviver = typeof reviver === "function";
+
+    if (!hasCustomReviver) return value;
 
     return reviver(key, value, context);
   });
@@ -36980,40 +36169,143 @@ const stringsOrLargeNumbers =
 const noiseValueWithQuotes = /^"-?\d+n+"$/; // Noise - strings that match the custom format before being converted to it
 
 /**
- * Function to parse JSON.
- * If JSON has number values greater than Number.MAX_SAFE_INTEGER, we convert those values to a custom format, then parse them to BigInt values.
- * Other types of values are not affected and parsed as native JSON.parse() would parse them.
+ * Iteratively traverses the parsed object bottom-up (post-order),
+ * emulating the native JSON.parse reviver behavior.
+ * This avoids Call Stack overflows (RangeError) on deeply nested structures.
+ *
+ * @param {any} parsed The natively parsed JSON object.
+ * @param {Reviver} [userReviver] User's custom reviver function.
+ * @returns {any} The fully processed object.
+ */
+const applyReviverIteratively = (parsed, userReviver) => {
+  const rootHolder = { "": parsed };
+  const stack = [{ parent: rootHolder, key: "", visited: false }];
+
+  while (stack.length > 0) {
+    const node = stack[stack.length - 1];
+
+    if (!node.visited) {
+      node.visited = true;
+
+      const value = node.parent[node.key];
+      const isComplexObject = value !== null && typeof value === "object";
+
+      if (isComplexObject) {
+        const keys = Object.keys(value);
+
+        for (let i = keys.length - 1; i >= 0; i--) {
+          stack.push({ parent: value, key: keys[i], visited: false });
+        }
+      }
+    } else {
+      const { parent, key } = node;
+      let value = parent[key];
+
+      if (typeof value === "string") {
+        const isCustomFormatBigInt = customFormat.test(value);
+
+        if (isCustomFormatBigInt) {
+          value = BigInt(value.slice(0, -1));
+        } else {
+          const isNoise = noiseValue.test(value);
+
+          if (isNoise) value = value.slice(0, -1);
+        }
+      }
+
+      const hasUserReviver = typeof userReviver === "function";
+
+      if (hasUserReviver) {
+        value = userReviver.call(parent, key, value);
+      }
+
+      const isDeleted = value === undefined;
+
+      if (isDeleted) {
+        delete parent[key];
+      } else {
+        parent[key] = value;
+      }
+
+      stack.pop();
+    }
+  }
+
+  return rootHolder[""];
+};
+
+/**
+ * Pre-processes the JSON string to mark large numbers with an 'n' suffix.
+ *
+ * @param {string} text The raw JSON string.
+ * @returns {string} The serialized string with marked BigInts.
+ */
+const serializeBigInts = (text) => {
+  return text.replace(
+    stringsOrLargeNumbers,
+    (match, digits, fractional, exponential) => {
+      const isString = match[0] === '"';
+      const isNoise = isString && noiseValueWithQuotes.test(match);
+
+      if (isNoise) return match.substring(0, match.length - 1) + 'n"'; // Mark noise values with additional "n" to offset the deletion of one "n" during the processing
+
+      const hasFractionalOrExponential = fractional || exponential;
+
+      // With a fixed number of digits, we can correctly use lexicographical comparison to do a numeric comparison
+      const isLessThanMaxSafeInt =
+        digits &&
+        (digits.length < MAX_DIGITS ||
+          (digits.length === MAX_DIGITS && digits <= MAX_INT));
+
+      const isStandardValue =
+        isString || hasFractionalOrExponential || isLessThanMaxSafeInt;
+
+      if (isStandardValue) return match;
+
+      return '"' + match + 'n"';
+    },
+  );
+};
+
+/**
+ * Converts a JSON string into a JavaScript value.
+ *
+ * Supports parsing of large integers using two strategies:
+ * 1. Classic fallback: Marks large numbers with "123n" format, then converts to BigInt
+ * 2. Fast path (JSONParseV2): Uses context.source feature (~2x faster) when available
+ *
+ * All other JSON values are parsed exactly like native JSON.parse().
+ *
+ * @param {string} text A valid JSON string.
+ * @param {Reviver} [reviver]
+ * A function that transforms the results. This function is called for each member
+ * of the object. If a member contains nested objects, the nested objects are
+ * transformed before the parent object is.
+ * @returns {any} The parsed JavaScript value.
+ * @throws {SyntaxError} If text is not valid JSON.
  */
 const JSONParse = (text, reviver) => {
   if (!text) return originalParse(text, reviver);
 
-  if (isContextSourceSupported()) return JSONParseV2(text, reviver); // Shortcut to a faster (2x) and simpler version
+  try {
+    if (isContextSourceSupported()) return JSONParseV2(text, reviver); // Shortcut to a faster (2x) and simpler version
 
-  // Find and mark big numbers with "n"
-  const serializedData = text.replace(
-    stringsOrLargeNumbers,
-    (text, digits, fractional, exponential) => {
-      const isString = text[0] === '"';
-      const isNoise = isString && Boolean(text.match(noiseValueWithQuotes));
+    // Find and mark big numbers with "n"
+    const serializedData = serializeBigInts(text);
 
-      if (isNoise) return text.substring(0, text.length - 1) + 'n"'; // Mark noise values with additional "n" to offset the deletion of one "n" during the processing
+    return originalParse(serializedData, (key, value, context) =>
+      convertMarkedBigIntsReviver(key, value, context, reviver),
+    );
+  } catch (error) {
+    if (error instanceof RangeError) {
+      const serializedData = serializeBigInts(text);
+      const parsed = originalParse(serializedData);
 
-      const isFractionalOrExponential = fractional || exponential;
-      const isLessThanMaxSafeInt =
-        digits &&
-        (digits.length < MAX_DIGITS ||
-          (digits.length === MAX_DIGITS && digits <= MAX_INT)); // With a fixed number of digits, we can correctly use lexicographical comparison to do a numeric comparison
+      return applyReviverIteratively(parsed, reviver);
+    }
 
-      if (isString || isFractionalOrExponential || isLessThanMaxSafeInt)
-        return text;
-
-      return '"' + text + 'n"';
-    },
-  );
-
-  return originalParse(serializedData, (key, value, context) =>
-    convertMarkedBigIntsReviver(key, value, context, reviver),
-  );
+    throw error;
+  }
 };
 
 
@@ -37067,7 +36359,7 @@ class RequestError extends Error {
 
 
 // pkg/dist-src/version.js
-var dist_bundle_VERSION = "10.0.8";
+var dist_bundle_VERSION = "10.0.11";
 
 // pkg/dist-src/defaults.js
 var defaults_default = {
@@ -37196,7 +36488,7 @@ async function getResponseData(response) {
   if (!contentType) {
     return response.text().catch(noop);
   }
-  const mimetype = (0,fast_content_type_parse/* safeParse */.xL)(contentType);
+  const mimetype = (0,dist/* parse */.qg)(contentType);
   if (isJSONResponse(mimetype)) {
     let text = "";
     try {
@@ -37224,9 +36516,10 @@ function toErrorMessage(data) {
   if (data instanceof ArrayBuffer) {
     return "Unknown error";
   }
-  if ("message" in data) {
-    const suffix = "documentation_url" in data ? ` - ${data.documentation_url}` : "";
-    return Array.isArray(data.errors) ? `${data.message}: ${data.errors.map((v) => JSON.stringify(v)).join(", ")}${suffix}` : `${data.message}${suffix}`;
+  if (typeof data === "object" && data !== null && "message" in data) {
+    const objectData = data;
+    const suffix = "documentation_url" in objectData ? ` - ${objectData.documentation_url}` : "";
+    return Array.isArray(objectData.errors) ? `${objectData.message}: ${objectData.errors.map((v) => JSON.stringify(v)).join(", ")}${suffix}` : `${objectData.message}${suffix}`;
   }
   return `Unknown error: ${JSON.stringify(data)}`;
 }
@@ -40464,6 +39757,7 @@ const defaults = {
     }
 };
 const GitHub = Octokit.plugin(restEndpointMethods, paginateRest).defaults(defaults);
+
 /**
  * Convience function to correctly format Octokit Options to pass into the constructor.
  *
@@ -40476,6 +39770,11 @@ function getOctokitOptions(token, options) {
     const auth = getAuthString(token, opts);
     if (auth) {
         opts.auth = auth;
+    }
+    // Orchestration ID
+    const userAgent = getUserAgentWithOrchestrationId(opts.userAgent);
+    if (userAgent) {
+        opts.userAgent = userAgent;
     }
     return opts;
 }
@@ -40922,6 +40221,7 @@ function makeInt64Support() {
         typeof dv.setBigInt64 === "function" &&
         typeof dv.setBigUint64 === "function" &&
         (!!globalThis.Deno ||
+            !!globalThis.Bun ||
             typeof process != "object" ||
             typeof process.env != "object" ||
             process.env.BUF_BIGINT_DISABLE !== "1");
@@ -41041,6 +40341,14 @@ function assertUInt64String(value) {
 
 /**
  * Returns true if both scalar values are equal.
+ *
+ * For float and double, values are compared following IEEE semantics: -0
+ * equals 0, and NaN does not equal NaN. This is value equality, not identity.
+ *
+ * It deliberately differs from isScalarZeroValue, which treats -0 as distinct
+ * from 0. A value can equal the zero value without being a zero value
+ * (scalarEquals(DOUBLE, -0, 0) is true while isScalarZeroValue(DOUBLE, -0) is
+ * false) so this function must not be used to derive implicit presence.
  */
 function scalarEquals(type, a, b) {
     if (a === b) {
@@ -41077,7 +40385,13 @@ function scalarEquals(type, a, b) {
     return false;
 }
 /**
- * Returns the zero value for the given scalar type.
+ * Returns the zero value for the given scalar type, the value a field of this
+ * type has when unset: 0 for numeric types, "" for strings, false for
+ * booleans, and an empty Uint8Array for bytes. For 64-bit integer types, the
+ * result is "0" when longAsString is true, otherwise 0n.
+ *
+ * This is the type's zero value, not a proto2 custom field default. For float
+ * and double it is +0; isScalarZeroValue treats only +0, not -0, as this value.
  */
 function scalarZeroValue(type, longAsString) {
     switch (type) {
@@ -41103,11 +40417,19 @@ function scalarZeroValue(type, longAsString) {
     }
 }
 /**
- * Returns true for a zero-value. For example, an integer has the zero-value `0`,
- * a boolean is `false`, a string is `""`, and bytes is an empty Uint8Array.
+ * Returns true if the value is the zero value for the given scalar type: `0`
+ * for numeric types, `false` for booleans, `""` for strings, and an empty
+ * Uint8Array for bytes.
  *
- * In proto3, zero-values are not written to the wire, unless the field is
- * optional or repeated.
+ * This is the implicit-presence default check. A singular field with implicit
+ * presence is treated as unset, and omitted from the wire, when its value is
+ * the zero value. With explicit presence, or in repeated and map fields,
+ * presence is structural and this function does not apply.
+ *
+ * Note that -0 is NOT a zero value for float and double: under implicit
+ * presence, +0 is omitted from the wire but -0 is written, following the
+ * proto3 specification. As a result this can disagree with scalarEquals, which
+ * compares by value and treats -0 as equal to 0.
  */
 function isScalarZeroValue(type, value) {
     switch (type) {
@@ -41117,8 +40439,13 @@ function isScalarZeroValue(type, value) {
             return value === "";
         case descriptors_ScalarType.BYTES:
             return value instanceof Uint8Array && !value.byteLength;
+        case descriptors_ScalarType.DOUBLE:
+        case descriptors_ScalarType.FLOAT:
+            // Object.is distinguishes -0 from 0.
+            return Object.is(value, 0);
         default:
-            return value == 0; // Loose comparison matches 0n, 0 and "0"
+            // Loose comparison matches 0n, 0 and "0".
+            return value == 0;
     }
 }
 
@@ -41361,6 +40688,29 @@ function isWrapperDesc(messageDesc) {
         f.fieldKind == "scalar" &&
         f.name == "value" &&
         f.number == 1);
+}
+/**
+ * Returns true if the descriptor is a well-known type with a custom JSON
+ * representation per the protobuf JSON spec. Examples: Timestamp as an
+ * RFC 3339 string, Duration as "5s", wrappers as the unwrapped scalar.
+ *
+ * When packed inside `google.protobuf.Any`, these messages are serialized
+ * as `{"@type": ..., "value": <custom form>}`; all other messages embed
+ * their fields directly.
+ */
+function hasCustomJsonRepresentation(desc) {
+    switch (desc.typeName) {
+        case "google.protobuf.Any":
+        case "google.protobuf.Timestamp":
+        case "google.protobuf.Duration":
+        case "google.protobuf.FieldMask":
+        case "google.protobuf.Struct":
+        case "google.protobuf.Value":
+        case "google.protobuf.ListValue":
+            return true;
+        default:
+            return isWrapperDesc(desc);
+    }
 }
 function isWrapperTypeName(name) {
     return (name.startsWith("google.protobuf.") &&
@@ -41699,11 +41049,18 @@ function getTextEncoding() {
     if (globalThis[symbol] == undefined) {
         const te = new globalThis.TextEncoder();
         const td = new globalThis.TextDecoder();
+        let tdStrict;
         globalThis[symbol] = {
             encodeUtf8(text) {
                 return te.encode(text);
             },
-            decodeUtf8(bytes) {
+            decodeUtf8(bytes, strict) {
+                if (strict) {
+                    if (tdStrict === undefined) {
+                        tdStrict = new globalThis.TextDecoder("utf-8", { fatal: true });
+                    }
+                    return tdStrict.decode(bytes);
+                }
                 return td.decode(bytes);
             },
             checkUtf8(text) {
@@ -41901,7 +41258,7 @@ class BinaryWriter {
         return this;
     }
     /**
-     * Write a `bool` value, a variant.
+     * Write a `bool` value, a varint.
      */
     bool(value) {
         this.buf.push(value ? 1 : 0);
@@ -41968,7 +41325,7 @@ class BinaryWriter {
         return this;
     }
     /**
-     * Write a `fixed64` value, a signed, fixed-length 64-bit integer.
+     * Write a `sfixed64` value, a signed, fixed-length 64-bit integer.
      */
     sfixed64(value) {
         let chunk = new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.enc(value);
@@ -42026,21 +41383,32 @@ class binary_encoding_BinaryReader {
         this.view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
     }
     /**
-     * Reads a tag - field number and wire type.
+     * Reads a tag - field number and wire type. Tags are uint32 varints; values
+     * that do not fit in uint32 are rejected.
      */
     tag() {
-        let tag = this.uint32(), fieldNo = tag >>> 3, wireType = tag & 7;
-        if (fieldNo <= 0 || wireType < 0 || wireType > 5)
+        const start = this.pos;
+        const tag = this.uint32();
+        const bytesRead = this.pos - start;
+        if (bytesRead > 5 || (bytesRead == 5 && this.buf[this.pos - 1] > 0x0f)) {
+            throw new Error("illegal tag: varint overflows uint32");
+        }
+        const fieldNo = tag >>> 3;
+        const wireType = tag & 7;
+        if (fieldNo <= 0 || wireType > 5) {
             throw new Error("illegal tag: field no " + fieldNo + " wire type " + wireType);
+        }
         return [fieldNo, wireType];
     }
     /**
      * Skip one element and return the skipped data.
      *
      * When skipping StartGroup, provide the tags field number to check for
-     * matching field number in the EndGroup tag.
+     * matching field number in the EndGroup tag. Recursion into nested groups
+     * is guarded by the `recursionLimit` argument: When the limit is reached,
+     * this method throws.
      */
-    skip(wireType, fieldNo) {
+    skip(wireType, fieldNo, recursionLimit = 100) {
         let start = this.pos;
         switch (wireType) {
             case WireType.Varint:
@@ -42059,6 +41427,9 @@ class binary_encoding_BinaryReader {
                 this.pos += len;
                 break;
             case WireType.StartGroup:
+                if (recursionLimit <= 0) {
+                    throw new Error("maximum recursion depth reached");
+                }
                 for (;;) {
                     const [fn, wt] = this.tag();
                     if (wt === WireType.EndGroup) {
@@ -42067,7 +41438,7 @@ class binary_encoding_BinaryReader {
                         }
                         break;
                     }
-                    this.skip(wt, fn);
+                    this.skip(wt, fn, recursionLimit - 1);
                 }
                 break;
             default:
@@ -42177,10 +41548,11 @@ class binary_encoding_BinaryReader {
         return this.buf.subarray(start, start + len);
     }
     /**
-     * Read a `string` field, length-delimited data converted to UTF-8 text.
+     * Read a `string` field, length-delimited data converted to UTF-8 text. If
+     * `strict` is true, throw on invalid UTF-8 instead of substituting U+FFFD.
      */
-    string() {
-        return this.decodeUtf8(this.bytes());
+    string(strict) {
+        return this.decodeUtf8(this.bytes(), strict);
     }
 }
 /**
@@ -42309,7 +41681,9 @@ function checkSingular(field, value) {
     }
     if (field.enum !== undefined) {
         if (field.enum.open) {
-            return Number.isInteger(value);
+            // Open enums accept unrecognized values, but enum values are always
+            // int32 (see https://protobuf.dev/programming-guides/proto3/#enum).
+            return checkScalarValue(value, descriptors_ScalarType.INT32);
         }
         return field.enum.values.some((v) => v.number === value);
     }
@@ -43827,6 +43201,8 @@ function initBaseRegistry(inputs) {
 const registry_EDITION_PROTO2 = 998;
 // bootstrap-inject google.protobuf.Edition.EDITION_PROTO3: const $name: Edition.$localName = $number;
 const registry_EDITION_PROTO3 = 999;
+// bootstrap-inject google.protobuf.Edition.EDITION_UNSTABLE: const $name: Edition.$localName = $number;
+const EDITION_UNSTABLE = 9999;
 // bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_STRING: const $name: FieldDescriptorProto_Type.$localName = $number;
 const TYPE_STRING = 9;
 // bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_GROUP: const $name: FieldDescriptorProto_Type.$localName = $number;
@@ -43857,9 +43233,11 @@ const PACKED = 1;
 const DELIMITED = 2;
 // bootstrap-inject google.protobuf.FeatureSet.EnumType.OPEN: const $name: FeatureSet_EnumType.$localName = $number;
 const OPEN = 1;
+// bootstrap-inject google.protobuf.FeatureSet.Utf8Validation.VERIFY: const $name: FeatureSet_Utf8Validation.$localName = $number;
+const VERIFY = 2;
 // biome-ignore format: want this to read well
 // bootstrap-inject defaults: EDITION_PROTO2 to EDITION_2024: export const minimumEdition: SupportedEdition = $minimumEdition, maximumEdition: SupportedEdition = $maximumEdition;
-// generated from protoc v33.2
+// generated from protoc v34.1
 const minimumEdition = 998, maximumEdition = 1001;
 const featureDefaults = {
     // EDITION_PROTO2
@@ -44198,6 +43576,7 @@ function newField(proto, parentOrFile, reg, oneof, mapEntries) {
         message: undefined,
         enum: undefined,
         presence: getFieldPresence(proto, oneof, isExtension, parentOrFile),
+        utf8Validation: isUtf8Validated(proto, parentOrFile),
         listKind: undefined,
         mapKind: undefined,
         mapKey: undefined,
@@ -44326,6 +43705,12 @@ function getFileEdition(proto) {
         case "proto3":
             return registry_EDITION_PROTO3;
         case "editions":
+            // EDITION_UNSTABLE is a sandbox for in-development features. Collapse
+            // it to maximumEdition so SupportedEdition and feature resolution do
+            // not leak the test-only edition to users.
+            if (proto.edition === EDITION_UNSTABLE) {
+                return maximumEdition;
+            }
             if (proto.edition in featureDefaults) {
                 return proto.edition;
             }
@@ -44521,6 +43906,18 @@ function isDelimitedEncoding(proto, parent) {
             parent,
         }));
 }
+/**
+ * Reject invalid UTF-8 when reading string fields from the binary wire format?
+ * Driven by the resolved `utf8_validation` feature: VERIFY (proto3 / editions
+ * 2023+ default) enforces; NONE (proto2 default) does not.
+ */
+function isUtf8Validated(proto, parent) {
+    return (VERIFY ==
+        resolveFeature("utf8Validation", {
+            proto,
+            parent,
+        }));
+}
 function resolveFeature(name, ref) {
     var _a, _b;
     const featureSet = (_a = ref.proto.options) === null || _a === void 0 ? void 0 : _a.features;
@@ -44697,7 +44094,7 @@ function message_messageDesc(file, path, ...paths) {
 /**
  * Describes the file google/protobuf/descriptor.proto.
  */
-const file_google_protobuf_descriptor = /*@__PURE__*/ boot({ "name": "google/protobuf/descriptor.proto", "package": "google.protobuf", "messageType": [{ "name": "FileDescriptorSet", "field": [{ "name": "file", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.FileDescriptorProto" }], "extensionRange": [{ "start": 536000000, "end": 536000001 }] }, { "name": "FileDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "package", "number": 2, "type": 9, "label": 1 }, { "name": "dependency", "number": 3, "type": 9, "label": 3 }, { "name": "public_dependency", "number": 10, "type": 5, "label": 3 }, { "name": "weak_dependency", "number": 11, "type": 5, "label": 3 }, { "name": "option_dependency", "number": 15, "type": 9, "label": 3 }, { "name": "message_type", "number": 4, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto" }, { "name": "enum_type", "number": 5, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumDescriptorProto" }, { "name": "service", "number": 6, "type": 11, "label": 3, "typeName": ".google.protobuf.ServiceDescriptorProto" }, { "name": "extension", "number": 7, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldDescriptorProto" }, { "name": "options", "number": 8, "type": 11, "label": 1, "typeName": ".google.protobuf.FileOptions" }, { "name": "source_code_info", "number": 9, "type": 11, "label": 1, "typeName": ".google.protobuf.SourceCodeInfo" }, { "name": "syntax", "number": 12, "type": 9, "label": 1 }, { "name": "edition", "number": 14, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }] }, { "name": "DescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "field", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldDescriptorProto" }, { "name": "extension", "number": 6, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldDescriptorProto" }, { "name": "nested_type", "number": 3, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto" }, { "name": "enum_type", "number": 4, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumDescriptorProto" }, { "name": "extension_range", "number": 5, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto.ExtensionRange" }, { "name": "oneof_decl", "number": 8, "type": 11, "label": 3, "typeName": ".google.protobuf.OneofDescriptorProto" }, { "name": "options", "number": 7, "type": 11, "label": 1, "typeName": ".google.protobuf.MessageOptions" }, { "name": "reserved_range", "number": 9, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto.ReservedRange" }, { "name": "reserved_name", "number": 10, "type": 9, "label": 3 }, { "name": "visibility", "number": 11, "type": 14, "label": 1, "typeName": ".google.protobuf.SymbolVisibility" }], "nestedType": [{ "name": "ExtensionRange", "field": [{ "name": "start", "number": 1, "type": 5, "label": 1 }, { "name": "end", "number": 2, "type": 5, "label": 1 }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.ExtensionRangeOptions" }] }, { "name": "ReservedRange", "field": [{ "name": "start", "number": 1, "type": 5, "label": 1 }, { "name": "end", "number": 2, "type": 5, "label": 1 }] }] }, { "name": "ExtensionRangeOptions", "field": [{ "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }, { "name": "declaration", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.ExtensionRangeOptions.Declaration", "options": { "retention": 2 } }, { "name": "features", "number": 50, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "verification", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.ExtensionRangeOptions.VerificationState", "defaultValue": "UNVERIFIED", "options": { "retention": 2 } }], "nestedType": [{ "name": "Declaration", "field": [{ "name": "number", "number": 1, "type": 5, "label": 1 }, { "name": "full_name", "number": 2, "type": 9, "label": 1 }, { "name": "type", "number": 3, "type": 9, "label": 1 }, { "name": "reserved", "number": 5, "type": 8, "label": 1 }, { "name": "repeated", "number": 6, "type": 8, "label": 1 }] }], "enumType": [{ "name": "VerificationState", "value": [{ "name": "DECLARATION", "number": 0 }, { "name": "UNVERIFIED", "number": 1 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "FieldDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "number", "number": 3, "type": 5, "label": 1 }, { "name": "label", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldDescriptorProto.Label" }, { "name": "type", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldDescriptorProto.Type" }, { "name": "type_name", "number": 6, "type": 9, "label": 1 }, { "name": "extendee", "number": 2, "type": 9, "label": 1 }, { "name": "default_value", "number": 7, "type": 9, "label": 1 }, { "name": "oneof_index", "number": 9, "type": 5, "label": 1 }, { "name": "json_name", "number": 10, "type": 9, "label": 1 }, { "name": "options", "number": 8, "type": 11, "label": 1, "typeName": ".google.protobuf.FieldOptions" }, { "name": "proto3_optional", "number": 17, "type": 8, "label": 1 }], "enumType": [{ "name": "Type", "value": [{ "name": "TYPE_DOUBLE", "number": 1 }, { "name": "TYPE_FLOAT", "number": 2 }, { "name": "TYPE_INT64", "number": 3 }, { "name": "TYPE_UINT64", "number": 4 }, { "name": "TYPE_INT32", "number": 5 }, { "name": "TYPE_FIXED64", "number": 6 }, { "name": "TYPE_FIXED32", "number": 7 }, { "name": "TYPE_BOOL", "number": 8 }, { "name": "TYPE_STRING", "number": 9 }, { "name": "TYPE_GROUP", "number": 10 }, { "name": "TYPE_MESSAGE", "number": 11 }, { "name": "TYPE_BYTES", "number": 12 }, { "name": "TYPE_UINT32", "number": 13 }, { "name": "TYPE_ENUM", "number": 14 }, { "name": "TYPE_SFIXED32", "number": 15 }, { "name": "TYPE_SFIXED64", "number": 16 }, { "name": "TYPE_SINT32", "number": 17 }, { "name": "TYPE_SINT64", "number": 18 }] }, { "name": "Label", "value": [{ "name": "LABEL_OPTIONAL", "number": 1 }, { "name": "LABEL_REPEATED", "number": 3 }, { "name": "LABEL_REQUIRED", "number": 2 }] }] }, { "name": "OneofDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "options", "number": 2, "type": 11, "label": 1, "typeName": ".google.protobuf.OneofOptions" }] }, { "name": "EnumDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "value", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumValueDescriptorProto" }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.EnumOptions" }, { "name": "reserved_range", "number": 4, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumDescriptorProto.EnumReservedRange" }, { "name": "reserved_name", "number": 5, "type": 9, "label": 3 }, { "name": "visibility", "number": 6, "type": 14, "label": 1, "typeName": ".google.protobuf.SymbolVisibility" }], "nestedType": [{ "name": "EnumReservedRange", "field": [{ "name": "start", "number": 1, "type": 5, "label": 1 }, { "name": "end", "number": 2, "type": 5, "label": 1 }] }] }, { "name": "EnumValueDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "number", "number": 2, "type": 5, "label": 1 }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.EnumValueOptions" }] }, { "name": "ServiceDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "method", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.MethodDescriptorProto" }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.ServiceOptions" }] }, { "name": "MethodDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "input_type", "number": 2, "type": 9, "label": 1 }, { "name": "output_type", "number": 3, "type": 9, "label": 1 }, { "name": "options", "number": 4, "type": 11, "label": 1, "typeName": ".google.protobuf.MethodOptions" }, { "name": "client_streaming", "number": 5, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "server_streaming", "number": 6, "type": 8, "label": 1, "defaultValue": "false" }] }, { "name": "FileOptions", "field": [{ "name": "java_package", "number": 1, "type": 9, "label": 1 }, { "name": "java_outer_classname", "number": 8, "type": 9, "label": 1 }, { "name": "java_multiple_files", "number": 10, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "java_generate_equals_and_hash", "number": 20, "type": 8, "label": 1, "options": { "deprecated": true } }, { "name": "java_string_check_utf8", "number": 27, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "optimize_for", "number": 9, "type": 14, "label": 1, "typeName": ".google.protobuf.FileOptions.OptimizeMode", "defaultValue": "SPEED" }, { "name": "go_package", "number": 11, "type": 9, "label": 1 }, { "name": "cc_generic_services", "number": 16, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "java_generic_services", "number": 17, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "py_generic_services", "number": 18, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated", "number": 23, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "cc_enable_arenas", "number": 31, "type": 8, "label": 1, "defaultValue": "true" }, { "name": "objc_class_prefix", "number": 36, "type": 9, "label": 1 }, { "name": "csharp_namespace", "number": 37, "type": 9, "label": 1 }, { "name": "swift_prefix", "number": 39, "type": 9, "label": 1 }, { "name": "php_class_prefix", "number": 40, "type": 9, "label": 1 }, { "name": "php_namespace", "number": 41, "type": 9, "label": 1 }, { "name": "php_metadata_namespace", "number": 44, "type": 9, "label": 1 }, { "name": "ruby_package", "number": 45, "type": 9, "label": 1 }, { "name": "features", "number": 50, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "enumType": [{ "name": "OptimizeMode", "value": [{ "name": "SPEED", "number": 1 }, { "name": "CODE_SIZE", "number": 2 }, { "name": "LITE_RUNTIME", "number": 3 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "MessageOptions", "field": [{ "name": "message_set_wire_format", "number": 1, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "no_standard_descriptor_accessor", "number": 2, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "map_entry", "number": 7, "type": 8, "label": 1 }, { "name": "deprecated_legacy_json_field_conflicts", "number": 11, "type": 8, "label": 1, "options": { "deprecated": true } }, { "name": "features", "number": 12, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "FieldOptions", "field": [{ "name": "ctype", "number": 1, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldOptions.CType", "defaultValue": "STRING" }, { "name": "packed", "number": 2, "type": 8, "label": 1 }, { "name": "jstype", "number": 6, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldOptions.JSType", "defaultValue": "JS_NORMAL" }, { "name": "lazy", "number": 5, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "unverified_lazy", "number": 15, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "weak", "number": 10, "type": 8, "label": 1, "defaultValue": "false", "options": { "deprecated": true } }, { "name": "debug_redact", "number": 16, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "retention", "number": 17, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldOptions.OptionRetention" }, { "name": "targets", "number": 19, "type": 14, "label": 3, "typeName": ".google.protobuf.FieldOptions.OptionTargetType" }, { "name": "edition_defaults", "number": 20, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldOptions.EditionDefault" }, { "name": "features", "number": 21, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "feature_support", "number": 22, "type": 11, "label": 1, "typeName": ".google.protobuf.FieldOptions.FeatureSupport" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "nestedType": [{ "name": "EditionDefault", "field": [{ "name": "edition", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "value", "number": 2, "type": 9, "label": 1 }] }, { "name": "FeatureSupport", "field": [{ "name": "edition_introduced", "number": 1, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "edition_deprecated", "number": 2, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "deprecation_warning", "number": 3, "type": 9, "label": 1 }, { "name": "edition_removed", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }] }], "enumType": [{ "name": "CType", "value": [{ "name": "STRING", "number": 0 }, { "name": "CORD", "number": 1 }, { "name": "STRING_PIECE", "number": 2 }] }, { "name": "JSType", "value": [{ "name": "JS_NORMAL", "number": 0 }, { "name": "JS_STRING", "number": 1 }, { "name": "JS_NUMBER", "number": 2 }] }, { "name": "OptionRetention", "value": [{ "name": "RETENTION_UNKNOWN", "number": 0 }, { "name": "RETENTION_RUNTIME", "number": 1 }, { "name": "RETENTION_SOURCE", "number": 2 }] }, { "name": "OptionTargetType", "value": [{ "name": "TARGET_TYPE_UNKNOWN", "number": 0 }, { "name": "TARGET_TYPE_FILE", "number": 1 }, { "name": "TARGET_TYPE_EXTENSION_RANGE", "number": 2 }, { "name": "TARGET_TYPE_MESSAGE", "number": 3 }, { "name": "TARGET_TYPE_FIELD", "number": 4 }, { "name": "TARGET_TYPE_ONEOF", "number": 5 }, { "name": "TARGET_TYPE_ENUM", "number": 6 }, { "name": "TARGET_TYPE_ENUM_ENTRY", "number": 7 }, { "name": "TARGET_TYPE_SERVICE", "number": 8 }, { "name": "TARGET_TYPE_METHOD", "number": 9 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "OneofOptions", "field": [{ "name": "features", "number": 1, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "EnumOptions", "field": [{ "name": "allow_alias", "number": 2, "type": 8, "label": 1 }, { "name": "deprecated", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated_legacy_json_field_conflicts", "number": 6, "type": 8, "label": 1, "options": { "deprecated": true } }, { "name": "features", "number": 7, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "EnumValueOptions", "field": [{ "name": "deprecated", "number": 1, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "features", "number": 2, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "debug_redact", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "feature_support", "number": 4, "type": 11, "label": 1, "typeName": ".google.protobuf.FieldOptions.FeatureSupport" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "ServiceOptions", "field": [{ "name": "features", "number": 34, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "deprecated", "number": 33, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "MethodOptions", "field": [{ "name": "deprecated", "number": 33, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "idempotency_level", "number": 34, "type": 14, "label": 1, "typeName": ".google.protobuf.MethodOptions.IdempotencyLevel", "defaultValue": "IDEMPOTENCY_UNKNOWN" }, { "name": "features", "number": 35, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "enumType": [{ "name": "IdempotencyLevel", "value": [{ "name": "IDEMPOTENCY_UNKNOWN", "number": 0 }, { "name": "NO_SIDE_EFFECTS", "number": 1 }, { "name": "IDEMPOTENT", "number": 2 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "UninterpretedOption", "field": [{ "name": "name", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption.NamePart" }, { "name": "identifier_value", "number": 3, "type": 9, "label": 1 }, { "name": "positive_int_value", "number": 4, "type": 4, "label": 1 }, { "name": "negative_int_value", "number": 5, "type": 3, "label": 1 }, { "name": "double_value", "number": 6, "type": 1, "label": 1 }, { "name": "string_value", "number": 7, "type": 12, "label": 1 }, { "name": "aggregate_value", "number": 8, "type": 9, "label": 1 }], "nestedType": [{ "name": "NamePart", "field": [{ "name": "name_part", "number": 1, "type": 9, "label": 2 }, { "name": "is_extension", "number": 2, "type": 8, "label": 2 }] }] }, { "name": "FeatureSet", "field": [{ "name": "field_presence", "number": 1, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.FieldPresence", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "EXPLICIT", "edition": 900 }, { "value": "IMPLICIT", "edition": 999 }, { "value": "EXPLICIT", "edition": 1000 }] } }, { "name": "enum_type", "number": 2, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.EnumType", "options": { "retention": 1, "targets": [6, 1], "editionDefaults": [{ "value": "CLOSED", "edition": 900 }, { "value": "OPEN", "edition": 999 }] } }, { "name": "repeated_field_encoding", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.RepeatedFieldEncoding", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "EXPANDED", "edition": 900 }, { "value": "PACKED", "edition": 999 }] } }, { "name": "utf8_validation", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.Utf8Validation", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "NONE", "edition": 900 }, { "value": "VERIFY", "edition": 999 }] } }, { "name": "message_encoding", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.MessageEncoding", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "LENGTH_PREFIXED", "edition": 900 }] } }, { "name": "json_format", "number": 6, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.JsonFormat", "options": { "retention": 1, "targets": [3, 6, 1], "editionDefaults": [{ "value": "LEGACY_BEST_EFFORT", "edition": 900 }, { "value": "ALLOW", "edition": 999 }] } }, { "name": "enforce_naming_style", "number": 7, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.EnforceNamingStyle", "options": { "retention": 2, "targets": [1, 2, 3, 4, 5, 6, 7, 8, 9], "editionDefaults": [{ "value": "STYLE_LEGACY", "edition": 900 }, { "value": "STYLE2024", "edition": 1001 }] } }, { "name": "default_symbol_visibility", "number": 8, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.VisibilityFeature.DefaultSymbolVisibility", "options": { "retention": 2, "targets": [1], "editionDefaults": [{ "value": "EXPORT_ALL", "edition": 900 }, { "value": "EXPORT_TOP_LEVEL", "edition": 1001 }] } }], "nestedType": [{ "name": "VisibilityFeature", "enumType": [{ "name": "DefaultSymbolVisibility", "value": [{ "name": "DEFAULT_SYMBOL_VISIBILITY_UNKNOWN", "number": 0 }, { "name": "EXPORT_ALL", "number": 1 }, { "name": "EXPORT_TOP_LEVEL", "number": 2 }, { "name": "LOCAL_ALL", "number": 3 }, { "name": "STRICT", "number": 4 }] }] }], "enumType": [{ "name": "FieldPresence", "value": [{ "name": "FIELD_PRESENCE_UNKNOWN", "number": 0 }, { "name": "EXPLICIT", "number": 1 }, { "name": "IMPLICIT", "number": 2 }, { "name": "LEGACY_REQUIRED", "number": 3 }] }, { "name": "EnumType", "value": [{ "name": "ENUM_TYPE_UNKNOWN", "number": 0 }, { "name": "OPEN", "number": 1 }, { "name": "CLOSED", "number": 2 }] }, { "name": "RepeatedFieldEncoding", "value": [{ "name": "REPEATED_FIELD_ENCODING_UNKNOWN", "number": 0 }, { "name": "PACKED", "number": 1 }, { "name": "EXPANDED", "number": 2 }] }, { "name": "Utf8Validation", "value": [{ "name": "UTF8_VALIDATION_UNKNOWN", "number": 0 }, { "name": "VERIFY", "number": 2 }, { "name": "NONE", "number": 3 }] }, { "name": "MessageEncoding", "value": [{ "name": "MESSAGE_ENCODING_UNKNOWN", "number": 0 }, { "name": "LENGTH_PREFIXED", "number": 1 }, { "name": "DELIMITED", "number": 2 }] }, { "name": "JsonFormat", "value": [{ "name": "JSON_FORMAT_UNKNOWN", "number": 0 }, { "name": "ALLOW", "number": 1 }, { "name": "LEGACY_BEST_EFFORT", "number": 2 }] }, { "name": "EnforceNamingStyle", "value": [{ "name": "ENFORCE_NAMING_STYLE_UNKNOWN", "number": 0 }, { "name": "STYLE2024", "number": 1 }, { "name": "STYLE_LEGACY", "number": 2 }] }], "extensionRange": [{ "start": 1000, "end": 9995 }, { "start": 9995, "end": 10000 }, { "start": 10000, "end": 10001 }] }, { "name": "FeatureSetDefaults", "field": [{ "name": "defaults", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.FeatureSetDefaults.FeatureSetEditionDefault" }, { "name": "minimum_edition", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "maximum_edition", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }], "nestedType": [{ "name": "FeatureSetEditionDefault", "field": [{ "name": "edition", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "overridable_features", "number": 4, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "fixed_features", "number": 5, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }] }] }, { "name": "SourceCodeInfo", "field": [{ "name": "location", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.SourceCodeInfo.Location" }], "nestedType": [{ "name": "Location", "field": [{ "name": "path", "number": 1, "type": 5, "label": 3, "options": { "packed": true } }, { "name": "span", "number": 2, "type": 5, "label": 3, "options": { "packed": true } }, { "name": "leading_comments", "number": 3, "type": 9, "label": 1 }, { "name": "trailing_comments", "number": 4, "type": 9, "label": 1 }, { "name": "leading_detached_comments", "number": 6, "type": 9, "label": 3 }] }], "extensionRange": [{ "start": 536000000, "end": 536000001 }] }, { "name": "GeneratedCodeInfo", "field": [{ "name": "annotation", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.GeneratedCodeInfo.Annotation" }], "nestedType": [{ "name": "Annotation", "field": [{ "name": "path", "number": 1, "type": 5, "label": 3, "options": { "packed": true } }, { "name": "source_file", "number": 2, "type": 9, "label": 1 }, { "name": "begin", "number": 3, "type": 5, "label": 1 }, { "name": "end", "number": 4, "type": 5, "label": 1 }, { "name": "semantic", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.GeneratedCodeInfo.Annotation.Semantic" }], "enumType": [{ "name": "Semantic", "value": [{ "name": "NONE", "number": 0 }, { "name": "SET", "number": 1 }, { "name": "ALIAS", "number": 2 }] }] }] }], "enumType": [{ "name": "Edition", "value": [{ "name": "EDITION_UNKNOWN", "number": 0 }, { "name": "EDITION_LEGACY", "number": 900 }, { "name": "EDITION_PROTO2", "number": 998 }, { "name": "EDITION_PROTO3", "number": 999 }, { "name": "EDITION_2023", "number": 1000 }, { "name": "EDITION_2024", "number": 1001 }, { "name": "EDITION_UNSTABLE", "number": 9999 }, { "name": "EDITION_1_TEST_ONLY", "number": 1 }, { "name": "EDITION_2_TEST_ONLY", "number": 2 }, { "name": "EDITION_99997_TEST_ONLY", "number": 99997 }, { "name": "EDITION_99998_TEST_ONLY", "number": 99998 }, { "name": "EDITION_99999_TEST_ONLY", "number": 99999 }, { "name": "EDITION_MAX", "number": 2147483647 }] }, { "name": "SymbolVisibility", "value": [{ "name": "VISIBILITY_UNSET", "number": 0 }, { "name": "VISIBILITY_LOCAL", "number": 1 }, { "name": "VISIBILITY_EXPORT", "number": 2 }] }] });
+const file_google_protobuf_descriptor = /*@__PURE__*/ boot({ "name": "google/protobuf/descriptor.proto", "package": "google.protobuf", "messageType": [{ "name": "FileDescriptorSet", "field": [{ "name": "file", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.FileDescriptorProto" }], "extensionRange": [{ "start": 536000000, "end": 536000001 }] }, { "name": "FileDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "package", "number": 2, "type": 9, "label": 1 }, { "name": "dependency", "number": 3, "type": 9, "label": 3 }, { "name": "public_dependency", "number": 10, "type": 5, "label": 3 }, { "name": "weak_dependency", "number": 11, "type": 5, "label": 3 }, { "name": "option_dependency", "number": 15, "type": 9, "label": 3 }, { "name": "message_type", "number": 4, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto" }, { "name": "enum_type", "number": 5, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumDescriptorProto" }, { "name": "service", "number": 6, "type": 11, "label": 3, "typeName": ".google.protobuf.ServiceDescriptorProto" }, { "name": "extension", "number": 7, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldDescriptorProto" }, { "name": "options", "number": 8, "type": 11, "label": 1, "typeName": ".google.protobuf.FileOptions" }, { "name": "source_code_info", "number": 9, "type": 11, "label": 1, "typeName": ".google.protobuf.SourceCodeInfo" }, { "name": "syntax", "number": 12, "type": 9, "label": 1 }, { "name": "edition", "number": 14, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }] }, { "name": "DescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "field", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldDescriptorProto" }, { "name": "extension", "number": 6, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldDescriptorProto" }, { "name": "nested_type", "number": 3, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto" }, { "name": "enum_type", "number": 4, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumDescriptorProto" }, { "name": "extension_range", "number": 5, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto.ExtensionRange" }, { "name": "oneof_decl", "number": 8, "type": 11, "label": 3, "typeName": ".google.protobuf.OneofDescriptorProto" }, { "name": "options", "number": 7, "type": 11, "label": 1, "typeName": ".google.protobuf.MessageOptions" }, { "name": "reserved_range", "number": 9, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto.ReservedRange" }, { "name": "reserved_name", "number": 10, "type": 9, "label": 3 }, { "name": "visibility", "number": 11, "type": 14, "label": 1, "typeName": ".google.protobuf.SymbolVisibility" }], "nestedType": [{ "name": "ExtensionRange", "field": [{ "name": "start", "number": 1, "type": 5, "label": 1 }, { "name": "end", "number": 2, "type": 5, "label": 1 }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.ExtensionRangeOptions" }] }, { "name": "ReservedRange", "field": [{ "name": "start", "number": 1, "type": 5, "label": 1 }, { "name": "end", "number": 2, "type": 5, "label": 1 }] }] }, { "name": "ExtensionRangeOptions", "field": [{ "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }, { "name": "declaration", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.ExtensionRangeOptions.Declaration", "options": { "retention": 2 } }, { "name": "features", "number": 50, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "verification", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.ExtensionRangeOptions.VerificationState", "defaultValue": "UNVERIFIED", "options": { "retention": 2 } }], "nestedType": [{ "name": "Declaration", "field": [{ "name": "number", "number": 1, "type": 5, "label": 1 }, { "name": "full_name", "number": 2, "type": 9, "label": 1 }, { "name": "type", "number": 3, "type": 9, "label": 1 }, { "name": "reserved", "number": 5, "type": 8, "label": 1 }, { "name": "repeated", "number": 6, "type": 8, "label": 1 }] }], "enumType": [{ "name": "VerificationState", "value": [{ "name": "DECLARATION", "number": 0 }, { "name": "UNVERIFIED", "number": 1 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "FieldDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "number", "number": 3, "type": 5, "label": 1 }, { "name": "label", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldDescriptorProto.Label" }, { "name": "type", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldDescriptorProto.Type" }, { "name": "type_name", "number": 6, "type": 9, "label": 1 }, { "name": "extendee", "number": 2, "type": 9, "label": 1 }, { "name": "default_value", "number": 7, "type": 9, "label": 1 }, { "name": "oneof_index", "number": 9, "type": 5, "label": 1 }, { "name": "json_name", "number": 10, "type": 9, "label": 1 }, { "name": "options", "number": 8, "type": 11, "label": 1, "typeName": ".google.protobuf.FieldOptions" }, { "name": "proto3_optional", "number": 17, "type": 8, "label": 1 }], "enumType": [{ "name": "Type", "value": [{ "name": "TYPE_DOUBLE", "number": 1 }, { "name": "TYPE_FLOAT", "number": 2 }, { "name": "TYPE_INT64", "number": 3 }, { "name": "TYPE_UINT64", "number": 4 }, { "name": "TYPE_INT32", "number": 5 }, { "name": "TYPE_FIXED64", "number": 6 }, { "name": "TYPE_FIXED32", "number": 7 }, { "name": "TYPE_BOOL", "number": 8 }, { "name": "TYPE_STRING", "number": 9 }, { "name": "TYPE_GROUP", "number": 10 }, { "name": "TYPE_MESSAGE", "number": 11 }, { "name": "TYPE_BYTES", "number": 12 }, { "name": "TYPE_UINT32", "number": 13 }, { "name": "TYPE_ENUM", "number": 14 }, { "name": "TYPE_SFIXED32", "number": 15 }, { "name": "TYPE_SFIXED64", "number": 16 }, { "name": "TYPE_SINT32", "number": 17 }, { "name": "TYPE_SINT64", "number": 18 }] }, { "name": "Label", "value": [{ "name": "LABEL_OPTIONAL", "number": 1 }, { "name": "LABEL_REPEATED", "number": 3 }, { "name": "LABEL_REQUIRED", "number": 2 }] }] }, { "name": "OneofDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "options", "number": 2, "type": 11, "label": 1, "typeName": ".google.protobuf.OneofOptions" }] }, { "name": "EnumDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "value", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumValueDescriptorProto" }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.EnumOptions" }, { "name": "reserved_range", "number": 4, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumDescriptorProto.EnumReservedRange" }, { "name": "reserved_name", "number": 5, "type": 9, "label": 3 }, { "name": "visibility", "number": 6, "type": 14, "label": 1, "typeName": ".google.protobuf.SymbolVisibility" }], "nestedType": [{ "name": "EnumReservedRange", "field": [{ "name": "start", "number": 1, "type": 5, "label": 1 }, { "name": "end", "number": 2, "type": 5, "label": 1 }] }] }, { "name": "EnumValueDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "number", "number": 2, "type": 5, "label": 1 }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.EnumValueOptions" }] }, { "name": "ServiceDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "method", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.MethodDescriptorProto" }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.ServiceOptions" }] }, { "name": "MethodDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "input_type", "number": 2, "type": 9, "label": 1 }, { "name": "output_type", "number": 3, "type": 9, "label": 1 }, { "name": "options", "number": 4, "type": 11, "label": 1, "typeName": ".google.protobuf.MethodOptions" }, { "name": "client_streaming", "number": 5, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "server_streaming", "number": 6, "type": 8, "label": 1, "defaultValue": "false" }] }, { "name": "FileOptions", "field": [{ "name": "java_package", "number": 1, "type": 9, "label": 1 }, { "name": "java_outer_classname", "number": 8, "type": 9, "label": 1 }, { "name": "java_multiple_files", "number": 10, "type": 8, "label": 1, "defaultValue": "false", "options": {} }, { "name": "java_generate_equals_and_hash", "number": 20, "type": 8, "label": 1, "options": { "deprecated": true } }, { "name": "java_string_check_utf8", "number": 27, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "optimize_for", "number": 9, "type": 14, "label": 1, "typeName": ".google.protobuf.FileOptions.OptimizeMode", "defaultValue": "SPEED" }, { "name": "go_package", "number": 11, "type": 9, "label": 1 }, { "name": "cc_generic_services", "number": 16, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "java_generic_services", "number": 17, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "py_generic_services", "number": 18, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated", "number": 23, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "cc_enable_arenas", "number": 31, "type": 8, "label": 1, "defaultValue": "true" }, { "name": "objc_class_prefix", "number": 36, "type": 9, "label": 1 }, { "name": "csharp_namespace", "number": 37, "type": 9, "label": 1 }, { "name": "swift_prefix", "number": 39, "type": 9, "label": 1 }, { "name": "php_class_prefix", "number": 40, "type": 9, "label": 1 }, { "name": "php_namespace", "number": 41, "type": 9, "label": 1 }, { "name": "php_metadata_namespace", "number": 44, "type": 9, "label": 1 }, { "name": "ruby_package", "number": 45, "type": 9, "label": 1 }, { "name": "features", "number": 50, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "enumType": [{ "name": "OptimizeMode", "value": [{ "name": "SPEED", "number": 1 }, { "name": "CODE_SIZE", "number": 2 }, { "name": "LITE_RUNTIME", "number": 3 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "MessageOptions", "field": [{ "name": "message_set_wire_format", "number": 1, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "no_standard_descriptor_accessor", "number": 2, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "map_entry", "number": 7, "type": 8, "label": 1 }, { "name": "deprecated_legacy_json_field_conflicts", "number": 11, "type": 8, "label": 1, "options": { "deprecated": true } }, { "name": "features", "number": 12, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "FieldOptions", "field": [{ "name": "ctype", "number": 1, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldOptions.CType", "defaultValue": "STRING" }, { "name": "packed", "number": 2, "type": 8, "label": 1 }, { "name": "jstype", "number": 6, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldOptions.JSType", "defaultValue": "JS_NORMAL" }, { "name": "lazy", "number": 5, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "unverified_lazy", "number": 15, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "weak", "number": 10, "type": 8, "label": 1, "defaultValue": "false", "options": { "deprecated": true } }, { "name": "debug_redact", "number": 16, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "retention", "number": 17, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldOptions.OptionRetention" }, { "name": "targets", "number": 19, "type": 14, "label": 3, "typeName": ".google.protobuf.FieldOptions.OptionTargetType" }, { "name": "edition_defaults", "number": 20, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldOptions.EditionDefault" }, { "name": "features", "number": 21, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "feature_support", "number": 22, "type": 11, "label": 1, "typeName": ".google.protobuf.FieldOptions.FeatureSupport" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "nestedType": [{ "name": "EditionDefault", "field": [{ "name": "edition", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "value", "number": 2, "type": 9, "label": 1 }] }, { "name": "FeatureSupport", "field": [{ "name": "edition_introduced", "number": 1, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "edition_deprecated", "number": 2, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "deprecation_warning", "number": 3, "type": 9, "label": 1 }, { "name": "edition_removed", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "removal_error", "number": 5, "type": 9, "label": 1 }] }], "enumType": [{ "name": "CType", "value": [{ "name": "STRING", "number": 0 }, { "name": "CORD", "number": 1 }, { "name": "STRING_PIECE", "number": 2 }] }, { "name": "JSType", "value": [{ "name": "JS_NORMAL", "number": 0 }, { "name": "JS_STRING", "number": 1 }, { "name": "JS_NUMBER", "number": 2 }] }, { "name": "OptionRetention", "value": [{ "name": "RETENTION_UNKNOWN", "number": 0 }, { "name": "RETENTION_RUNTIME", "number": 1 }, { "name": "RETENTION_SOURCE", "number": 2 }] }, { "name": "OptionTargetType", "value": [{ "name": "TARGET_TYPE_UNKNOWN", "number": 0 }, { "name": "TARGET_TYPE_FILE", "number": 1 }, { "name": "TARGET_TYPE_EXTENSION_RANGE", "number": 2 }, { "name": "TARGET_TYPE_MESSAGE", "number": 3 }, { "name": "TARGET_TYPE_FIELD", "number": 4 }, { "name": "TARGET_TYPE_ONEOF", "number": 5 }, { "name": "TARGET_TYPE_ENUM", "number": 6 }, { "name": "TARGET_TYPE_ENUM_ENTRY", "number": 7 }, { "name": "TARGET_TYPE_SERVICE", "number": 8 }, { "name": "TARGET_TYPE_METHOD", "number": 9 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "OneofOptions", "field": [{ "name": "features", "number": 1, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "EnumOptions", "field": [{ "name": "allow_alias", "number": 2, "type": 8, "label": 1 }, { "name": "deprecated", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated_legacy_json_field_conflicts", "number": 6, "type": 8, "label": 1, "options": { "deprecated": true } }, { "name": "features", "number": 7, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "EnumValueOptions", "field": [{ "name": "deprecated", "number": 1, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "features", "number": 2, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "debug_redact", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "feature_support", "number": 4, "type": 11, "label": 1, "typeName": ".google.protobuf.FieldOptions.FeatureSupport" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "ServiceOptions", "field": [{ "name": "features", "number": 34, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "deprecated", "number": 33, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "MethodOptions", "field": [{ "name": "deprecated", "number": 33, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "idempotency_level", "number": 34, "type": 14, "label": 1, "typeName": ".google.protobuf.MethodOptions.IdempotencyLevel", "defaultValue": "IDEMPOTENCY_UNKNOWN" }, { "name": "features", "number": 35, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "enumType": [{ "name": "IdempotencyLevel", "value": [{ "name": "IDEMPOTENCY_UNKNOWN", "number": 0 }, { "name": "NO_SIDE_EFFECTS", "number": 1 }, { "name": "IDEMPOTENT", "number": 2 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "UninterpretedOption", "field": [{ "name": "name", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption.NamePart" }, { "name": "identifier_value", "number": 3, "type": 9, "label": 1 }, { "name": "positive_int_value", "number": 4, "type": 4, "label": 1 }, { "name": "negative_int_value", "number": 5, "type": 3, "label": 1 }, { "name": "double_value", "number": 6, "type": 1, "label": 1 }, { "name": "string_value", "number": 7, "type": 12, "label": 1 }, { "name": "aggregate_value", "number": 8, "type": 9, "label": 1 }], "nestedType": [{ "name": "NamePart", "field": [{ "name": "name_part", "number": 1, "type": 9, "label": 2 }, { "name": "is_extension", "number": 2, "type": 8, "label": 2 }] }] }, { "name": "FeatureSet", "field": [{ "name": "field_presence", "number": 1, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.FieldPresence", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "EXPLICIT", "edition": 900 }, { "value": "IMPLICIT", "edition": 999 }, { "value": "EXPLICIT", "edition": 1000 }] } }, { "name": "enum_type", "number": 2, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.EnumType", "options": { "retention": 1, "targets": [6, 1], "editionDefaults": [{ "value": "CLOSED", "edition": 900 }, { "value": "OPEN", "edition": 999 }] } }, { "name": "repeated_field_encoding", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.RepeatedFieldEncoding", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "EXPANDED", "edition": 900 }, { "value": "PACKED", "edition": 999 }] } }, { "name": "utf8_validation", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.Utf8Validation", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "NONE", "edition": 900 }, { "value": "VERIFY", "edition": 999 }] } }, { "name": "message_encoding", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.MessageEncoding", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "LENGTH_PREFIXED", "edition": 900 }] } }, { "name": "json_format", "number": 6, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.JsonFormat", "options": { "retention": 1, "targets": [3, 6, 1], "editionDefaults": [{ "value": "LEGACY_BEST_EFFORT", "edition": 900 }, { "value": "ALLOW", "edition": 999 }] } }, { "name": "enforce_naming_style", "number": 7, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.EnforceNamingStyle", "options": { "retention": 2, "targets": [1, 2, 3, 4, 5, 6, 7, 8, 9], "editionDefaults": [{ "value": "STYLE_LEGACY", "edition": 900 }, { "value": "STYLE2024", "edition": 1001 }] } }, { "name": "default_symbol_visibility", "number": 8, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.VisibilityFeature.DefaultSymbolVisibility", "options": { "retention": 2, "targets": [1], "editionDefaults": [{ "value": "EXPORT_ALL", "edition": 900 }, { "value": "EXPORT_TOP_LEVEL", "edition": 1001 }] } }], "nestedType": [{ "name": "VisibilityFeature", "enumType": [{ "name": "DefaultSymbolVisibility", "value": [{ "name": "DEFAULT_SYMBOL_VISIBILITY_UNKNOWN", "number": 0 }, { "name": "EXPORT_ALL", "number": 1 }, { "name": "EXPORT_TOP_LEVEL", "number": 2 }, { "name": "LOCAL_ALL", "number": 3 }, { "name": "STRICT", "number": 4 }] }] }], "enumType": [{ "name": "FieldPresence", "value": [{ "name": "FIELD_PRESENCE_UNKNOWN", "number": 0 }, { "name": "EXPLICIT", "number": 1 }, { "name": "IMPLICIT", "number": 2 }, { "name": "LEGACY_REQUIRED", "number": 3 }] }, { "name": "EnumType", "value": [{ "name": "ENUM_TYPE_UNKNOWN", "number": 0 }, { "name": "OPEN", "number": 1 }, { "name": "CLOSED", "number": 2 }] }, { "name": "RepeatedFieldEncoding", "value": [{ "name": "REPEATED_FIELD_ENCODING_UNKNOWN", "number": 0 }, { "name": "PACKED", "number": 1 }, { "name": "EXPANDED", "number": 2 }] }, { "name": "Utf8Validation", "value": [{ "name": "UTF8_VALIDATION_UNKNOWN", "number": 0 }, { "name": "VERIFY", "number": 2 }, { "name": "NONE", "number": 3 }] }, { "name": "MessageEncoding", "value": [{ "name": "MESSAGE_ENCODING_UNKNOWN", "number": 0 }, { "name": "LENGTH_PREFIXED", "number": 1 }, { "name": "DELIMITED", "number": 2 }] }, { "name": "JsonFormat", "value": [{ "name": "JSON_FORMAT_UNKNOWN", "number": 0 }, { "name": "ALLOW", "number": 1 }, { "name": "LEGACY_BEST_EFFORT", "number": 2 }] }, { "name": "EnforceNamingStyle", "value": [{ "name": "ENFORCE_NAMING_STYLE_UNKNOWN", "number": 0 }, { "name": "STYLE2024", "number": 1 }, { "name": "STYLE_LEGACY", "number": 2 }] }], "extensionRange": [{ "start": 1000, "end": 9995 }, { "start": 9995, "end": 10000 }, { "start": 10000, "end": 10001 }] }, { "name": "FeatureSetDefaults", "field": [{ "name": "defaults", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.FeatureSetDefaults.FeatureSetEditionDefault" }, { "name": "minimum_edition", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "maximum_edition", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }], "nestedType": [{ "name": "FeatureSetEditionDefault", "field": [{ "name": "edition", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "overridable_features", "number": 4, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "fixed_features", "number": 5, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }] }] }, { "name": "SourceCodeInfo", "field": [{ "name": "location", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.SourceCodeInfo.Location" }], "nestedType": [{ "name": "Location", "field": [{ "name": "path", "number": 1, "type": 5, "label": 3, "options": { "packed": true } }, { "name": "span", "number": 2, "type": 5, "label": 3, "options": { "packed": true } }, { "name": "leading_comments", "number": 3, "type": 9, "label": 1 }, { "name": "trailing_comments", "number": 4, "type": 9, "label": 1 }, { "name": "leading_detached_comments", "number": 6, "type": 9, "label": 3 }] }], "extensionRange": [{ "start": 536000000, "end": 536000001 }] }, { "name": "GeneratedCodeInfo", "field": [{ "name": "annotation", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.GeneratedCodeInfo.Annotation" }], "nestedType": [{ "name": "Annotation", "field": [{ "name": "path", "number": 1, "type": 5, "label": 3, "options": { "packed": true } }, { "name": "source_file", "number": 2, "type": 9, "label": 1 }, { "name": "begin", "number": 3, "type": 5, "label": 1 }, { "name": "end", "number": 4, "type": 5, "label": 1 }, { "name": "semantic", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.GeneratedCodeInfo.Annotation.Semantic" }], "enumType": [{ "name": "Semantic", "value": [{ "name": "NONE", "number": 0 }, { "name": "SET", "number": 1 }, { "name": "ALIAS", "number": 2 }] }] }] }], "enumType": [{ "name": "Edition", "value": [{ "name": "EDITION_UNKNOWN", "number": 0 }, { "name": "EDITION_LEGACY", "number": 900 }, { "name": "EDITION_PROTO2", "number": 998 }, { "name": "EDITION_PROTO3", "number": 999 }, { "name": "EDITION_2023", "number": 1000 }, { "name": "EDITION_2024", "number": 1001 }, { "name": "EDITION_UNSTABLE", "number": 9999 }, { "name": "EDITION_1_TEST_ONLY", "number": 1 }, { "name": "EDITION_2_TEST_ONLY", "number": 2 }, { "name": "EDITION_99997_TEST_ONLY", "number": 99997 }, { "name": "EDITION_99998_TEST_ONLY", "number": 99998 }, { "name": "EDITION_99999_TEST_ONLY", "number": 99999 }, { "name": "EDITION_MAX", "number": 2147483647 }] }, { "name": "SymbolVisibility", "value": [{ "name": "VISIBILITY_UNSET", "number": 0 }, { "name": "VISIBILITY_LOCAL", "number": 1 }, { "name": "VISIBILITY_EXPORT", "number": 2 }] }] });
 /**
  * Describes the message google.protobuf.FileDescriptorSet.
  * Use `create(FileDescriptorSetSchema)` to create a new message.
@@ -45586,19 +44983,18 @@ const SymbolVisibilitySchema = /*@__PURE__*/ (/* unused pure expression or super
 
 
 
-// Default options for parsing binary data.
-const readDefaults = {
-    readUnknownFields: true,
-};
-function makeReadOptions(options) {
-    return options ? Object.assign(Object.assign({}, readDefaults), options) : readDefaults;
+/**
+ * @private Only exported for getExtension()
+ */
+function makeReadContext(options) {
+    return Object.assign(Object.assign({ readUnknownFields: true, recursionLimit: 100 }, options), { depth: 0 });
 }
 /**
  * Parse serialized binary data.
  */
 function from_binary_fromBinary(schema, bytes, options) {
     const msg = reflect_reflect(schema, undefined, false);
-    readMessage(msg, new binary_encoding_BinaryReader(bytes), makeReadOptions(options), false, bytes.byteLength);
+    readMessage(msg, new binary_encoding_BinaryReader(bytes), makeReadContext(options), false, bytes.byteLength);
     return msg.message;
 }
 /**
@@ -45611,7 +45007,7 @@ function from_binary_fromBinary(schema, bytes, options) {
  * new data.
  */
 function from_binary_mergeFromBinary(schema, target, bytes, options) {
-    readMessage(reflect(schema, target, false), new BinaryReader(bytes), makeReadOptions(options), false, bytes.byteLength);
+    readMessage(reflect(schema, target, false), new BinaryReader(bytes), makeReadContext(options), false, bytes.byteLength);
     return target;
 }
 /**
@@ -45622,8 +45018,11 @@ function from_binary_mergeFromBinary(schema, target, bytes, options) {
  *
  * @private
  */
-function readMessage(message, reader, options, delimited, lengthOrDelimitedFieldNo) {
+function readMessage(message, reader, ctx, delimited, lengthOrDelimitedFieldNo) {
     var _a;
+    if (++ctx.depth > ctx.recursionLimit) {
+        throw new Error(`cannot decode ${message.desc} from binary: maximum recursion depth of ${ctx.recursionLimit} reached`);
+    }
     const end = delimited ? reader.len : reader.pos + lengthOrDelimitedFieldNo;
     let fieldNo;
     let wireType;
@@ -45635,13 +45034,15 @@ function readMessage(message, reader, options, delimited, lengthOrDelimitedField
         }
         const field = message.findNumber(fieldNo);
         if (!field) {
-            const data = reader.skip(wireType, fieldNo);
-            if (options.readUnknownFields) {
+            // Use remaining recursion budget for skipping nested groups
+            const recursionLimit = ctx.recursionLimit - ctx.depth;
+            const data = reader.skip(wireType, fieldNo, recursionLimit);
+            if (ctx.readUnknownFields) {
                 unknownFields.push({ no: fieldNo, wireType, data });
             }
             continue;
         }
-        readField(message, reader, field, wireType, options);
+        readField(message, reader, field, wireType, ctx);
     }
     if (delimited) {
         if (wireType != WireType.EndGroup || fieldNo !== lengthOrDelimitedFieldNo) {
@@ -45651,15 +45052,16 @@ function readMessage(message, reader, options, delimited, lengthOrDelimitedField
     if (unknownFields.length > 0) {
         message.setUnknown(unknownFields);
     }
+    ctx.depth--;
 }
 /**
- * @private
+ * @private Only exported for getExtension()
  */
-function readField(message, reader, field, wireType, options) {
+function readField(message, reader, field, wireType, ctx) {
     var _a;
     switch (field.fieldKind) {
         case "scalar":
-            message.set(field, readScalar(reader, field.scalar));
+            message.set(field, readScalar(reader, field.scalar, field.utf8Validation));
             break;
         case "enum":
             const val = readScalar(reader, descriptors_ScalarType.INT32);
@@ -45671,7 +45073,7 @@ function readField(message, reader, field, wireType, options) {
                 if (ok) {
                     message.set(field, val);
                 }
-                else if (options.readUnknownFields) {
+                else if (ctx.readUnknownFields) {
                     const bytes = [];
                     varint32write(val, bytes);
                     const unknownFields = (_a = message.getUnknown()) !== null && _a !== void 0 ? _a : [];
@@ -45685,18 +45087,18 @@ function readField(message, reader, field, wireType, options) {
             }
             break;
         case "message":
-            message.set(field, readMessageField(reader, options, field, message.get(field)));
+            message.set(field, readMessageField(reader, ctx, field, message.get(field)));
             break;
         case "list":
-            readListField(reader, wireType, message.get(field), options);
+            readListField(reader, wireType, message.get(field), ctx);
             break;
         case "map":
-            readMapEntry(reader, message.get(field), options);
+            readMapEntry(reader, message.get(field), ctx);
             break;
     }
 }
 // Read a map field, expecting key field = 1, value field = 2
-function readMapEntry(reader, map, options) {
+function readMapEntry(reader, map, ctx) {
     const field = map.field();
     let key;
     let val;
@@ -45709,18 +45111,18 @@ function readMapEntry(reader, map, options) {
         const [fieldNo] = reader.tag();
         switch (fieldNo) {
             case 1:
-                key = readScalar(reader, field.mapKey);
+                key = readScalar(reader, field.mapKey, field.utf8Validation);
                 break;
             case 2:
                 switch (field.mapKind) {
                     case "scalar":
-                        val = readScalar(reader, field.scalar);
+                        val = readScalar(reader, field.scalar, field.utf8Validation);
                         break;
                     case "enum":
                         val = reader.int32();
                         break;
                     case "message":
-                        val = readMessageField(reader, options, field);
+                        val = readMessageField(reader, ctx, field);
                         break;
                 }
                 break;
@@ -45744,11 +45146,11 @@ function readMapEntry(reader, map, options) {
     }
     map.set(key, val);
 }
-function readListField(reader, wireType, list, options) {
+function readListField(reader, wireType, list, ctx) {
     var _a;
     const field = list.field();
     if (field.listKind === "message") {
-        list.add(readMessageField(reader, options, field));
+        list.add(readMessageField(reader, ctx, field));
         return;
     }
     const scalarType = (_a = field.scalar) !== null && _a !== void 0 ? _a : descriptors_ScalarType.INT32;
@@ -45756,24 +45158,24 @@ function readListField(reader, wireType, list, options) {
         scalarType != descriptors_ScalarType.STRING &&
         scalarType != descriptors_ScalarType.BYTES;
     if (!packed) {
-        list.add(readScalar(reader, scalarType));
+        list.add(readScalar(reader, scalarType, field.utf8Validation));
         return;
     }
     const e = reader.uint32() + reader.pos;
     while (reader.pos < e) {
-        list.add(readScalar(reader, scalarType));
+        list.add(readScalar(reader, scalarType, field.utf8Validation));
     }
 }
-function readMessageField(reader, options, field, mergeMessage) {
+function readMessageField(reader, ctx, field, mergeMessage) {
     const delimited = field.delimitedEncoding;
     const message = mergeMessage !== null && mergeMessage !== void 0 ? mergeMessage : reflect_reflect(field.message, undefined, false);
-    readMessage(message, reader, options, delimited, delimited ? field.number : reader.uint32());
+    readMessage(message, reader, ctx, delimited, delimited ? field.number : reader.uint32());
     return message;
 }
-function readScalar(reader, type) {
+function readScalar(reader, type, validateUtf8 = false) {
     switch (type) {
         case descriptors_ScalarType.STRING:
-            return reader.string();
+            return reader.string(validateUtf8);
         case descriptors_ScalarType.BOOL:
             return reader.bool();
         case descriptors_ScalarType.DOUBLE:
@@ -46226,14 +45628,13 @@ const NullValueSchema = /*@__PURE__*/ (/* unused pure expression or super */ nul
  *
  * If the extension does not extend the given message, an error is raised.
  */
-function getExtension(message, extension) {
+function getExtension(message, extension, options) {
     assertExtendee(extension, message);
     const ufs = filterUnknownFields(message.$unknown, extension);
     const [container, field, get] = createExtensionContainer(extension);
+    const ctx = makeReadContext(options);
     for (const uf of ufs) {
-        readField(container, new binary_encoding_BinaryReader(uf.data), field, uf.wireType, {
-            readUnknownFields: true,
-        });
+        readField(container, new binary_encoding_BinaryReader(uf.data), field, uf.wireType, ctx);
     }
     return get();
 }
@@ -46377,38 +45778,42 @@ function assertExtendee(extension, message) {
 
 
 
-// Default options for parsing JSON.
-const jsonReadDefaults = {
-    ignoreUnknownFields: false,
-};
-function from_json_makeReadOptions(options) {
-    return options ? Object.assign(Object.assign({}, jsonReadDefaults), options) : jsonReadDefaults;
+function from_json_makeReadContext(options) {
+    return Object.assign(Object.assign({ ignoreUnknownFields: false, recursionLimit: 100 }, options), { depth: 0 });
 }
 /**
  * Parse a message from a JSON string.
+ *
+ * Duplicate keys are rejected.
  */
 function fromJsonString(schema, json, options) {
     return fromJson(schema, parseJsonString(json, schema.typeName), options);
 }
 /**
- * Parse a message from a JSON string, merging fields.
+ * Parse a message from a JSON string, merging fields into the target.
  *
  * Repeated fields are appended. Map entries are added, overwriting
  * existing keys.
  *
  * If a message field is already present, it will be merged with the
  * new data.
+ *
+ * Duplicate keys in the JSON are rejected, as in `fromJsonString`.
  */
 function mergeFromJsonString(schema, target, json, options) {
     return mergeFromJson(schema, target, parseJsonString(json, schema.typeName), options);
 }
 /**
  * Parse a message from a JSON value.
+ *
+ * Duplicate keys are rejected, but a value parsed by JSON.parse has already
+ * dropped duplicates (the last one wins). Use `fromJsonString` for strict
+ * duplicate-key checking.
  */
 function fromJson(schema, json, options) {
     const msg = reflect_reflect(schema);
     try {
-        from_json_readMessage(msg, json, from_json_makeReadOptions(options));
+        from_json_readMessage(msg, json, from_json_makeReadContext(options));
     }
     catch (e) {
         if (error_isFieldError(e)) {
@@ -46422,17 +45827,20 @@ function fromJson(schema, json, options) {
     return msg.message;
 }
 /**
- * Parse a message from a JSON value, merging fields.
+ * Parse a message from a JSON value, merging fields into the target.
  *
  * Repeated fields are appended. Map entries are added, overwriting
  * existing keys.
  *
  * If a message field is already present, it will be merged with the
  * new data.
+ *
+ * Duplicate keys are rejected as in `fromJson`; use `mergeFromJsonString`
+ * for strict checking.
  */
 function mergeFromJson(schema, target, json, options) {
     try {
-        from_json_readMessage(reflect(schema, target), json, from_json_makeReadOptions(options));
+        from_json_readMessage(reflect(schema, target), json, from_json_makeReadContext(options));
     }
     catch (e) {
         if (isFieldError(e)) {
@@ -46469,82 +45877,95 @@ function getJsonField(desc, jsonKey) {
     }
     return (_a = messageJsonFields.get(desc)) === null || _a === void 0 ? void 0 : _a.get(jsonKey);
 }
-function from_json_readMessage(msg, json, opts) {
+function from_json_readMessage(msg, json, ctx) {
     var _a;
-    if (tryWktFromJson(msg, json, opts)) {
+    if (++ctx.depth > ctx.recursionLimit) {
+        throw new Error(`cannot decode ${msg.desc} from JSON: maximum recursion depth of ${ctx.recursionLimit} reached`);
+    }
+    if (tryWktFromJson(msg, json, ctx)) {
+        ctx.depth--;
         return;
     }
     if (json == null || Array.isArray(json) || typeof json != "object") {
         throw new Error(`cannot decode ${msg.desc} from JSON: ${formatVal(json)}`);
     }
     const oneofSeen = new Map();
+    const fieldSeen = new Set();
     for (const [jsonKey, jsonValue] of Object.entries(json)) {
         const field = getJsonField(msg.desc, jsonKey);
         if (field) {
+            if (fieldSeen.has(field)) {
+                // The same field may be set by its proto name and its JSON name, or by
+                // a duplicate or unicode-escaped key that JSON.parse already collapsed.
+                // Checked before the null-skip below so that a null entry still counts.
+                throw new FieldError(field, "set multiple times");
+            }
+            fieldSeen.add(field);
+            if (field.oneof && jsonValue === null && field.fieldKind == "scalar") {
+                // see conformance test Required.Proto3.JsonInput.OneofFieldNull{First,Second}
+                continue;
+            }
             if (field.oneof) {
-                if (jsonValue === null && field.fieldKind == "scalar") {
-                    // see conformance test Required.Proto3.JsonInput.OneofFieldNull{First,Second}
-                    continue;
-                }
                 const seen = oneofSeen.get(field.oneof);
                 if (seen !== undefined) {
                     throw new FieldError(field.oneof, `oneof set multiple times by ${seen.name} and ${field.name}`);
                 }
                 oneofSeen.set(field.oneof, field);
             }
-            from_json_readField(msg, field, jsonValue, opts);
+            from_json_readField(msg, field, jsonValue, ctx);
         }
         else {
             let extension = undefined;
             if (jsonKey.startsWith("[") &&
                 jsonKey.endsWith("]") &&
                 // biome-ignore lint/suspicious/noAssignInExpressions: no
-                (extension = (_a = opts.registry) === null || _a === void 0 ? void 0 : _a.getExtension(jsonKey.substring(1, jsonKey.length - 1))) &&
+                (extension = (_a = ctx.registry) === null || _a === void 0 ? void 0 : _a.getExtension(jsonKey.substring(1, jsonKey.length - 1))) &&
                 extension.extendee.typeName === msg.desc.typeName) {
                 const [container, field, get] = createExtensionContainer(extension);
-                from_json_readField(container, field, jsonValue, opts);
+                from_json_readField(container, field, jsonValue, ctx);
                 setExtension(msg.message, extension, get());
             }
-            if (!extension && !opts.ignoreUnknownFields) {
+            if (!extension && !ctx.ignoreUnknownFields) {
                 throw new Error(`cannot decode ${msg.desc} from JSON: key "${jsonKey}" is unknown`);
             }
         }
     }
+    ctx.depth--;
 }
-function from_json_readField(msg, field, json, opts) {
+function from_json_readField(msg, field, json, ctx) {
     switch (field.fieldKind) {
         case "scalar":
             readScalarField(msg, field, json);
             break;
         case "enum":
-            readEnumField(msg, field, json, opts);
+            readEnumField(msg, field, json, ctx);
             break;
         case "message":
-            from_json_readMessageField(msg, field, json, opts);
+            from_json_readMessageField(msg, field, json, ctx);
             break;
         case "list":
-            from_json_readListField(msg.get(field), json, opts);
+            from_json_readListField(msg.get(field), json, ctx);
             break;
         case "map":
-            readMapField(msg.get(field), json, opts);
+            readMapField(msg.get(field), json, ctx);
             break;
     }
 }
-function readListOrMapItem(field, json, opts) {
+function readListOrMapItem(field, json, ctx) {
     if (field.scalar && json !== null) {
         return scalarFromJson(field, json);
     }
     if (field.message && !isResetSentinelNullValue(field, json)) {
         const msgValue = reflect_reflect(field.message);
-        from_json_readMessage(msgValue, json, opts);
+        from_json_readMessage(msgValue, json, ctx);
         return msgValue;
     }
     if (field.enum && !isResetSentinelNullValue(field, json)) {
-        return readEnum(field.enum, json, opts.ignoreUnknownFields);
+        return readEnum(field.enum, json, ctx.ignoreUnknownFields);
     }
     throw new FieldError(field, `${field.fieldKind === "list" ? "list item" : "map value"} must not be null`);
 }
-function readMapField(map, json, opts) {
+function readMapField(map, json, ctx) {
     if (json === null) {
         return;
     }
@@ -46552,15 +45973,20 @@ function readMapField(map, json, opts) {
     if (typeof json != "object" || Array.isArray(json)) {
         throw new FieldError(field, "expected object, got " + formatVal(json));
     }
+    const seen = new Set();
     for (const [jsonMapKey, jsonMapValue] of Object.entries(json)) {
         const key = mapKeyFromJson(field.mapKey, jsonMapKey);
-        const value = readListOrMapItem(field, jsonMapValue, opts);
+        if (seen.has(key)) {
+            throw new FieldError(field, `duplicate map key "${jsonMapKey}"`);
+        }
+        seen.add(key);
+        const value = readListOrMapItem(field, jsonMapValue, ctx);
         if (value !== tokenIgnoredUnknownEnum) {
             map.set(key, value);
         }
     }
 }
-function from_json_readListField(list, json, opts) {
+function from_json_readListField(list, json, ctx) {
     if (json === null) {
         return;
     }
@@ -46569,27 +45995,27 @@ function from_json_readListField(list, json, opts) {
         throw new FieldError(field, "expected Array, got " + formatVal(json));
     }
     for (const jsonItem of json) {
-        const value = readListOrMapItem(field, jsonItem, opts);
+        const value = readListOrMapItem(field, jsonItem, ctx);
         if (value !== tokenIgnoredUnknownEnum) {
             list.add(value);
         }
     }
 }
-function from_json_readMessageField(msg, field, json, opts) {
+function from_json_readMessageField(msg, field, json, ctx) {
     if (isResetSentinelNullValue(field, json)) {
         msg.clear(field);
         return;
     }
     const msgValue = msg.isSet(field) ? msg.get(field) : reflect_reflect(field.message);
-    from_json_readMessage(msgValue, json, opts);
+    from_json_readMessage(msgValue, json, ctx);
     msg.set(field, msgValue);
 }
-function readEnumField(msg, field, json, opts) {
+function readEnumField(msg, field, json, ctx) {
     if (isResetSentinelNullValue(field, json)) {
         msg.clear(field);
         return;
     }
-    const enumValue = readEnum(field.enum, json, opts.ignoreUnknownFields);
+    const enumValue = readEnum(field.enum, json, ctx.ignoreUnknownFields);
     if (enumValue !== tokenIgnoredUnknownEnum) {
         msg.set(field, enumValue);
     }
@@ -46718,7 +46144,8 @@ function scalarFromJson(field, json) {
 }
 /**
  * Try to parse a JSON value to a map key for the reflect API.
- *
+ * Canonicalizes 64-bit integers given as string, so that "01 and "1" are one
+ * key, and duplicates can raise an error.
  * Returns the input if the JSON value cannot be converted.
  */
 function mapKeyFromJson(type, jsonString) {
@@ -46737,6 +46164,14 @@ function mapKeyFromJson(type, jsonString) {
         case descriptors_ScalarType.SFIXED32:
         case descriptors_ScalarType.SINT32:
             return int32FromJson(jsonString);
+        case descriptors_ScalarType.INT64:
+        case descriptors_ScalarType.SINT64:
+        case descriptors_ScalarType.SFIXED64:
+        case descriptors_ScalarType.UINT64:
+        case descriptors_ScalarType.FIXED64:
+            return /^-?0+$/.test(jsonString)
+                ? "0"
+                : jsonString.replace(/^(-?)0+(?=\d)/, "$1");
         default:
             return jsonString;
     }
@@ -46765,9 +46200,14 @@ function int32FromJson(json) {
     }
     return json;
 }
+/**
+ * Parse a JSON string, rejecting duplicate object keys (which JSON.parse would
+ * otherwise silently merge).
+ */
 function parseJsonString(jsonString, typeName) {
+    let json;
     try {
-        return JSON.parse(jsonString);
+        json = JSON.parse(jsonString);
     }
     catch (e) {
         const message = e instanceof Error ? e.message : String(e);
@@ -46775,14 +46215,91 @@ function parseJsonString(jsonString, typeName) {
         // @ts-expect-error we use the ES2022 error CTOR option "cause" for better stack traces
         { cause: e });
     }
+    checkDuplicateKeys(jsonString, typeName);
+    return json;
 }
-function tryWktFromJson(msg, jsonValue, opts) {
+/**
+ * Scan a JSON string for duplicate object member names at any depth, throwing
+ * if any are found. JSON.parse() silently keeps the last of duplicate keys, so
+ * this raw-string scan is the only way to reject them. It must only be called
+ * with a string that JSON.parse() has already accepted, so it can assume the
+ * input is well-formed.
+ */
+function checkDuplicateKeys(jsonString, typeName) {
+    // One Set of seen member names for each open object; arrays push null.
+    const stack = [];
+    // Whether the next string token is an object member name.
+    let expectKey = false;
+    let i = 0;
+    while (i < jsonString.length) {
+        switch (jsonString[i]) {
+            case "{":
+                stack.push(new Set());
+                expectKey = true;
+                i++;
+                break;
+            case "[":
+                stack.push(null);
+                expectKey = false;
+                i++;
+                break;
+            case "}":
+            case "]":
+                stack.pop();
+                expectKey = false;
+                i++;
+                break;
+            case ",":
+                expectKey = stack[stack.length - 1] != null;
+                i++;
+                break;
+            case ":":
+                expectKey = false;
+                i++;
+                break;
+            case '"': {
+                const open = i++;
+                let escaped = false;
+                while (i < jsonString.length) {
+                    if (jsonString[i] == "\\") {
+                        escaped = true;
+                        i += 2; // skip the backslash and the character it escapes
+                        continue;
+                    }
+                    if (jsonString[i] == '"') {
+                        break;
+                    }
+                    i++;
+                }
+                const close = i++;
+                const seen = stack[stack.length - 1];
+                if (expectKey && seen) {
+                    // Decode escapes (rare) so that, for example, a key written with a
+                    // unicode escape collides with the same key written literally.
+                    const name = escaped
+                        ? JSON.parse(jsonString.substring(open, close + 1))
+                        : jsonString.substring(open + 1, close);
+                    if (seen.has(name)) {
+                        throw new Error(`cannot decode message ${typeName} from JSON: duplicate object key "${name}"`);
+                    }
+                    seen.add(name);
+                }
+                expectKey = false;
+                break;
+            }
+            default:
+                i++;
+                break;
+        }
+    }
+}
+function tryWktFromJson(msg, jsonValue, ctx) {
     if (!msg.desc.typeName.startsWith("google.protobuf.")) {
         return false;
     }
     switch (msg.desc.typeName) {
         case "google.protobuf.Any":
-            anyFromJson(msg.message, jsonValue, opts);
+            anyFromJson(msg.message, jsonValue, ctx);
             return true;
         case "google.protobuf.Timestamp":
             timestampFromJson(msg.message, jsonValue);
@@ -46794,13 +46311,13 @@ function tryWktFromJson(msg, jsonValue, opts) {
             fieldMaskFromJson(msg.message, jsonValue);
             return true;
         case "google.protobuf.Struct":
-            structFromJson(msg.message, jsonValue);
+            structFromJson(msg.message, jsonValue, ctx);
             return true;
         case "google.protobuf.Value":
-            valueFromJson(msg.message, jsonValue);
+            valueFromJson(msg.message, jsonValue, ctx);
             return true;
         case "google.protobuf.ListValue":
-            listValueFromJson(msg.message, jsonValue);
+            listValueFromJson(msg.message, jsonValue, ctx);
             return true;
         default:
             if (isWrapperDesc(msg.desc)) {
@@ -46816,7 +46333,7 @@ function tryWktFromJson(msg, jsonValue, opts) {
             return false;
     }
 }
-function anyFromJson(any, json, opts) {
+function anyFromJson(any, json, ctx) {
     var _a;
     if (json === null || Array.isArray(json) || typeof json != "object") {
         throw new Error(`cannot decode message ${any.$typeName} from JSON: expected object but got ${formatVal(json)}`);
@@ -46834,21 +46351,21 @@ function anyFromJson(any, json, opts) {
     if (!typeName.length) {
         throw new Error(`cannot decode message ${any.$typeName} from JSON: "@type" is invalid`);
     }
-    const desc = (_a = opts.registry) === null || _a === void 0 ? void 0 : _a.getMessage(typeName);
+    const desc = (_a = ctx.registry) === null || _a === void 0 ? void 0 : _a.getMessage(typeName);
     if (!desc) {
         throw new Error(`cannot decode message ${any.$typeName} from JSON: ${typeUrl} is not in the type registry`);
     }
     const msg = reflect_reflect(desc);
-    if (typeName.startsWith("google.protobuf.") &&
+    if (hasCustomJsonRepresentation(desc) &&
         Object.prototype.hasOwnProperty.call(json, "value")) {
         const value = json.value;
-        from_json_readMessage(msg, value, opts);
+        from_json_readMessage(msg, value, ctx);
     }
     else {
         const copy = Object.assign({}, json);
         // biome-ignore lint/performance/noDelete: <explanation>
         delete copy["@type"];
-        from_json_readMessage(msg, copy, opts);
+        from_json_readMessage(msg, copy, ctx);
     }
     anyPack(msg.desc, msg.message, any);
 }
@@ -46914,17 +46431,20 @@ function fieldMaskFromJson(fieldMask, json) {
         return protoSnakeCase(path);
     });
 }
-function structFromJson(struct, json) {
+function structFromJson(struct, json, ctx) {
     if (typeof json != "object" || json == null || Array.isArray(json)) {
         throw new Error(`cannot decode message ${struct.$typeName} from JSON ${formatVal(json)}`);
     }
     for (const [k, v] of Object.entries(json)) {
         const parsedV = create_create(ValueSchema);
-        valueFromJson(parsedV, v);
+        valueFromJson(parsedV, v, ctx);
         struct.fields[k] = parsedV;
     }
 }
-function valueFromJson(value, json) {
+function valueFromJson(value, json, ctx) {
+    if (++ctx.depth > ctx.recursionLimit) {
+        throw new Error(`cannot decode ${value.$typeName} from JSON: maximum recursion depth of ${ctx.recursionLimit} reached`);
+    }
     switch (typeof json) {
         case "number":
             value.kind = { case: "numberValue", value: json };
@@ -46941,33 +46461,34 @@ function valueFromJson(value, json) {
             }
             else if (Array.isArray(json)) {
                 const listValue = create_create(ListValueSchema);
-                listValueFromJson(listValue, json);
+                listValueFromJson(listValue, json, ctx);
                 value.kind = { case: "listValue", value: listValue };
             }
             else {
                 const struct = create_create(StructSchema);
-                structFromJson(struct, json);
+                structFromJson(struct, json, ctx);
                 value.kind = { case: "structValue", value: struct };
             }
             break;
         default:
             throw new Error(`cannot decode message ${value.$typeName} from JSON ${formatVal(json)}`);
     }
+    ctx.depth--;
     return value;
 }
-function listValueFromJson(listValue, json) {
+function listValueFromJson(listValue, json, ctx) {
     if (!Array.isArray(json)) {
         throw new Error(`cannot decode message ${listValue.$typeName} from JSON ${formatVal(json)}`);
     }
     for (const e of json) {
         const value = create_create(ValueSchema);
-        valueFromJson(value, e);
+        valueFromJson(value, e, ctx);
         listValue.values.push(value);
     }
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/context-values.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47006,7 +46527,7 @@ function createContextKey(defaultValue, options) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/http-headers.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47066,7 +46587,7 @@ function http_headers_appendHeaders(...headers) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/code.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47157,7 +46678,7 @@ var code_Code;
 })(code_Code || (code_Code = {}));
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/code-string.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47207,7 +46728,7 @@ function codeFromString(value) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/connect-error.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47562,10 +47083,12 @@ function scalarToJson(field, value) {
         case descriptors_ScalarType.INT64:
         case descriptors_ScalarType.SFIXED64:
         case descriptors_ScalarType.SINT64:
-            if (typeof value != "bigint" && typeof value != "string") {
-                throw new Error(`cannot encode ${field} to JSON: ${(_e = checkField(field, value)) === null || _e === void 0 ? void 0 : _e.message}`);
+            if (typeof value == "bigint" ||
+                typeof value == "string" ||
+                (typeof value == "number" && Number.isInteger(value))) {
+                return value.toString();
             }
-            return value.toString();
+            throw new Error(`cannot encode ${field} to JSON: ${(_e = checkField(field, value)) === null || _e === void 0 ? void 0 : _e.message}`);
         // bytes: JSON value will be the data encoded as a string using standard base64 encoding with paddings.
         // Either standard or URL-safe base64 encoding with/without paddings are accepted.
         case descriptors_ScalarType.BYTES:
@@ -47622,13 +47145,10 @@ function anyToJson(val, opts) {
     if (!desc || !message) {
         throw new Error(`cannot encode message ${val.$typeName} to JSON: "${val.typeUrl}" is not in the type registry`);
     }
-    let json = reflectToJson(reflect_reflect(desc, message), opts);
-    if (desc.typeName.startsWith("google.protobuf.") ||
-        json === null ||
-        Array.isArray(json) ||
-        typeof json !== "object") {
-        json = { value: json };
-    }
+    const reflected = reflect_reflect(desc, message);
+    const json = hasCustomJsonRepresentation(desc)
+        ? { value: tryWktToJson(reflected, opts) }
+        : reflectToJson(reflected, opts);
     json["@type"] = val.typeUrl;
     return json;
 }
@@ -47728,7 +47248,7 @@ function timestampToJson(val) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/serialization.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47871,7 +47391,7 @@ function createJsonSerialization(desc, options) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/interceptor.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47900,7 +47420,7 @@ function applyInterceptors(next, interceptors) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/signals.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47997,7 +47517,7 @@ function getAbortSignalReason(signal) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/normalize.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48050,7 +47570,7 @@ function normalizeIterable(desc, input) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/run-call.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48063,6 +47583,7 @@ function normalizeIterable(desc, input) {
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 
 
 
@@ -48152,9 +47673,11 @@ function setupSignal(opt) {
     return [
         controller.signal,
         function abort(reason) {
-            // We peek at the deadline signal because fetch() will throw an error on
-            // abort that discards the signal reason.
-            const e = connect_error_ConnectError.from(signal.aborted ? getAbortSignalReason(signal) : reason);
+            // We peek at the signal because fetch() will throw an error on abort
+            // that discards the signal reason.
+            const e = controller.signal.aborted
+                ? connect_error_ConnectError.from(getAbortSignalReason(controller.signal), code_Code.Canceled)
+                : connect_error_ConnectError.from(reason);
             controller.abort(e);
             cleanup();
             return Promise.reject(e);
@@ -48167,7 +47690,7 @@ function setupSignal(opt) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/create-method-url.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48202,7 +47725,7 @@ function createMethodUrl(baseUrl, method) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/limit-io.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48279,7 +47802,7 @@ function limit_io_assertReadMaxBytes(readMaxBytes, bytesRead, totalSizeKnown = f
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/envelope.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48487,7 +48010,7 @@ function encodeEnvelopes(...envelopes) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/compression.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48560,7 +48083,7 @@ headerNameAcceptEncoding) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/headers.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48587,7 +48110,7 @@ const headers_headerProtocolVersion = "Connect-Protocol-Version";
 const headerUserAgent = "User-Agent";
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/version.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48642,7 +48165,7 @@ function requireProtocolVersionParam(queryParams) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/content-type.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48710,7 +48233,7 @@ function parseEncodingQuery(encoding) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/request-header.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48748,7 +48271,7 @@ function requestHeader(methodKind, useBinaryFormat, timeoutMs, userProvidedHeade
         // Note that we do not strictly comply with gRPC user agents.
         // We use "connect-es/1.2.3" where gRPC would use "grpc-es/1.2.3".
         // See https://github.com/grpc/grpc/blob/c462bb8d485fc1434ecfae438823ca8d14cf3154/doc/PROTOCOL-HTTP2.md#user-agents
-        result.set(headerUserAgent, "connect-es/2.1.1");
+        result.set(headerUserAgent, "connect-es/2.1.2");
     }
     return result;
 }
@@ -48778,7 +48301,7 @@ function requestHeaderWithCompression(methodKind, useBinaryFormat, timeoutMs, us
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/get-request.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48805,21 +48328,25 @@ function encodeMessageForUrl(message, useBase64) {
  * @private Internal code, does not follow semantic versioning.
  */
 function transformConnectPostToGetRequest(request, message, useBase64) {
+    // Parameters are ordered per the Connect protocol Query-Get rule
+    // (connect, base64, compression, encoding, message).
     let query = `?connect=v${protocolVersion}`;
-    const contentType = request.header.get(headerContentType);
-    if ((contentType === null || contentType === void 0 ? void 0 : contentType.indexOf(contentTypePrefix)) === 0) {
-        query +=
-            "&encoding=" +
-                encodeURIComponent(contentType.slice(contentTypePrefix.length));
-    }
+    let compressionQuery = "";
     const compression = request.header.get(headers_headerUnaryEncoding);
     if (compression !== null && compression !== "identity") {
-        query += "&compression=" + encodeURIComponent(compression);
+        compressionQuery = "&compression=" + encodeURIComponent(compression);
         // Force base64 for compressed payloads.
         useBase64 = true;
     }
     if (useBase64) {
         query += "&base64=1";
+    }
+    query += compressionQuery;
+    const contentType = request.header.get(headerContentType);
+    if ((contentType === null || contentType === void 0 ? void 0 : contentType.indexOf(contentTypePrefix)) === 0) {
+        query +=
+            "&encoding=" +
+                encodeURIComponent(contentType.slice(contentTypePrefix.length));
     }
     query += "&message=" + encodeMessageForUrl(message, useBase64);
     const url = request.url + query;
@@ -48839,7 +48366,7 @@ function transformConnectPostToGetRequest(request, message, useBase64) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/http-status.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48927,7 +48454,7 @@ function codeToHttpStatus(code) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/validate-response.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48996,7 +48523,7 @@ function validateResponseWithCompression(methodKind, acceptCompression, useBinar
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/error-json.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -49157,7 +48684,7 @@ function errorToJsonBytes(error, jsonWriteOptions) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/trailer-mux.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -49208,7 +48735,7 @@ function trailerMux(header, trailer) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/end-stream.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -49336,7 +48863,7 @@ function createEndStreamSerialization(options) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect-web/dist/esm/assert-fetch-api.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -49362,7 +48889,7 @@ function assertFetchApi() {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect-web/dist/esm/connect-transport.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -49554,7 +49081,7 @@ function createConnectTransport(options) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/any-client.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -49586,7 +49113,7 @@ function makeAnyClient(service, createMethod) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol/async-iterable.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -50479,7 +50006,7 @@ function createAsyncIterable(items) {
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/promise-client.js
-// Copyright 2021-2025 The Connect Authors
+// Copyright 2021-2026 The Connect Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -51568,6 +51095,7 @@ const LabelService = /*@__PURE__*/
 
 // EXTERNAL MODULE: ./node_modules/parse-diff/index.js
 var parse_diff = __nccwpck_require__(2673);
+var parse_diff_default = /*#__PURE__*/__nccwpck_require__.n(parse_diff);
 ;// CONCATENATED MODULE: ./src/inputs.ts
 // Copyright 2024-2025 Buf Technologies, Inc.
 //
@@ -51689,11 +51217,11 @@ const _internal = {
         const lsbReleaseFile = '/etc/lsb-release';
         const osReleaseFile = '/etc/os-release';
         let contents = '';
-        if (external_fs_.existsSync(lsbReleaseFile)) {
-            contents = external_fs_.readFileSync(lsbReleaseFile).toString();
+        if (external_fs_namespaceObject.existsSync(lsbReleaseFile)) {
+            contents = external_fs_namespaceObject.readFileSync(lsbReleaseFile).toString();
         }
-        else if (external_fs_.existsSync(osReleaseFile)) {
-            contents = external_fs_.readFileSync(osReleaseFile).toString();
+        else if (external_fs_namespaceObject.existsSync(osReleaseFile)) {
+            contents = external_fs_namespaceObject.readFileSync(osReleaseFile).toString();
         }
         return contents;
     }
@@ -51778,674 +51306,6 @@ function _readLinuxVersionFile() {
 const external_stream_namespaceObject = require("stream");
 // EXTERNAL MODULE: external "util"
 var external_util_ = __nccwpck_require__(9023);
-;// CONCATENATED MODULE: ./node_modules/@actions/tool-cache/node_modules/@actions/exec/lib/toolrunner.js
-var lib_toolrunner_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-
-
-
-
-
-
-
-/* eslint-disable @typescript-eslint/unbound-method */
-const lib_toolrunner_IS_WINDOWS = process.platform === 'win32';
-/*
- * Class for running command line tools. Handles quoting and arg parsing in a platform agnostic way.
- */
-class toolrunner_ToolRunner extends external_events_.EventEmitter {
-    constructor(toolPath, args, options) {
-        super();
-        if (!toolPath) {
-            throw new Error("Parameter 'toolPath' cannot be null or empty.");
-        }
-        this.toolPath = toolPath;
-        this.args = args || [];
-        this.options = options || {};
-    }
-    _debug(message) {
-        if (this.options.listeners && this.options.listeners.debug) {
-            this.options.listeners.debug(message);
-        }
-    }
-    _getCommandString(options, noPrefix) {
-        const toolPath = this._getSpawnFileName();
-        const args = this._getSpawnArgs(options);
-        let cmd = noPrefix ? '' : '[command]'; // omit prefix when piped to a second tool
-        if (lib_toolrunner_IS_WINDOWS) {
-            // Windows + cmd file
-            if (this._isCmdFile()) {
-                cmd += toolPath;
-                for (const a of args) {
-                    cmd += ` ${a}`;
-                }
-            }
-            // Windows + verbatim
-            else if (options.windowsVerbatimArguments) {
-                cmd += `"${toolPath}"`;
-                for (const a of args) {
-                    cmd += ` ${a}`;
-                }
-            }
-            // Windows (regular)
-            else {
-                cmd += this._windowsQuoteCmdArg(toolPath);
-                for (const a of args) {
-                    cmd += ` ${this._windowsQuoteCmdArg(a)}`;
-                }
-            }
-        }
-        else {
-            // OSX/Linux - this can likely be improved with some form of quoting.
-            // creating processes on Unix is fundamentally different than Windows.
-            // on Unix, execvp() takes an arg array.
-            cmd += toolPath;
-            for (const a of args) {
-                cmd += ` ${a}`;
-            }
-        }
-        return cmd;
-    }
-    _processLineBuffer(data, strBuffer, onLine) {
-        try {
-            let s = strBuffer + data.toString();
-            let n = s.indexOf(external_os_.EOL);
-            while (n > -1) {
-                const line = s.substring(0, n);
-                onLine(line);
-                // the rest of the string ...
-                s = s.substring(n + external_os_.EOL.length);
-                n = s.indexOf(external_os_.EOL);
-            }
-            return s;
-        }
-        catch (err) {
-            // streaming lines to console is best effort.  Don't fail a build.
-            this._debug(`error processing line. Failed with error ${err}`);
-            return '';
-        }
-    }
-    _getSpawnFileName() {
-        if (lib_toolrunner_IS_WINDOWS) {
-            if (this._isCmdFile()) {
-                return process.env['COMSPEC'] || 'cmd.exe';
-            }
-        }
-        return this.toolPath;
-    }
-    _getSpawnArgs(options) {
-        if (lib_toolrunner_IS_WINDOWS) {
-            if (this._isCmdFile()) {
-                let argline = `/D /S /C "${this._windowsQuoteCmdArg(this.toolPath)}`;
-                for (const a of this.args) {
-                    argline += ' ';
-                    argline += options.windowsVerbatimArguments
-                        ? a
-                        : this._windowsQuoteCmdArg(a);
-                }
-                argline += '"';
-                return [argline];
-            }
-        }
-        return this.args;
-    }
-    _endsWith(str, end) {
-        return str.endsWith(end);
-    }
-    _isCmdFile() {
-        const upperToolPath = this.toolPath.toUpperCase();
-        return (this._endsWith(upperToolPath, '.CMD') ||
-            this._endsWith(upperToolPath, '.BAT'));
-    }
-    _windowsQuoteCmdArg(arg) {
-        // for .exe, apply the normal quoting rules that libuv applies
-        if (!this._isCmdFile()) {
-            return this._uvQuoteCmdArg(arg);
-        }
-        // otherwise apply quoting rules specific to the cmd.exe command line parser.
-        // the libuv rules are generic and are not designed specifically for cmd.exe
-        // command line parser.
-        //
-        // for a detailed description of the cmd.exe command line parser, refer to
-        // http://stackoverflow.com/questions/4094699/how-does-the-windows-command-interpreter-cmd-exe-parse-scripts/7970912#7970912
-        // need quotes for empty arg
-        if (!arg) {
-            return '""';
-        }
-        // determine whether the arg needs to be quoted
-        const cmdSpecialChars = [
-            ' ',
-            '\t',
-            '&',
-            '(',
-            ')',
-            '[',
-            ']',
-            '{',
-            '}',
-            '^',
-            '=',
-            ';',
-            '!',
-            "'",
-            '+',
-            ',',
-            '`',
-            '~',
-            '|',
-            '<',
-            '>',
-            '"'
-        ];
-        let needsQuotes = false;
-        for (const char of arg) {
-            if (cmdSpecialChars.some(x => x === char)) {
-                needsQuotes = true;
-                break;
-            }
-        }
-        // short-circuit if quotes not needed
-        if (!needsQuotes) {
-            return arg;
-        }
-        // the following quoting rules are very similar to the rules that by libuv applies.
-        //
-        // 1) wrap the string in quotes
-        //
-        // 2) double-up quotes - i.e. " => ""
-        //
-        //    this is different from the libuv quoting rules. libuv replaces " with \", which unfortunately
-        //    doesn't work well with a cmd.exe command line.
-        //
-        //    note, replacing " with "" also works well if the arg is passed to a downstream .NET console app.
-        //    for example, the command line:
-        //          foo.exe "myarg:""my val"""
-        //    is parsed by a .NET console app into an arg array:
-        //          [ "myarg:\"my val\"" ]
-        //    which is the same end result when applying libuv quoting rules. although the actual
-        //    command line from libuv quoting rules would look like:
-        //          foo.exe "myarg:\"my val\""
-        //
-        // 3) double-up slashes that precede a quote,
-        //    e.g.  hello \world    => "hello \world"
-        //          hello\"world    => "hello\\""world"
-        //          hello\\"world   => "hello\\\\""world"
-        //          hello world\    => "hello world\\"
-        //
-        //    technically this is not required for a cmd.exe command line, or the batch argument parser.
-        //    the reasons for including this as a .cmd quoting rule are:
-        //
-        //    a) this is optimized for the scenario where the argument is passed from the .cmd file to an
-        //       external program. many programs (e.g. .NET console apps) rely on the slash-doubling rule.
-        //
-        //    b) it's what we've been doing previously (by deferring to node default behavior) and we
-        //       haven't heard any complaints about that aspect.
-        //
-        // note, a weakness of the quoting rules chosen here, is that % is not escaped. in fact, % cannot be
-        // escaped when used on the command line directly - even though within a .cmd file % can be escaped
-        // by using %%.
-        //
-        // the saving grace is, on the command line, %var% is left as-is if var is not defined. this contrasts
-        // the line parsing rules within a .cmd file, where if var is not defined it is replaced with nothing.
-        //
-        // one option that was explored was replacing % with ^% - i.e. %var% => ^%var^%. this hack would
-        // often work, since it is unlikely that var^ would exist, and the ^ character is removed when the
-        // variable is used. the problem, however, is that ^ is not removed when %* is used to pass the args
-        // to an external program.
-        //
-        // an unexplored potential solution for the % escaping problem, is to create a wrapper .cmd file.
-        // % can be escaped within a .cmd file.
-        let reverse = '"';
-        let quoteHit = true;
-        for (let i = arg.length; i > 0; i--) {
-            // walk the string in reverse
-            reverse += arg[i - 1];
-            if (quoteHit && arg[i - 1] === '\\') {
-                reverse += '\\'; // double the slash
-            }
-            else if (arg[i - 1] === '"') {
-                quoteHit = true;
-                reverse += '"'; // double the quote
-            }
-            else {
-                quoteHit = false;
-            }
-        }
-        reverse += '"';
-        return reverse.split('').reverse().join('');
-    }
-    _uvQuoteCmdArg(arg) {
-        // Tool runner wraps child_process.spawn() and needs to apply the same quoting as
-        // Node in certain cases where the undocumented spawn option windowsVerbatimArguments
-        // is used.
-        //
-        // Since this function is a port of quote_cmd_arg from Node 4.x (technically, lib UV,
-        // see https://github.com/nodejs/node/blob/v4.x/deps/uv/src/win/process.c for details),
-        // pasting copyright notice from Node within this function:
-        //
-        //      Copyright Joyent, Inc. and other Node contributors. All rights reserved.
-        //
-        //      Permission is hereby granted, free of charge, to any person obtaining a copy
-        //      of this software and associated documentation files (the "Software"), to
-        //      deal in the Software without restriction, including without limitation the
-        //      rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-        //      sell copies of the Software, and to permit persons to whom the Software is
-        //      furnished to do so, subject to the following conditions:
-        //
-        //      The above copyright notice and this permission notice shall be included in
-        //      all copies or substantial portions of the Software.
-        //
-        //      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-        //      IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-        //      FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-        //      AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-        //      LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-        //      FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-        //      IN THE SOFTWARE.
-        if (!arg) {
-            // Need double quotation for empty argument
-            return '""';
-        }
-        if (!arg.includes(' ') && !arg.includes('\t') && !arg.includes('"')) {
-            // No quotation needed
-            return arg;
-        }
-        if (!arg.includes('"') && !arg.includes('\\')) {
-            // No embedded double quotes or backslashes, so I can just wrap
-            // quote marks around the whole thing.
-            return `"${arg}"`;
-        }
-        // Expected input/output:
-        //   input : hello"world
-        //   output: "hello\"world"
-        //   input : hello""world
-        //   output: "hello\"\"world"
-        //   input : hello\world
-        //   output: hello\world
-        //   input : hello\\world
-        //   output: hello\\world
-        //   input : hello\"world
-        //   output: "hello\\\"world"
-        //   input : hello\\"world
-        //   output: "hello\\\\\"world"
-        //   input : hello world\
-        //   output: "hello world\\" - note the comment in libuv actually reads "hello world\"
-        //                             but it appears the comment is wrong, it should be "hello world\\"
-        let reverse = '"';
-        let quoteHit = true;
-        for (let i = arg.length; i > 0; i--) {
-            // walk the string in reverse
-            reverse += arg[i - 1];
-            if (quoteHit && arg[i - 1] === '\\') {
-                reverse += '\\';
-            }
-            else if (arg[i - 1] === '"') {
-                quoteHit = true;
-                reverse += '\\';
-            }
-            else {
-                quoteHit = false;
-            }
-        }
-        reverse += '"';
-        return reverse.split('').reverse().join('');
-    }
-    _cloneExecOptions(options) {
-        options = options || {};
-        const result = {
-            cwd: options.cwd || process.cwd(),
-            env: options.env || process.env,
-            silent: options.silent || false,
-            windowsVerbatimArguments: options.windowsVerbatimArguments || false,
-            failOnStdErr: options.failOnStdErr || false,
-            ignoreReturnCode: options.ignoreReturnCode || false,
-            delay: options.delay || 10000
-        };
-        result.outStream = options.outStream || process.stdout;
-        result.errStream = options.errStream || process.stderr;
-        return result;
-    }
-    _getSpawnOptions(options, toolPath) {
-        options = options || {};
-        const result = {};
-        result.cwd = options.cwd;
-        result.env = options.env;
-        result['windowsVerbatimArguments'] =
-            options.windowsVerbatimArguments || this._isCmdFile();
-        if (options.windowsVerbatimArguments) {
-            result.argv0 = `"${toolPath}"`;
-        }
-        return result;
-    }
-    /**
-     * Exec a tool.
-     * Output will be streamed to the live console.
-     * Returns promise with return code
-     *
-     * @param     tool     path to tool to exec
-     * @param     options  optional exec options.  See ExecOptions
-     * @returns   number
-     */
-    exec() {
-        return lib_toolrunner_awaiter(this, void 0, void 0, function* () {
-            // root the tool path if it is unrooted and contains relative pathing
-            if (!isRooted(this.toolPath) &&
-                (this.toolPath.includes('/') ||
-                    (lib_toolrunner_IS_WINDOWS && this.toolPath.includes('\\')))) {
-                // prefer options.cwd if it is specified, however options.cwd may also need to be rooted
-                this.toolPath = external_path_.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
-            }
-            // if the tool is only a file name, then resolve it from the PATH
-            // otherwise verify it exists (add extension on Windows if necessary)
-            this.toolPath = yield which(this.toolPath, true);
-            return new Promise((resolve, reject) => lib_toolrunner_awaiter(this, void 0, void 0, function* () {
-                this._debug(`exec tool: ${this.toolPath}`);
-                this._debug('arguments:');
-                for (const arg of this.args) {
-                    this._debug(`   ${arg}`);
-                }
-                const optionsNonNull = this._cloneExecOptions(this.options);
-                if (!optionsNonNull.silent && optionsNonNull.outStream) {
-                    optionsNonNull.outStream.write(this._getCommandString(optionsNonNull) + external_os_.EOL);
-                }
-                const state = new toolrunner_ExecState(optionsNonNull, this.toolPath);
-                state.on('debug', (message) => {
-                    this._debug(message);
-                });
-                if (this.options.cwd && !(yield exists(this.options.cwd))) {
-                    return reject(new Error(`The cwd: ${this.options.cwd} does not exist!`));
-                }
-                const fileName = this._getSpawnFileName();
-                const cp = external_child_process_.spawn(fileName, this._getSpawnArgs(optionsNonNull), this._getSpawnOptions(this.options, fileName));
-                let stdbuffer = '';
-                if (cp.stdout) {
-                    cp.stdout.on('data', (data) => {
-                        if (this.options.listeners && this.options.listeners.stdout) {
-                            this.options.listeners.stdout(data);
-                        }
-                        if (!optionsNonNull.silent && optionsNonNull.outStream) {
-                            optionsNonNull.outStream.write(data);
-                        }
-                        stdbuffer = this._processLineBuffer(data, stdbuffer, (line) => {
-                            if (this.options.listeners && this.options.listeners.stdline) {
-                                this.options.listeners.stdline(line);
-                            }
-                        });
-                    });
-                }
-                let errbuffer = '';
-                if (cp.stderr) {
-                    cp.stderr.on('data', (data) => {
-                        state.processStderr = true;
-                        if (this.options.listeners && this.options.listeners.stderr) {
-                            this.options.listeners.stderr(data);
-                        }
-                        if (!optionsNonNull.silent &&
-                            optionsNonNull.errStream &&
-                            optionsNonNull.outStream) {
-                            const s = optionsNonNull.failOnStdErr
-                                ? optionsNonNull.errStream
-                                : optionsNonNull.outStream;
-                            s.write(data);
-                        }
-                        errbuffer = this._processLineBuffer(data, errbuffer, (line) => {
-                            if (this.options.listeners && this.options.listeners.errline) {
-                                this.options.listeners.errline(line);
-                            }
-                        });
-                    });
-                }
-                cp.on('error', (err) => {
-                    state.processError = err.message;
-                    state.processExited = true;
-                    state.processClosed = true;
-                    state.CheckComplete();
-                });
-                cp.on('exit', (code) => {
-                    state.processExitCode = code;
-                    state.processExited = true;
-                    this._debug(`Exit code ${code} received from tool '${this.toolPath}'`);
-                    state.CheckComplete();
-                });
-                cp.on('close', (code) => {
-                    state.processExitCode = code;
-                    state.processExited = true;
-                    state.processClosed = true;
-                    this._debug(`STDIO streams have closed for tool '${this.toolPath}'`);
-                    state.CheckComplete();
-                });
-                state.on('done', (error, exitCode) => {
-                    if (stdbuffer.length > 0) {
-                        this.emit('stdline', stdbuffer);
-                    }
-                    if (errbuffer.length > 0) {
-                        this.emit('errline', errbuffer);
-                    }
-                    cp.removeAllListeners();
-                    if (error) {
-                        reject(error);
-                    }
-                    else {
-                        resolve(exitCode);
-                    }
-                });
-                if (this.options.input) {
-                    if (!cp.stdin) {
-                        throw new Error('child process missing stdin');
-                    }
-                    cp.stdin.end(this.options.input);
-                }
-            }));
-        });
-    }
-}
-/**
- * Convert an arg string to an array of args. Handles escaping
- *
- * @param    argString   string of arguments
- * @returns  string[]    array of arguments
- */
-function toolrunner_argStringToArray(argString) {
-    const args = [];
-    let inQuotes = false;
-    let escaped = false;
-    let arg = '';
-    function append(c) {
-        // we only escape double quotes.
-        if (escaped && c !== '"') {
-            arg += '\\';
-        }
-        arg += c;
-        escaped = false;
-    }
-    for (let i = 0; i < argString.length; i++) {
-        const c = argString.charAt(i);
-        if (c === '"') {
-            if (!escaped) {
-                inQuotes = !inQuotes;
-            }
-            else {
-                append(c);
-            }
-            continue;
-        }
-        if (c === '\\' && escaped) {
-            append(c);
-            continue;
-        }
-        if (c === '\\' && inQuotes) {
-            escaped = true;
-            continue;
-        }
-        if (c === ' ' && !inQuotes) {
-            if (arg.length > 0) {
-                args.push(arg);
-                arg = '';
-            }
-            continue;
-        }
-        append(c);
-    }
-    if (arg.length > 0) {
-        args.push(arg.trim());
-    }
-    return args;
-}
-class toolrunner_ExecState extends external_events_.EventEmitter {
-    constructor(options, toolPath) {
-        super();
-        this.processClosed = false; // tracks whether the process has exited and stdio is closed
-        this.processError = '';
-        this.processExitCode = 0;
-        this.processExited = false; // tracks whether the process has exited
-        this.processStderr = false; // tracks whether stderr was written to
-        this.delay = 10000; // 10 seconds
-        this.done = false;
-        this.timeout = null;
-        if (!toolPath) {
-            throw new Error('toolPath must not be empty');
-        }
-        this.options = options;
-        this.toolPath = toolPath;
-        if (options.delay) {
-            this.delay = options.delay;
-        }
-    }
-    CheckComplete() {
-        if (this.done) {
-            return;
-        }
-        if (this.processClosed) {
-            this._setResult();
-        }
-        else if (this.processExited) {
-            this.timeout = (0,external_timers_.setTimeout)(toolrunner_ExecState.HandleTimeout, this.delay, this);
-        }
-    }
-    _debug(message) {
-        this.emit('debug', message);
-    }
-    _setResult() {
-        // determine whether there is an error
-        let error;
-        if (this.processExited) {
-            if (this.processError) {
-                error = new Error(`There was an error when attempting to execute the process '${this.toolPath}'. This may indicate the process failed to start. Error: ${this.processError}`);
-            }
-            else if (this.processExitCode !== 0 && !this.options.ignoreReturnCode) {
-                error = new Error(`The process '${this.toolPath}' failed with exit code ${this.processExitCode}`);
-            }
-            else if (this.processStderr && this.options.failOnStdErr) {
-                error = new Error(`The process '${this.toolPath}' failed because one or more lines were written to the STDERR stream`);
-            }
-        }
-        // clear the timeout
-        if (this.timeout) {
-            clearTimeout(this.timeout);
-            this.timeout = null;
-        }
-        this.done = true;
-        this.emit('done', error, this.processExitCode);
-    }
-    static HandleTimeout(state) {
-        if (state.done) {
-            return;
-        }
-        if (!state.processClosed && state.processExited) {
-            const message = `The STDIO streams did not close within ${state.delay / 1000} seconds of the exit event from process '${state.toolPath}'. This may indicate a child process inherited the STDIO streams and has not yet exited.`;
-            state._debug(message);
-        }
-        state._setResult();
-    }
-}
-//# sourceMappingURL=toolrunner.js.map
-;// CONCATENATED MODULE: ./node_modules/@actions/tool-cache/node_modules/@actions/exec/lib/exec.js
-var lib_exec_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-
-
-/**
- * Exec a command.
- * Output will be streamed to the live console.
- * Returns promise with return code
- *
- * @param     commandLine        command to execute (can include additional args). Must be correctly escaped.
- * @param     args               optional arguments for tool. Escaping is handled by the lib.
- * @param     options            optional exec options.  See ExecOptions
- * @returns   Promise<number>    exit code
- */
-function lib_exec_exec(commandLine, args, options) {
-    return lib_exec_awaiter(this, void 0, void 0, function* () {
-        const commandArgs = tr.argStringToArray(commandLine);
-        if (commandArgs.length === 0) {
-            throw new Error(`Parameter 'commandLine' cannot be null or empty.`);
-        }
-        // Path to tool to execute should be first arg
-        const toolPath = commandArgs[0];
-        args = commandArgs.slice(1).concat(args || []);
-        const runner = new tr.ToolRunner(toolPath, args, options);
-        return runner.exec();
-    });
-}
-/**
- * Exec a command and get the output.
- * Output will be streamed to the live console.
- * Returns promise with the exit code and collected stdout and stderr
- *
- * @param     commandLine           command to execute (can include additional args). Must be correctly escaped.
- * @param     args                  optional arguments for tool. Escaping is handled by the lib.
- * @param     options               optional exec options.  See ExecOptions
- * @returns   Promise<ExecOutput>   exit code, stdout, and stderr
- */
-function exec_getExecOutput(commandLine, args, options) {
-    return lib_exec_awaiter(this, void 0, void 0, function* () {
-        var _a, _b;
-        let stdout = '';
-        let stderr = '';
-        //Using string decoder covers the case where a mult-byte character is split
-        const stdoutDecoder = new StringDecoder('utf8');
-        const stderrDecoder = new StringDecoder('utf8');
-        const originalStdoutListener = (_a = options === null || options === void 0 ? void 0 : options.listeners) === null || _a === void 0 ? void 0 : _a.stdout;
-        const originalStdErrListener = (_b = options === null || options === void 0 ? void 0 : options.listeners) === null || _b === void 0 ? void 0 : _b.stderr;
-        const stdErrListener = (data) => {
-            stderr += stderrDecoder.write(data);
-            if (originalStdErrListener) {
-                originalStdErrListener(data);
-            }
-        };
-        const stdOutListener = (data) => {
-            stdout += stdoutDecoder.write(data);
-            if (originalStdoutListener) {
-                originalStdoutListener(data);
-            }
-        };
-        const listeners = Object.assign(Object.assign({}, options === null || options === void 0 ? void 0 : options.listeners), { stdout: stdOutListener, stderr: stdErrListener });
-        const exitCode = yield lib_exec_exec(commandLine, args, Object.assign(Object.assign({}, options), { listeners }));
-        //flush any remaining characters
-        stdout += stdoutDecoder.end();
-        stderr += stderrDecoder.end();
-        return {
-            exitCode,
-            stdout,
-            stderr
-        };
-    });
-}
-//# sourceMappingURL=exec.js.map
 ;// CONCATENATED MODULE: ./node_modules/@actions/tool-cache/lib/retry-helper.js
 var retry_helper_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -52552,8 +51412,8 @@ const tool_cache_userAgent = 'actions/tool-cache';
  */
 function downloadTool(url, dest, auth, headers) {
     return tool_cache_awaiter(this, void 0, void 0, function* () {
-        dest = dest || external_path_.join(_getTempDirectory(), external_crypto_namespaceObject.randomUUID());
-        yield mkdirP(external_path_.dirname(dest));
+        dest = dest || external_path_namespaceObject.join(_getTempDirectory(), external_crypto_namespaceObject.randomUUID());
+        yield mkdirP(external_path_namespaceObject.dirname(dest));
         core_debug(`Downloading ${url}`);
         core_debug(`Destination ${dest}`);
         const maxAttempts = 3;
@@ -52578,7 +51438,7 @@ function downloadTool(url, dest, auth, headers) {
 }
 function downloadToolAttempt(url, dest, auth, headers) {
     return tool_cache_awaiter(this, void 0, void 0, function* () {
-        if (external_fs_.existsSync(dest)) {
+        if (external_fs_namespaceObject.existsSync(dest)) {
             throw new Error(`Destination file path ${dest} already exists`);
         }
         // Get the response headers
@@ -52604,7 +51464,7 @@ function downloadToolAttempt(url, dest, auth, headers) {
         const readStream = responseMessageFactory();
         let succeeded = false;
         try {
-            yield pipeline(readStream, external_fs_.createWriteStream(dest));
+            yield pipeline(readStream, external_fs_namespaceObject.createWriteStream(dest));
             core_debug('download complete');
             succeeded = true;
             return dest;
@@ -52910,17 +51770,17 @@ function cacheDir(sourceDir, tool, version, arch) {
 function cacheFile(sourceFile, targetFile, tool, version, arch) {
     return tool_cache_awaiter(this, void 0, void 0, function* () {
         version = node_modules_semver.clean(version) || version;
-        arch = arch || external_os_.arch();
+        arch = arch || external_os_namespaceObject.arch();
         core_debug(`Caching tool ${tool} ${version} ${arch}`);
         core_debug(`source file: ${sourceFile}`);
-        if (!external_fs_.statSync(sourceFile).isFile()) {
+        if (!external_fs_namespaceObject.statSync(sourceFile).isFile()) {
             throw new Error('sourceFile is not a file');
         }
         // create the tool dir
         const destFolder = yield _createToolPath(tool, version, arch);
         // copy instead of move. move can fail on Windows due to
         // anti-virus software having an open handle on a file.
-        const destPath = external_path_.join(destFolder, targetFile);
+        const destPath = external_path_namespaceObject.join(destFolder, targetFile);
         core_debug(`destination file ${destPath}`);
         yield io_cp(sourceFile, destPath);
         // write .complete
@@ -52942,7 +51802,7 @@ function find(toolName, versionSpec, arch) {
     if (!versionSpec) {
         throw new Error('versionSpec parameter is required');
     }
-    arch = arch || external_os_.arch();
+    arch = arch || external_os_namespaceObject.arch();
     // attempt to resolve an explicit version
     if (!isExplicitVersion(versionSpec)) {
         const localVersions = findAllVersions(toolName, arch);
@@ -52953,9 +51813,9 @@ function find(toolName, versionSpec, arch) {
     let toolPath = '';
     if (versionSpec) {
         versionSpec = node_modules_semver.clean(versionSpec) || '';
-        const cachePath = external_path_.join(_getCacheDirectory(), toolName, versionSpec, arch);
+        const cachePath = external_path_namespaceObject.join(_getCacheDirectory(), toolName, versionSpec, arch);
         core_debug(`checking cache: ${cachePath}`);
-        if (external_fs_.existsSync(cachePath) && external_fs_.existsSync(`${cachePath}.complete`)) {
+        if (external_fs_namespaceObject.existsSync(cachePath) && external_fs_namespaceObject.existsSync(`${cachePath}.complete`)) {
             core_debug(`Found tool in cache ${toolName} ${versionSpec} ${arch}`);
             toolPath = cachePath;
         }
@@ -52973,14 +51833,14 @@ function find(toolName, versionSpec, arch) {
  */
 function findAllVersions(toolName, arch) {
     const versions = [];
-    arch = arch || external_os_.arch();
-    const toolPath = external_path_.join(_getCacheDirectory(), toolName);
-    if (external_fs_.existsSync(toolPath)) {
-        const children = external_fs_.readdirSync(toolPath);
+    arch = arch || external_os_namespaceObject.arch();
+    const toolPath = external_path_namespaceObject.join(_getCacheDirectory(), toolName);
+    if (external_fs_namespaceObject.existsSync(toolPath)) {
+        const children = external_fs_namespaceObject.readdirSync(toolPath);
         for (const child of children) {
             if (isExplicitVersion(child)) {
-                const fullPath = external_path_.join(toolPath, child, arch || '');
-                if (external_fs_.existsSync(fullPath) && external_fs_.existsSync(`${fullPath}.complete`)) {
+                const fullPath = external_path_namespaceObject.join(toolPath, child, arch || '');
+                if (external_fs_namespaceObject.existsSync(fullPath) && external_fs_namespaceObject.existsSync(`${fullPath}.complete`)) {
                     versions.push(child);
                 }
             }
@@ -53043,7 +51903,7 @@ function _createExtractFolder(dest) {
 }
 function _createToolPath(tool, version, arch) {
     return tool_cache_awaiter(this, void 0, void 0, function* () {
-        const folderPath = external_path_.join(_getCacheDirectory(), tool, node_modules_semver.clean(version) || version, arch || '');
+        const folderPath = external_path_namespaceObject.join(_getCacheDirectory(), tool, node_modules_semver.clean(version) || version, arch || '');
         core_debug(`destination ${folderPath}`);
         const markerPath = `${folderPath}.complete`;
         yield rmRF(folderPath);
@@ -53053,9 +51913,9 @@ function _createToolPath(tool, version, arch) {
     });
 }
 function _completeToolPath(tool, version, arch) {
-    const folderPath = external_path_.join(_getCacheDirectory(), tool, node_modules_semver.clean(version) || version, arch || '');
+    const folderPath = external_path_namespaceObject.join(_getCacheDirectory(), tool, node_modules_semver.clean(version) || version, arch || '');
     const markerPath = `${folderPath}.complete`;
-    external_fs_.writeFileSync(markerPath, '');
+    external_fs_namespaceObject.writeFileSync(markerPath, '');
     core_debug('finished caching tool');
 }
 /**
@@ -53175,7 +52035,7 @@ async function installBuf(github, githubToken, inputVersion) {
     const binName = process.platform === "win32" ? "buf.exe" : "buf";
     const bufFullPath = await which(binName, false);
     if (bufFullPath !== "") {
-        const bufVersion = await lib_exec.getExecOutput(binName, ["--version"], {
+        const bufVersion = await getExecOutput(binName, ["--version"], {
             silent: true,
         });
         const version = bufVersion.stdout.trim();
@@ -53199,7 +52059,7 @@ async function installBuf(github, githubToken, inputVersion) {
     if (!cachePath) {
         info(`Downloading buf (${resolvedVersion})`);
         const downloadPath = await downloadBuf(resolvedVersion, githubToken);
-        await external_fs_.promises.chmod(downloadPath, 0o755);
+        await external_fs_namespaceObject.promises.chmod(downloadPath, 0o755);
         cachePath = await cacheFile(downloadPath, binName, bufName, resolvedVersion);
     }
     addPath(cachePath);
@@ -53263,7 +52123,7 @@ async function downloadBuf(version, githubToken) {
         return await downloadTool(downloadURL, undefined, auth);
     }
     catch (error) {
-        throw new Error(`Failed to download buf version ${version} from "${downloadURL}": ${error}`);
+        throw new Error(`Failed to download buf version ${version} from "${downloadURL}": ${error}`, { cause: error });
     }
 }
 // assertBufForInputs checks the buf binary is valid for the inputs provided.
@@ -53286,7 +52146,7 @@ async function assertChecksum(bufPath, checksum) {
     const bufFullPath = await which(bufPath, true);
     const hash = external_crypto_namespaceObject.createHash(shaAlgorithm);
     const pipeline = external_util_.promisify(external_stream_namespaceObject.pipeline);
-    await pipeline(external_fs_.createReadStream(bufFullPath), hash);
+    await pipeline(external_fs_namespaceObject.createReadStream(bufFullPath), hash);
     const computedChecksum = hash.digest("hex");
     if (computedChecksum !== checksum) {
         throw new Error(`Checksum verification failed. Expected: ${checksum}, Computed: ${computedChecksum}`);
@@ -53392,7 +52252,7 @@ async function commentOnPR(context, github, commentID, body) {
 // parseModuleNames extracts the module names from the given input. The input
 // is a directory containing a buf.yaml file.
 async function parseModuleNames(bufPath, input) {
-    return lib_exec.getExecOutput(bufPath, ["config", "ls-modules", "--format", "name"], {
+    return getExecOutput(bufPath, ["config", "ls-modules", "--format", "name"], {
         cwd: input,
     })
         .then((output) => {
@@ -53582,7 +52442,7 @@ async function login(bufPath, inputs) {
         return;
     }
     core_debug(`Logging in to ${domain}`);
-    await lib_exec.exec(bufPath, ["registry", "login", domain, "--token-stdin"], {
+    await exec_exec(bufPath, ["registry", "login", domain, "--token-stdin"], {
         input: Buffer.from(token + "\n"),
     });
 }
@@ -53646,7 +52506,7 @@ async function format(bufPath, inputs) {
     const result = await run(bufPath, args);
     if (result.status == Status.Failed && result.stdout.startsWith("diff")) {
         // If the format step fails, parse the diff and write github annotations.
-        const diff = parse_diff(result.stdout);
+        const diff = parse_diff_default()(result.stdout);
         result.stdout = ""; // Clear the stdout to count the number of changes.
         for (const file of diff) {
             result.stdout += `::error file=${file.to}::Format diff -${file.deletions}/+${file.additions}.\n`;
@@ -53790,7 +52650,7 @@ async function run(bufPath, args) {
     if (isDebug()) {
         args = ["--debug", ...args];
     }
-    return lib_exec.getExecOutput(bufPath, args, {
+    return getExecOutput(bufPath, args, {
         ignoreReturnCode: true,
         env: {
             ...process.env,

@@ -23,7 +23,7 @@ import { createConnectTransport } from "@connectrpc/connect-web";
 import { createClient, ConnectError, Code } from "@connectrpc/connect";
 import { LabelService } from "@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/label_service_pb";
 import { LabelRefSchema } from "@buf/bufbuild_registry.bufbuild_es/buf/registry/module/v1/label_pb";
-import * as parseDiff from "parse-diff";
+import parseDiff from "parse-diff";
 
 import { getInputs, Inputs, getEnv } from "./inputs";
 import { Outputs } from "./outputs";

@@ -173,6 +173,7 @@ async function downloadBuf(
   } catch (error) {
     throw new Error(
       `Failed to download buf version ${version} from "${downloadURL}": ${error}`,
+      { cause: error },
     );
   }
 }
