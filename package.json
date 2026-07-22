@@ -27,14 +27,14 @@
   "devDependencies": {
     "@bufbuild/license-header": "^0.0.4",
     "@eslint/js": "^10.0.1",
-    "@types/node": "^24.3.0",
+    "@types/node": "^26.1.1",
     "@types/semver": "^7.7.0",
     "@vercel/ncc": "^0.44.1",
     "eslint": "^10.0.3",
     "globals": "^17.7.0",
-    "prettier": "3.8.1",
+    "prettier": "3.9.5",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.33.0"
+    "typescript-eslint": "^8.65.0"
   },
   "dependencies": {
     "@actions/core": "^3.0.1",
