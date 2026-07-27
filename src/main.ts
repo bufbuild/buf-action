@@ -321,6 +321,13 @@ async function breaking(bufPath: string, inputs: Inputs): Promise<Result> {
   return run(bufPath, args);
 }
 
+// notAuthenticated matches the Buf CLI error emitted when no registry
+// credentials are found. Credentials may come from the token input, the
+// BUF_TOKEN environment variable, or a .netrc file, so the CLI failure is the
+// only reliable signal that none of them are set. Invalid credentials produce a
+// different error and are left to fail the step.
+const notAuthenticated = /you are not authenticated for /;
+
 // push runs the "buf push" step.
 async function push(
   bufPath: string,
@@ -357,7 +364,14 @@ async function push(
   if (inputs.input) {
     args.push(inputs.input);
   }
-  return run(bufPath, args);
+  const result = await run(bufPath, args);
+  if (result.status == Status.Failed && notAuthenticated.test(result.stderr)) {
+    core.warning(
+      `Skipping push, no credentials found for ${inputs.domain}. Set the token input or the BUF_TOKEN environment variable to push to the registry.`,
+    );
+    return skip();
+  }
+  return result;
 }
 
 // archive runs the "buf archive" step.
@@ -375,6 +389,15 @@ async function archive(
   }
   if (inputs.archive_labels.length == 0) {
     core.debug("Skipping archive, no labels provided");
+    return skip();
+  }
+  // Unlike push, archive calls the registry directly instead of shelling out to
+  // the Buf CLI, so the token input and the BUF_TOKEN environment variable are
+  // the only credential sources. An empty token is always unauthenticated.
+  if (inputs.token == "") {
+    core.warning(
+      "Skipping archive, no token provided. Set the token input or the BUF_TOKEN environment variable to archive labels in the registry.",
+    );
     return skip();
   }
   for (const moduleName of moduleNames) {

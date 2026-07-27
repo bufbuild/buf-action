@@ -131,6 +131,8 @@ inputs:
   push:
     description: |-
       Whether to run the push step. Runs by default on pushes, for non forked repositories.
+      Skipped with a warning if no registry credentials are found, such as on Dependabot
+      runs without a configured BUF_TOKEN Dependabot secret. Invalid credentials still fail.
     required: false
     default: ${{ github.event_name == 'push' }}
   push_create_visibility:
@@ -147,6 +149,8 @@ inputs:
   archive:
     description: |-
       Whether to run the archive step. Runs by default on deletes, for non forked repositories.
+      Skipped with a warning if no token input or BUF_TOKEN environment variable is set,
+      such as on Dependabot runs without a configured BUF_TOKEN Dependabot secret.
     required: false
     default: ${{ github.event_name == 'delete' }}
 
