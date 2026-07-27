@@ -40464,7 +40464,7 @@ function isScalarZeroValue(type, value) {
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name = $number;
 const IMPLICIT = 2;
 const unsafeLocal = Symbol.for("reflect unsafe local");
 /**
@@ -40747,11 +40747,11 @@ function isWrapperTypeName(name) {
 
 
 
-// bootstrap-inject google.protobuf.Edition.EDITION_PROTO3: const $name: Edition.$localName = $number;
+// bootstrap-inject google.protobuf.Edition.EDITION_PROTO3: const $name = $number;
 const EDITION_PROTO3 = 999;
-// bootstrap-inject google.protobuf.Edition.EDITION_PROTO2: const $name: Edition.$localName = $number;
+// bootstrap-inject google.protobuf.Edition.EDITION_PROTO2: const $name = $number;
 const EDITION_PROTO2 = 998;
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name = $number;
 const create_IMPLICIT = 2;
 /**
  * Create a new message instance.
@@ -41891,6 +41891,8 @@ function scalarTypeDescription(scalar) {
 
 
 
+// google.protobuf.NullValue.NULL_VALUE;
+const NULL_VALUE = 0;
 /**
  * Create a ReflectMessage.
  */
@@ -42381,8 +42383,7 @@ function wktValueToReflect(json) {
             break;
         case "object":
             if (json === null) {
-                const nullValue = 0;
-                value.kind = { case: "nullValue", value: nullValue };
+                value.kind = { case: "nullValue", value: NULL_VALUE };
             }
             else if (Array.isArray(json)) {
                 const listValue = {
@@ -43197,43 +43198,43 @@ function initBaseRegistry(inputs) {
     }
     return registry;
 }
-// bootstrap-inject google.protobuf.Edition.EDITION_PROTO2: const $name: Edition.$localName = $number;
+// bootstrap-inject google.protobuf.Edition.EDITION_PROTO2: const $name = $number;
 const registry_EDITION_PROTO2 = 998;
-// bootstrap-inject google.protobuf.Edition.EDITION_PROTO3: const $name: Edition.$localName = $number;
+// bootstrap-inject google.protobuf.Edition.EDITION_PROTO3: const $name = $number;
 const registry_EDITION_PROTO3 = 999;
-// bootstrap-inject google.protobuf.Edition.EDITION_UNSTABLE: const $name: Edition.$localName = $number;
+// bootstrap-inject google.protobuf.Edition.EDITION_UNSTABLE: const $name = $number;
 const EDITION_UNSTABLE = 9999;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_STRING: const $name: FieldDescriptorProto_Type.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_STRING: const $name = $number;
 const TYPE_STRING = 9;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_GROUP: const $name: FieldDescriptorProto_Type.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_GROUP: const $name = $number;
 const TYPE_GROUP = 10;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_MESSAGE: const $name: FieldDescriptorProto_Type.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_MESSAGE: const $name = $number;
 const TYPE_MESSAGE = 11;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_BYTES: const $name: FieldDescriptorProto_Type.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_BYTES: const $name = $number;
 const TYPE_BYTES = 12;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_ENUM: const $name: FieldDescriptorProto_Type.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_ENUM: const $name = $number;
 const TYPE_ENUM = 14;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Label.LABEL_REPEATED: const $name: FieldDescriptorProto_Label.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Label.LABEL_REPEATED: const $name = $number;
 const LABEL_REPEATED = 3;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Label.LABEL_REQUIRED: const $name: FieldDescriptorProto_Label.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Label.LABEL_REQUIRED: const $name = $number;
 const LABEL_REQUIRED = 2;
-// bootstrap-inject google.protobuf.FieldOptions.JSType.JS_STRING: const $name: FieldOptions_JSType.$localName = $number;
+// bootstrap-inject google.protobuf.FieldOptions.JSType.JS_STRING: const $name = $number;
 const JS_STRING = 1;
-// bootstrap-inject google.protobuf.MethodOptions.IdempotencyLevel.IDEMPOTENCY_UNKNOWN: const $name: MethodOptions_IdempotencyLevel.$localName = $number;
+// bootstrap-inject google.protobuf.MethodOptions.IdempotencyLevel.IDEMPOTENCY_UNKNOWN: const $name = $number;
 const IDEMPOTENCY_UNKNOWN = 0;
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.EXPLICIT: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.EXPLICIT: const $name = $number;
 const EXPLICIT = 1;
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name = $number;
 const registry_IMPLICIT = 2;
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.LEGACY_REQUIRED: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.LEGACY_REQUIRED: const $name = $number;
 const LEGACY_REQUIRED = 3;
-// bootstrap-inject google.protobuf.FeatureSet.RepeatedFieldEncoding.PACKED: const $name: FeatureSet_RepeatedFieldEncoding.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.RepeatedFieldEncoding.PACKED: const $name = $number;
 const PACKED = 1;
-// bootstrap-inject google.protobuf.FeatureSet.MessageEncoding.DELIMITED: const $name: FeatureSet_MessageEncoding.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.MessageEncoding.DELIMITED: const $name = $number;
 const DELIMITED = 2;
-// bootstrap-inject google.protobuf.FeatureSet.EnumType.OPEN: const $name: FeatureSet_EnumType.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.EnumType.OPEN: const $name = $number;
 const OPEN = 1;
-// bootstrap-inject google.protobuf.FeatureSet.Utf8Validation.VERIFY: const $name: FeatureSet_Utf8Validation.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.Utf8Validation.VERIFY: const $name = $number;
 const VERIFY = 2;
 // biome-ignore format: want this to read well
 // bootstrap-inject defaults: EDITION_PROTO2 to EDITION_2024: export const minimumEdition: SupportedEdition = $minimumEdition, maximumEdition: SupportedEdition = $maximumEdition;
@@ -45284,7 +45285,7 @@ const AnySchema = /*@__PURE__*/ message_messageDesc(file_google_protobuf_any, 0)
 
 
 
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.LEGACY_REQUIRED: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.LEGACY_REQUIRED: const $name = $number;
 const to_binary_LEGACY_REQUIRED = 3;
 // Default options for serializing binary data.
 const writeDefaults = {
@@ -46881,9 +46882,9 @@ function createMessage(message, code) {
 
 
 
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.LEGACY_REQUIRED: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.LEGACY_REQUIRED: const $name = $number;
 const to_json_LEGACY_REQUIRED = 3;
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name = $number;
 const to_json_IMPLICIT = 2;
 // Default options for serializing to JSON.
 const jsonWriteDefaults = {
