@@ -1,4 +1,4 @@
-# This workflow shows syncing changes only when the buf.yaml, README.md, LICENSE 
+# This workflow shows syncing changes only when the buf.yaml, README.md, LICENSE
 # or .proto files are modified.
 # Caution: Restricting push can cause unintended behavior. Review the paths carefully.
 name: Buf CI
@@ -18,7 +18,7 @@ jobs:
   buf:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: bufbuild/buf-action@v1
         with:
           token: ${{ secrets.BUF_TOKEN }}
