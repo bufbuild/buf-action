@@ -5,12 +5,12 @@ on:
 permissions:
   contents: read
 env:
-  BUF_VERSION: "1.32.0"
+  BUF_VERSION: "1.72.0"
 jobs:
-  buf:      
+  buf:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: bufbuild/buf-action@v1
         with:
           setup_only: true

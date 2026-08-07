@@ -27,7 +27,7 @@ inputs:
       Version of the Buf CLI to use.
       Example:
         with:
-          version: 1.50.1
+          version: 1.72.0
     required: false
   checksum:
     description:

@@ -6,16 +6,21 @@ This directory contains examples of how to use the `buf` GitHub Action.
 
 - [buf-ci.yaml](./buf-ci.yaml): Recommended configuration for using `buf` in a CI environment.
 
+- [enterprise/buf-ci.yaml](./enterprise/buf-ci.yaml): Default configuration for GitHub Enterprise Server.
+
 - [only-checks/buf-ci.yaml](./only-checks/buf-ci.yaml): How to use `buf` to only run checks on pull requests.
 - [only-setup/buf-ci.yaml](./only-setup/buf-ci.yaml): How to use `buf` to only install `buf`.
 - [only-setup-defaults/buf-ci.yaml](./only-setup-defaults/buf-ci.yaml): Showcases the default steps of the `buf` action.
 - [only-sync/buf-ci.yaml](./only-sync/buf-ci.yaml): How to use `buf` to only sync the repository labels.
 
+- [push-create-public/buf-ci.yaml](./push-create-public/buf-ci.yaml): Creates new modules with public visibility.
 - [push-on-changes/buf-ci.yaml](./push-on-changes/buf-ci.yaml): Pushes changes only on detecting protobuf file changes.
 
+- [disable-skip/buf-ci.yaml](./disable-skip/buf-ci.yaml): How to disable the `buf skip` labels entirely.
 - [skip-on-commits/buf-ci.yaml](./skip-on-commits/buf-ci.yaml): How to use commit messages to skip `buf` checks on push.
 - [skip-on-labels/buf-ci.yaml](./skip-on-labels/buf-ci.yaml): How to use custom labels to skip `buf` checks on pull requests.
 
+- [check-before-push/buf-ci.yaml](./check-before-push/buf-ci.yaml): Run checks against the `main` branch before pushing on a Git branch.
 - [validate-push/buf-ci.yaml](./validate-push/buf-ci.yaml): Validate checks before pushing to the repository.
 
 - [version-env/buf-ci.yaml](./version-env/buf-ci.yaml): Resolve the `buf` version from an environment variable (`BUF_VERSION`).
