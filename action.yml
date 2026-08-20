@@ -132,7 +132,7 @@ inputs:
     description: |-
       Whether to run the push step. Runs by default on pushes, for non forked repositories.
     required: false
-    default: ${{ github.event_name == 'push' }}
+    default: ${{ github.event_name == 'push' && !github.event.repository.fork }}
   push_create_visibility:
     description: |-
       Repository's visibility setting if created.
@@ -148,7 +148,7 @@ inputs:
     description: |-
       Whether to run the archive step. Runs by default on deletes, for non forked repositories.
     required: false
-    default: ${{ github.event_name == 'delete' }}
+    default: ${{ github.event_name == 'delete' && !github.event.repository.fork }}
 
 outputs:
   buf_version:
