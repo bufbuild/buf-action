@@ -30,7 +30,7 @@
     "@types/node": "^26.1.2",
     "@types/semver": "^7.7.0",
     "@vercel/ncc": "^0.44.1",
-    "eslint": "^10.0.3",
+    "eslint": "^10.8.1",
     "globals": "^17.9.0",
     "prettier": "3.9.6",
     "typescript": "^6.0.3",
