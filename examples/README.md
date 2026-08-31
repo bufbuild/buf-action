@@ -7,6 +7,7 @@ This directory contains examples of how to use the `buf` GitHub Action.
 - [buf-ci.yaml](./buf-ci.yaml): Recommended configuration for using `buf` in a CI environment.
 
 - [enterprise/buf-ci.yaml](./enterprise/buf-ci.yaml): Default configuration for GitHub Enterprise Server.
+- [workload-identity/buf-ci.yaml](./workload-identity/buf-ci.yaml): Authenticate as a bot user with the job's GitHub identity, with no stored token.
 
 - [only-checks/buf-ci.yaml](./only-checks/buf-ci.yaml): How to use `buf` to only run checks on pull requests.
 - [only-setup/buf-ci.yaml](./only-setup/buf-ci.yaml): How to use `buf` to only install `buf`.

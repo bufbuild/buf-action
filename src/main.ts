@@ -30,6 +30,7 @@ import { Outputs } from "./outputs";
 import { installBuf, assertBufForInputs } from "./installer";
 import { findCommentOnPR, commentOnPR } from "./comment";
 import { parseModuleNames, ModuleName } from "./config";
+import { exchangeIDTokenForBufToken } from "./federation";
 
 // URL for the public GitHub API.
 const publicGitHubApiUrl = "https://api.github.com";
@@ -63,7 +64,7 @@ async function main() {
   core.setOutput(Outputs.BufVersion, bufVersion);
   core.setOutput(Outputs.BufPath, bufPath);
   core.saveState(Outputs.BufPath, bufPath);
-  await login(bufPath, inputs);
+  await authenticate(bufPath, inputs);
   if (inputs.setup_only) {
     core.info("Setup only, skipping steps");
     return;
@@ -209,6 +210,39 @@ async function runWorkflow(
   return steps;
 }
 
+// authenticate resolves the token used for the rest of the run.
+//
+// An explicit token wins, so adding a username to an existing workflow
+// cannot silently change how it authenticates. Otherwise, a username means
+// workload identity federation: the job's own GitHub identity is exchanged for
+// a short-lived registry token, and nothing long-lived is stored anywhere.
+//
+// Mutates inputs.token so every later step, including the direct env reads in
+// run(), uses the same credential.
+async function authenticate(bufPath: string, inputs: Inputs) {
+  if (inputs.token != "" && inputs.username != "") {
+    // Saying so out loud matters: the workflow author believes they are on
+    // federation and has stopped thinking about the static token, which is
+    // still the thing actually granting access.
+    core.warning(
+      `Both "token" and "username" are set. Using "token"; workload identity ` +
+        `federation as bot user ${inputs.username} is not in use. Remove ` +
+        `"token" to authenticate without a stored secret.`,
+    );
+  }
+  if (inputs.token == "" && inputs.username != "") {
+    core.info(
+      `Authenticating to ${inputs.domain} as bot user ${inputs.username} using workload identity federation`,
+    );
+    inputs.token = await exchangeIDTokenForBufToken({
+      domain: inputs.domain,
+      username: inputs.username,
+    });
+    core.setOutput(Outputs.Token, inputs.token);
+  }
+  await login(bufPath, inputs);
+}
+
 // login logs in to the Buf registry, storing credentials.
 async function login(bufPath: string, inputs: Inputs) {
   const { token, domain } = inputs;
@@ -237,7 +271,7 @@ async function build(bufPath: string, inputs: Inputs): Promise<Result> {
   if (inputs.exclude_imports) {
     args.push("--exclude-imports");
   }
-  return run(bufPath, args);
+  return run(bufPath, args, inputs);
 }
 
 // lint runs the "buf lint" step.
@@ -256,7 +290,7 @@ async function lint(bufPath: string, inputs: Inputs): Promise<Result> {
   for (const path of inputs.exclude_paths) {
     args.push("--exclude-path", path);
   }
-  return run(bufPath, args);
+  return run(bufPath, args, inputs);
 }
 
 // format runs the "buf format" step.
@@ -281,7 +315,7 @@ async function format(bufPath: string, inputs: Inputs): Promise<Result> {
   for (const path of inputs.exclude_paths) {
     args.push("--exclude-path", path);
   }
-  const result = await run(bufPath, args);
+  const result = await run(bufPath, args, inputs);
   if (result.status == Status.Failed && result.stdout.startsWith("diff")) {
     // If the format step fails, parse the diff and write github annotations.
     const diff = parseDiff(result.stdout);
@@ -318,7 +352,7 @@ async function breaking(bufPath: string, inputs: Inputs): Promise<Result> {
   if (inputs.exclude_imports) {
     args.push("--exclude-imports");
   }
-  return run(bufPath, args);
+  return run(bufPath, args, inputs);
 }
 
 // push runs the "buf push" step.
@@ -357,7 +391,7 @@ async function push(
   if (inputs.input) {
     args.push(inputs.input);
   }
-  return run(bufPath, args);
+  return run(bufPath, args, inputs);
 }
 
 // archive runs the "buf archive" step.
@@ -445,7 +479,11 @@ interface Result extends exec.ExecOutput {
 }
 
 // run executes the buf command with the given arguments.
-async function run(bufPath: string, args: string[]): Promise<Result> {
+async function run(
+  bufPath: string,
+  args: string[],
+  inputs: Inputs,
+): Promise<Result> {
   if (core.isDebug()) {
     args = ["--debug", ...args];
   }
@@ -454,8 +492,10 @@ async function run(bufPath: string, args: string[]): Promise<Result> {
       ignoreReturnCode: true,
       env: {
         ...process.env,
+        // Read from inputs rather than the environment: a workload identity
+        // federation token is minted during this run and exists nowhere else.
         // See: https://buf.build/docs/bsr/authentication
-        BUF_TOKEN: core.getInput("token") || getEnv("BUF_TOKEN"),
+        BUF_TOKEN: inputs.token,
         // See: https://buf.build/docs/reference/inputs#https
         BUF_INPUT_HTTPS_USERNAME:
           getEnv("BUF_INPUT_HTTPS_USERNAME") || core.getInput("github_actor"),

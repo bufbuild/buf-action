@@ -1,0 +1,32 @@
+# This workflow authenticates to a self-hosted BSR with the job's own GitHub
+# identity instead of a stored API token. GitHub signs a token naming this
+# repository, workflow, and ref; the BSR checks it against a trust credential
+# configured on the bot user and returns a short-lived token. Nothing
+# long-lived is stored.
+#
+# Before this works, a BSR server admin adds a trust credential to the bot user
+# under Admin -> Bot users -> <user> -> Trust credentials, pinning the claims
+# that identify this workflow (for example repository = acme/protos).
+name: Buf CI
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  delete:
+permissions:
+  contents: read
+  pull-requests: write
+  # Required: without this GitHub will not mint an OIDC token for the job.
+  # It must be granted on the job, or on the workflow as it is here.
+  id-token: write
+jobs:
+  buf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: bufbuild/buf-action@v1
+        with:
+          # The bot user to authenticate as. Used instead of "token".
+          username: my-bot-user
+          # The registry to authenticate to. Defaults to buf.build.
+          domain: bsr.acme.com

@@ -32539,7 +32539,7 @@ function isHttps(requestUrl) {
     const parsedUrl = new URL(requestUrl);
     return parsedUrl.protocol === 'https:';
 }
-class lib_HttpClient {
+class HttpClient {
     constructor(userAgent, handlers, requestOptions) {
         this._ignoreSslError = false;
         this._allowRedirects = true;
@@ -33146,7 +33146,7 @@ class BasicCredentialHandler {
         });
     }
 }
-class auth_BearerCredentialHandler {
+class BearerCredentialHandler {
     constructor(token) {
         this.token = token;
     }
@@ -33204,13 +33204,13 @@ var oidc_utils_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 
 
 
-class oidc_utils_OidcClient {
+class OidcClient {
     static createHttpClient(allowRetry = true, maxRetry = 10) {
         const requestOptions = {
             allowRetries: allowRetry,
             maxRetries: maxRetry
         };
-        return new HttpClient('actions/oidc-client', [new BearerCredentialHandler(oidc_utils_OidcClient.getRequestToken())], requestOptions);
+        return new HttpClient('actions/oidc-client', [new BearerCredentialHandler(OidcClient.getRequestToken())], requestOptions);
     }
     static getRequestToken() {
         const token = process.env['ACTIONS_ID_TOKEN_REQUEST_TOKEN'];
@@ -33229,7 +33229,7 @@ class oidc_utils_OidcClient {
     static getCall(id_token_url) {
         return oidc_utils_awaiter(this, void 0, void 0, function* () {
             var _a;
-            const httpclient = oidc_utils_OidcClient.createHttpClient();
+            const httpclient = OidcClient.createHttpClient();
             const res = yield httpclient
                 .getJson(id_token_url)
                 .catch(error => {
@@ -33248,14 +33248,14 @@ class oidc_utils_OidcClient {
         return oidc_utils_awaiter(this, void 0, void 0, function* () {
             try {
                 // New ID Token is requested from action service
-                let id_token_url = oidc_utils_OidcClient.getIDTokenUrl();
+                let id_token_url = OidcClient.getIDTokenUrl();
                 if (audience) {
                     const encodedAudience = encodeURIComponent(audience);
                     id_token_url = `${id_token_url}&audience=${encodedAudience}`;
                 }
-                debug(`ID token url is ${id_token_url}`);
-                const id_token = yield oidc_utils_OidcClient.getCall(id_token_url);
-                setSecret(id_token);
+                core_debug(`ID token url is ${id_token_url}`);
+                const id_token = yield OidcClient.getCall(id_token_url);
+                core_setSecret(id_token);
                 return id_token;
             }
             catch (error) {
@@ -34853,7 +34853,7 @@ function exportVariable(name, val) {
  * ```
  */
 function core_setSecret(secret) {
-    issueCommand('add-mask', {}, secret);
+    command_issueCommand('add-mask', {}, secret);
 }
 /**
  * Prepends inputPath to the PATH (for this action and future actions)
@@ -35071,7 +35071,7 @@ function saveState(name, value) {
 function getState(name) {
     return process.env[`STATE_${name}`] || '';
 }
-function getIDToken(aud) {
+function core_getIDToken(aud) {
     return core_awaiter(this, void 0, void 0, function* () {
         return yield OidcClient.getIDToken(aud);
     });
@@ -51117,6 +51117,7 @@ function getInputs() {
     const inputs = {
         version: getInput("version"),
         token: getInput("token") || getEnv("BUF_TOKEN"),
+        username: getInput("username"),
         checksum: getInput("checksum"),
         domain: getInput("domain"),
         setup_only: getBooleanInput("setup_only"),
@@ -51192,6 +51193,9 @@ var Outputs;
 (function (Outputs) {
     Outputs["BufVersion"] = "buf_version";
     Outputs["BufPath"] = "buf_path";
+    // Only set when the token was minted by workload identity federation. It is
+    // registered as a secret, so it is masked in logs.
+    Outputs["Token"] = "token";
 })(Outputs || (Outputs = {}));
 
 // EXTERNAL MODULE: ./node_modules/semver/index.js
@@ -51442,7 +51446,7 @@ function downloadToolAttempt(url, dest, auth, headers) {
             throw new Error(`Destination file path ${dest} already exists`);
         }
         // Get the response headers
-        const http = new lib_HttpClient(tool_cache_userAgent, [], {
+        const http = new HttpClient(tool_cache_userAgent, [], {
             allowRetries: false
         });
         if (auth) {
@@ -52278,6 +52282,192 @@ function parseModuleName(moduleName) {
     };
 }
 
+;// CONCATENATED MODULE: ./src/federation.ts
+// Copyright 2024-2025 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// RFC 8693 grant and token-type URNs for the workload identity exchange.
+const grantTypeTokenExchange = "urn:ietf:params:oauth:grant-type:token-exchange";
+const subjectTokenTypeIDToken = "urn:ietf:params:oauth:token-type:id_token";
+// Timeout for a single exchange request. The registry verifies a JWT signature
+// and may fetch the issuer's keys on a cold cache, so this is generous.
+const requestTimeoutMs = 15_000;
+// Retry only errors that a later attempt could plausibly resolve. Trust
+// failures are never retried: the answer will not change, and hammering the
+// endpoint on a misconfigured credential only slows the failure down.
+const maxAttempts = 3;
+const retryBaseDelayMs = 1_000;
+// TokenExchangeError carries the OAuth error code so callers can map a failure
+// to advice without re-parsing the response body.
+class TokenExchangeError extends Error {
+    code;
+    retryable;
+    constructor(message, code, retryable) {
+        super(message);
+        this.name = "TokenExchangeError";
+        this.code = code;
+        this.retryable = retryable;
+    }
+}
+// exchangeIDTokenForBufToken mints a short-lived registry token from the
+// workload's own GitHub identity, so no long-lived API token has to be stored
+// as a repository secret.
+//
+// The GitHub OIDC token and the minted registry token are both registered as
+// secrets before either is returned, so neither can reach the log even if a
+// later step or a thrown error would otherwise print it.
+// normalizeDomain strips anything a workflow may have pasted around the bare
+// hostname. A scheme left in place would otherwise build the audience
+// "https://https://host", which the registry rejects for reasons the message
+// does not make obvious.
+function normalizeDomain(domain) {
+    return domain
+        .trim()
+        .replace(/^https?:\/\//, "")
+        .replace(/\/+$/, "");
+}
+async function exchangeIDTokenForBufToken(options) {
+    const { domain, username, fetchFn = fetch, getIDToken = core_getIDToken, setSecret = core_setSecret, sleep = defaultSleep, } = options;
+    // The registry expects its own hostname, and that hostname is the same value
+    // its OAuth redirect URLs and SAML audience are built from — a deployment
+    // serving the registry under some other name is already broken in ways that
+    // have nothing to do with federation. So there is nothing to configure here.
+    const host = normalizeDomain(domain);
+    const audience = `https://${host}`;
+    let idToken;
+    try {
+        idToken = await getIDToken(audience);
+    }
+    catch (error) {
+        throw new Error(`Failed to request a GitHub OIDC token for audience ${audience}. ` +
+            `The job must grant "permissions: id-token: write". ` +
+            `Underlying error: ${errorMessage(error)}`, { cause: error });
+    }
+    if (idToken == "") {
+        throw new Error(`GitHub returned an empty OIDC token for audience ${audience}. ` +
+            `The job must grant "permissions: id-token: write".`);
+    }
+    setSecret(idToken);
+    const body = new URLSearchParams({
+        grant_type: grantTypeTokenExchange,
+        subject_token: idToken,
+        subject_token_type: subjectTokenTypeIDToken,
+        account: username,
+    });
+    let lastError;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            const token = await postTokenExchange(fetchFn, host, body);
+            // Mask before returning: every caller path that could log the token
+            // runs after this point.
+            setSecret(token);
+            return token;
+        }
+        catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error));
+            const retryable = !(lastError instanceof TokenExchangeError) || lastError.retryable;
+            if (!retryable || attempt === maxAttempts) {
+                break;
+            }
+            core_debug(`Token exchange attempt ${attempt} failed, retrying: ${lastError.message}`);
+            await sleep(retryBaseDelayMs * attempt);
+        }
+    }
+    throw describeFailure(lastError, host, username);
+}
+// postTokenExchange performs one exchange request and returns the access token.
+async function postTokenExchange(fetchFn, domain, body) {
+    const response = await fetchFn(`https://${domain}/oauth2/token`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Accept: "application/json",
+        },
+        body: body.toString(),
+        signal: AbortSignal.timeout(requestTimeoutMs),
+    });
+    const text = await response.text();
+    if (!response.ok) {
+        const { error, description } = parseOAuthError(text);
+        throw new TokenExchangeError(description == "" ? error : `${error}: ${description}`, error, 
+        // 5xx is the registry failing, not the credential being wrong. So is
+        // slow_down, which asks for exactly one thing: come back later.
+        response.status >= 500 || error == "slow_down");
+    }
+    let payload;
+    try {
+        payload = JSON.parse(text);
+    }
+    catch {
+        throw new TokenExchangeError("the registry returned a non-JSON response", "invalid_response", true);
+    }
+    const accessToken = payload.access_token;
+    if (typeof accessToken !== "string" || accessToken == "") {
+        throw new TokenExchangeError("the registry returned no access_token", "invalid_response", false);
+    }
+    return accessToken;
+}
+// parseOAuthError pulls the RFC 6749 error envelope out of a response body,
+// falling back to a generic code when the body is not the expected shape.
+function parseOAuthError(text) {
+    try {
+        const payload = JSON.parse(text);
+        return {
+            error: typeof payload.error === "string" ? payload.error : "unknown",
+            description: typeof payload.error_description === "string"
+                ? payload.error_description
+                : "",
+        };
+    }
+    catch {
+        return { error: "unknown", description: text.slice(0, 200) };
+    }
+}
+// describeFailure turns an exchange failure into advice.
+//
+// The registry answers every trust failure with the same opaque invalid_grant,
+// deliberately, so that a caller cannot probe which accounts or conditions
+// exist. That means this cannot say which check failed, only what to go and
+// look at.
+function describeFailure(error, domain, username) {
+    if (!(error instanceof TokenExchangeError)) {
+        return new Error(`Failed to exchange the GitHub OIDC token with ${domain}: ${errorMessage(error)}`);
+    }
+    switch (error.code) {
+        case "unsupported_grant_type":
+            return new Error(`${domain} does not accept workload identity federation. ` +
+                `Either the registry does not have it enabled, or it is an older version. ` +
+                `Use the "token" input instead.`);
+        case "invalid_grant":
+            return new Error(`${domain} refused to authenticate this workflow as bot user ${username}. ` +
+                `The registry does not report which check failed, by design. Verify that ` +
+                `the username is right and names an active bot user, that it has a trust ` +
+                `credential for GitHub Actions, and that the credential's claim ` +
+                `conditions match this repository, ref, and workflow exactly.`);
+        case "invalid_request":
+            return new Error(`${domain} rejected the token exchange request as malformed: ${error.message}`);
+        default:
+            return new Error(`Failed to exchange the GitHub OIDC token with ${domain}: ${error.message}`);
+    }
+}
+function errorMessage(error) {
+    return error instanceof Error ? error.message : String(error);
+}
+function defaultSleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 ;// CONCATENATED MODULE: ./src/main.ts
 // Copyright 2024-2025 Buf Technologies, Inc.
 //
@@ -52292,6 +52482,7 @@ function parseModuleName(moduleName) {
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 
 
 
@@ -52334,7 +52525,7 @@ async function main() {
     setOutput(Outputs.BufVersion, bufVersion);
     setOutput(Outputs.BufPath, bufPath);
     saveState(Outputs.BufPath, bufPath);
-    await login(bufPath, inputs);
+    await authenticate(bufPath, inputs);
     if (inputs.setup_only) {
         info("Setup only, skipping steps");
         return;
@@ -52434,6 +52625,34 @@ async function runWorkflow(bufPath, inputs, moduleNames) {
     steps.archive = await archive(inputs, moduleNames);
     return steps;
 }
+// authenticate resolves the token used for the rest of the run.
+//
+// An explicit token wins, so adding a username to an existing workflow
+// cannot silently change how it authenticates. Otherwise, a username means
+// workload identity federation: the job's own GitHub identity is exchanged for
+// a short-lived registry token, and nothing long-lived is stored anywhere.
+//
+// Mutates inputs.token so every later step, including the direct env reads in
+// run(), uses the same credential.
+async function authenticate(bufPath, inputs) {
+    if (inputs.token != "" && inputs.username != "") {
+        // Saying so out loud matters: the workflow author believes they are on
+        // federation and has stopped thinking about the static token, which is
+        // still the thing actually granting access.
+        warning(`Both "token" and "username" are set. Using "token"; workload identity ` +
+            `federation as bot user ${inputs.username} is not in use. Remove ` +
+            `"token" to authenticate without a stored secret.`);
+    }
+    if (inputs.token == "" && inputs.username != "") {
+        info(`Authenticating to ${inputs.domain} as bot user ${inputs.username} using workload identity federation`);
+        inputs.token = await exchangeIDTokenForBufToken({
+            domain: inputs.domain,
+            username: inputs.username,
+        });
+        setOutput(Outputs.Token, inputs.token);
+    }
+    await login(bufPath, inputs);
+}
 // login logs in to the Buf registry, storing credentials.
 async function login(bufPath, inputs) {
     const { token, domain } = inputs;
@@ -52461,7 +52680,7 @@ async function build(bufPath, inputs) {
     if (inputs.exclude_imports) {
         args.push("--exclude-imports");
     }
-    return run(bufPath, args);
+    return run(bufPath, args, inputs);
 }
 // lint runs the "buf lint" step.
 async function lint(bufPath, inputs) {
@@ -52479,7 +52698,7 @@ async function lint(bufPath, inputs) {
     for (const path of inputs.exclude_paths) {
         args.push("--exclude-path", path);
     }
-    return run(bufPath, args);
+    return run(bufPath, args, inputs);
 }
 // format runs the "buf format" step.
 async function format(bufPath, inputs) {
@@ -52503,7 +52722,7 @@ async function format(bufPath, inputs) {
     for (const path of inputs.exclude_paths) {
         args.push("--exclude-path", path);
     }
-    const result = await run(bufPath, args);
+    const result = await run(bufPath, args, inputs);
     if (result.status == Status.Failed && result.stdout.startsWith("diff")) {
         // If the format step fails, parse the diff and write github annotations.
         const diff = parse_diff_default()(result.stdout);
@@ -52540,7 +52759,7 @@ async function breaking(bufPath, inputs) {
     if (inputs.exclude_imports) {
         args.push("--exclude-imports");
     }
-    return run(bufPath, args);
+    return run(bufPath, args, inputs);
 }
 // push runs the "buf push" step.
 async function push(bufPath, inputs, moduleNames) {
@@ -52574,7 +52793,7 @@ async function push(bufPath, inputs, moduleNames) {
     if (inputs.input) {
         args.push(inputs.input);
     }
-    return run(bufPath, args);
+    return run(bufPath, args, inputs);
 }
 // archive runs the "buf archive" step.
 async function archive(inputs, moduleNames) {
@@ -52646,7 +52865,7 @@ var Status;
     Status[Status["Skipped"] = 3] = "Skipped";
 })(Status || (Status = {}));
 // run executes the buf command with the given arguments.
-async function run(bufPath, args) {
+async function run(bufPath, args, inputs) {
     if (isDebug()) {
         args = ["--debug", ...args];
     }
@@ -52654,8 +52873,10 @@ async function run(bufPath, args) {
         ignoreReturnCode: true,
         env: {
             ...process.env,
+            // Read from inputs rather than the environment: a workload identity
+            // federation token is minted during this run and exists nowhere else.
             // See: https://buf.build/docs/bsr/authentication
-            BUF_TOKEN: getInput("token") || getEnv("BUF_TOKEN"),
+            BUF_TOKEN: inputs.token,
             // See: https://buf.build/docs/reference/inputs#https
             BUF_INPUT_HTTPS_USERNAME: getEnv("BUF_INPUT_HTTPS_USERNAME") || getInput("github_actor"),
             BUF_INPUT_HTTPS_PASSWORD: getEnv("BUF_INPUT_HTTPS_PASSWORD") || getInput("github_token"),

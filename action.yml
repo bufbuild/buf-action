@@ -30,12 +30,29 @@ inputs:
           version: 1.72.0
     required: false
   checksum:
-    description:
-      Checksum of the Buf CLI to verify (sha256).
+    description: Checksum of the Buf CLI to verify (sha256).
     required: false
   token:
     description: |-
       API token for logging into the BSR.
+      Takes precedence over "username", so adding federation to an existing
+      workflow cannot silently change how it authenticates.
+    required: false
+  username:
+    description: |-
+      Username of the bot user to authenticate as using workload identity
+      federation, instead of a static API token. The job's own GitHub identity
+      is exchanged for a short-lived BSR token, so there is no secret to store
+      or rotate.
+      Requires "permissions: id-token: write" on the job, and a trust
+      credential configured on the bot user.
+      Example:
+        permissions:
+          id-token: write
+        steps:
+          - uses: bufbuild/buf-action@v1
+            with:
+              username: my-bot-user
     required: false
   domain:
     description: |-
@@ -157,6 +174,10 @@ outputs:
   buf_path:
     description: |-
       Path to the Buf CLI binary.
+  token:
+    description: |-
+      The short-lived BSR token minted by workload identity federation. Empty
+      when authenticating with a static token. Masked in logs.
 
 runs:
   using: "node24"

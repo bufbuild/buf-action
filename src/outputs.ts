@@ -16,4 +16,7 @@
 export enum Outputs {
   BufVersion = "buf_version",
   BufPath = "buf_path",
+  // Only set when the token was minted by workload identity federation. It is
+  // registered as a secret, so it is masked in logs.
+  Token = "token",
 }

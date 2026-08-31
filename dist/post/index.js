@@ -36924,6 +36924,7 @@ function getInputs() {
     const inputs = {
         version: getInput("version"),
         token: getInput("token") || getEnv("BUF_TOKEN"),
+        username: getInput("username"),
         checksum: getInput("checksum"),
         domain: getInput("domain"),
         setup_only: getBooleanInput("setup_only"),
@@ -36999,6 +37000,9 @@ var Outputs;
 (function (Outputs) {
     Outputs["BufVersion"] = "buf_version";
     Outputs["BufPath"] = "buf_path";
+    // Only set when the token was minted by workload identity federation. It is
+    // registered as a secret, so it is masked in logs.
+    Outputs["Token"] = "token";
 })(Outputs || (Outputs = {}));
 
 ;// CONCATENATED MODULE: ./src/post.ts
