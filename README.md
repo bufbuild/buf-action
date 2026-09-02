@@ -46,14 +46,12 @@ This default configuration:
 
 ## Authenticating without a token
 
-Instead of storing a long-lived BSR token as a repository secret, the workflow
-can authenticate as a bot user with its own GitHub identity. GitHub signs a
-token that says which repository, workflow, and ref is running; the BSR checks
-that against a trust credential you configure on the bot user and hands back a
-short-lived token. There is no secret to store, leak, or rotate.
+Instead of storing a long-lived BSR token as a repository secret, the workflow can authenticate as a bot user with its own GitHub identity.
+GitHub signs a token that says which repository, workflow, and ref is running.
+The BSR checks that against a trust credential you configure on the bot user and hands back a short-lived token.
+There is no secret to store, leak, or rotate.
 
-Set `username` instead of `token`, and grant the job `id-token: write` so
-GitHub will sign a token for it:
+Set `username` instead of `token`, and grant the job `id-token: write` so GitHub will sign a token for it:
 
 ```yaml
 permissions:
@@ -73,13 +71,11 @@ jobs:
           domain: bsr.acme.com
 ```
 
-Before this works, a BSR server admin adds a trust credential to that bot user
-under **Admin → Bot users → _user_ → Trust credentials**, pinning the claims
-that identify your workflow, for example `repository = acme/protos`. Claim
-values match exactly, not as patterns, so a credential authorizes only what it
-names.
+Before this works, a BSR server admin adds a trust credential to that bot user under **Admin → Bot users → _user_ → Trust credentials**, pinning the claims that identify your workflow, for example `repository = acme/protos`.
+Claim values match exactly, not as patterns, so a credential authorizes only what it names.
 
 If both `token` and `username` are set, `token` wins.
+The minted token is stored with `buf registry login`, exactly as a static token is, so later steps that run `buf` are authenticated too.
 
 ### Troubleshooting
 
@@ -88,6 +84,9 @@ If both `token` and `username` are set, `token` wins.
 | `The job must grant "permissions: id-token: write"` | The job cannot request a GitHub OIDC token. Add the permission to the job, not just the workflow.                                                                                                                                                                                                                                                        |
 | `does not accept workload identity federation`      | The registry does not have federation enabled, or predates it. Use `token`.                                                                                                                                                                                                                                                                              |
 | `refused to authenticate this workflow`             | The BSR verified the GitHub token but no trust credential authorizes it. The registry does not say which check failed, deliberately, so that the response cannot be used to discover which accounts and conditions exist. Check that the bot user is active and that the credential's claim conditions match this repository, ref, and workflow exactly. |
+
+With [step debug logging](https://docs.github.com/en/actions/monitoring-and-troubleshooting-workflows/enabling-debug-logging) enabled, the action logs the claims GitHub put in the OIDC token, the registry's HTTP status and request ID for each attempt, and the lifetime of the minted token.
+The tokens themselves are registered as secrets and never logged.
 
 ## Documentation
 

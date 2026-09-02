@@ -29,6 +29,42 @@ const requestTimeoutMs = 15_000;
 const maxAttempts = 3;
 const retryBaseDelayMs = 1_000;
 
+// GitHub OIDC token claims that are safe to log at debug level. They are what
+// a trust credential's conditions are matched against, and every value is
+// already visible in the run's github context.
+const loggedIDTokenClaims = [
+  "iss",
+  "sub",
+  "aud",
+  "jti",
+  "iat",
+  "exp",
+  "repository",
+  "repository_owner",
+  "repository_id",
+  "ref",
+  "ref_type",
+  "sha",
+  "workflow",
+  "workflow_ref",
+  "job_workflow_ref",
+  "event_name",
+  "actor",
+  "environment",
+  "runner_environment",
+];
+
+// Response headers logged so a failed exchange can be correlated with the
+// registry's own logs.
+const loggedResponseHeaders = ["x-request-id", "traceparent"];
+
+// Fields of a successful token response that are safe to log.
+const loggedTokenResponseFields = [
+  "token_type",
+  "issued_token_type",
+  "expires_in",
+];
+
 // TokenExchangeError carries the OAuth error code so callers can map a failure
 // to advice without re-parsing the response body.
 export class TokenExchangeError extends Error {
@@ -53,15 +89,10 @@ export interface ExchangeOptions {
   getIDToken?: (audience: string) => Promise<string>;
   setSecret?: (secret: string) => void;
   sleep?: (ms: number) => Promise<void>;
+  debug?: (message: string) => void;
+  isDebug?: () => boolean;
 }
 
-// exchangeIDTokenForBufToken mints a short-lived registry token from the
-// workload's own GitHub identity, so no long-lived API token has to be stored
-// as a repository secret.
-//
-// The GitHub OIDC token and the minted registry token are both registered as
-// secrets before either is returned, so neither can reach the log even if a
-// later step or a thrown error would otherwise print it.
 // normalizeDomain strips anything a workflow may have pasted around the bare
 // hostname. A scheme left in place would otherwise build the audience
 // "https://https://host", which the registry rejects for reasons the message
@@ -73,6 +104,13 @@ function normalizeDomain(domain: string): string {
     .replace(/\/+$/, "");
 }
 
+// exchangeIDTokenForBufToken mints a short-lived registry token from the
+// workload's own GitHub identity, so no long-lived API token has to be stored
+// as a repository secret.
+//
+// The GitHub OIDC token and the minted registry token are both registered as
+// secrets before either is returned, so neither can reach the log even if a
+// later step or a thrown error would otherwise print it.
 export async function exchangeIDTokenForBufToken(
   options: ExchangeOptions,
 ): Promise<string> {
@@ -83,14 +121,26 @@ export async function exchangeIDTokenForBufToken(
     getIDToken = core.getIDToken,
     setSecret = core.setSecret,
     sleep = defaultSleep,
+    debug = core.debug,
+    isDebug = core.isDebug,
   } = options;
 
-  // The registry expects its own hostname, and that hostname is the same value
-  // its OAuth redirect URLs and SAML audience are built from — a deployment
-  // serving the registry under some other name is already broken in ways that
-  // have nothing to do with federation. So there is nothing to configure here.
+  // The registry expects its own hostname, the same value its OAuth redirect
+  // URLs are built from, so there is nothing to configure here.
   const host = normalizeDomain(domain);
   const audience = `https://${host}`;
+  const endpoint = `https://${host}/oauth2/token`;
+  if (host != domain) {
+    debug(`Normalized domain "${domain}" to "${host}"`);
+  }
+  // The request URL is set only when the job has id-token: write, which
+  // separates a missing permission from a GitHub outage.
+  debug(
+    `Requesting GitHub OIDC token for audience ${audience} ` +
+      `(ACTIONS_ID_TOKEN_REQUEST_URL is ${
+        process.env.ACTIONS_ID_TOKEN_REQUEST_URL ? "set" : "not set"
+      })`,
+  );
   let idToken: string;
   try {
     idToken = await getIDToken(audience);
@@ -109,6 +159,11 @@ export async function exchangeIDTokenForBufToken(
     );
   }
   setSecret(idToken);
+  if (isDebug()) {
+    debug(
+      `GitHub OIDC token claims: ${JSON.stringify(describeIDToken(idToken))}`,
+    );
+  }
 
   const body = new URLSearchParams({
     grant_type: grantTypeTokenExchange,
@@ -119,22 +174,25 @@ export async function exchangeIDTokenForBufToken(
 
   let lastError: Error | undefined;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const startedAt = Date.now();
     try {
-      const token = await postTokenExchange(fetchFn, host, body);
+      const token = await postTokenExchange(fetchFn, endpoint, body, debug);
       // Mask before returning: every caller path that could log the token
       // runs after this point.
       setSecret(token);
+      debug(`Token exchange succeeded in ${Date.now() - startedAt} ms`);
       return token;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       const retryable =
         !(lastError instanceof TokenExchangeError) || lastError.retryable;
+      debug(
+        `Token exchange attempt ${attempt} of ${maxAttempts} failed after ` +
+          `${Date.now() - startedAt} ms: ${lastError.message}`,
+      );
       if (!retryable || attempt === maxAttempts) {
         break;
       }
-      core.debug(
-        `Token exchange attempt ${attempt} failed, retrying: ${lastError.message}`,
-      );
       await sleep(retryBaseDelayMs * attempt);
     }
   }
@@ -144,10 +202,11 @@ export async function exchangeIDTokenForBufToken(
 // postTokenExchange performs one exchange request and returns the access token.
 async function postTokenExchange(
   fetchFn: typeof fetch,
-  domain: string,
+  endpoint: string,
   body: URLSearchParams,
+  debug: (message: string) => void,
 ): Promise<string> {
-  const response = await fetchFn(`https://${domain}/oauth2/token`, {
+  const response = await fetchFn(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -157,6 +216,10 @@ async function postTokenExchange(
     signal: AbortSignal.timeout(requestTimeoutMs),
   });
   const text = await response.text();
+  debug(
+    `Token exchange response from ${endpoint}: HTTP ${response.status}` +
+      describeHeaders(response.headers),
+  );
   if (!response.ok) {
     const { error, description } = parseOAuthError(text);
     throw new TokenExchangeError(
@@ -177,6 +240,11 @@ async function postTokenExchange(
       true,
     );
   }
+  debug(
+    `Token exchange response fields: ${JSON.stringify(
+      pickFields(payload, loggedTokenResponseFields),
+    )}`,
+  );
   const accessToken = (payload as { access_token?: unknown }).access_token;
   if (typeof accessToken !== "string" || accessToken == "") {
     throw new TokenExchangeError(
@@ -186,6 +254,55 @@ async function postTokenExchange(
     );
   }
   return accessToken;
+}
+
+// describeIDToken returns the loggable claims of the token, never the token
+// or any of its segments: the runner masks the whole string, not substrings.
+function describeIDToken(idToken: string): Record<string, unknown> {
+  const segments = idToken.split(".");
+  if (segments.length != 3) {
+    return { error: "not a JWT" };
+  }
+  let payload: unknown;
+  try {
+    payload = JSON.parse(Buffer.from(segments[1], "base64url").toString());
+  } catch {
+    return { error: "payload is not JSON" };
+  }
+  const claims = pickFields(payload, loggedIDTokenClaims);
+  if (typeof claims.exp == "number") {
+    claims.expires_in_seconds = claims.exp - Math.floor(Date.now() / 1000);
+  }
+  return claims;
+}
+
+// pickFields copies the named fields out of a decoded JSON object.
+function pickFields(
+  payload: unknown,
+  names: string[],
+): Record<string, unknown> {
+  const picked: Record<string, unknown> = {};
+  if (typeof payload != "object" || payload == null) {
+    return picked;
+  }
+  for (const name of names) {
+    if (name in payload) {
+      picked[name] = (payload as Record<string, unknown>)[name];
+    }
+  }
+  return picked;
+}
+
+// describeHeaders formats the correlation headers present on a response.
+function describeHeaders(headers: Headers): string {
+  const parts: string[] = [];
+  for (const name of loggedResponseHeaders) {
+    const value = headers.get(name);
+    if (value != null) {
+      parts.push(`${name}=${value}`);
+    }
+  }
+  return parts.length == 0 ? "" : ` (${parts.join(", ")})`;
 }
 
 // parseOAuthError pulls the RFC 6749 error envelope out of a response body,
@@ -240,7 +357,8 @@ export function describeFailure(
           `The registry does not report which check failed, by design. Verify that ` +
           `the username is right and names an active bot user, that it has a trust ` +
           `credential for GitHub Actions, and that the credential's claim ` +
-          `conditions match this repository, ref, and workflow exactly.`,
+          `conditions match this repository, ref, and workflow exactly. ` +
+          `Enable step debug logging to see the claims GitHub put in the token.`,
       );
     case "invalid_request":
       return new Error(

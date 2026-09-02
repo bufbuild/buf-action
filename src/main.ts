@@ -210,24 +210,19 @@ async function runWorkflow(
   return steps;
 }
 
-// authenticate resolves the token used for the rest of the run.
-//
-// An explicit token wins, so adding a username to an existing workflow
-// cannot silently change how it authenticates. Otherwise, a username means
-// workload identity federation: the job's own GitHub identity is exchanged for
-// a short-lived registry token, and nothing long-lived is stored anywhere.
-//
-// Mutates inputs.token so every later step, including the direct env reads in
-// run(), uses the same credential.
+// authenticate resolves the token for the rest of the run. A static token
+// wins over federation so that adding a username to an existing workflow
+// cannot silently change how it authenticates. Mutates inputs.token so every
+// later step, including run(), uses the same credential.
 async function authenticate(bufPath: string, inputs: Inputs) {
   if (inputs.token != "" && inputs.username != "") {
-    // Saying so out loud matters: the workflow author believes they are on
-    // federation and has stopped thinking about the static token, which is
-    // still the thing actually granting access.
+    // The workflow author likely believes they are on federation, while the
+    // static token is what actually grants access.
     core.warning(
-      `Both "token" and "username" are set. Using "token"; workload identity ` +
-        `federation as bot user ${inputs.username} is not in use. Remove ` +
-        `"token" to authenticate without a stored secret.`,
+      `Both a static token (the "token" input or BUF_TOKEN) and "username" ` +
+        `are set. Using the static token; workload identity federation as bot ` +
+        `user ${inputs.username} is not in use. Remove the static token to ` +
+        `authenticate without a stored secret.`,
     );
   }
   if (inputs.token == "" && inputs.username != "") {
@@ -492,8 +487,8 @@ async function run(
       ignoreReturnCode: true,
       env: {
         ...process.env,
-        // Read from inputs rather than the environment: a workload identity
-        // federation token is minted during this run and exists nowhere else.
+        // inputs.token is the "token" input, BUF_TOKEN from the environment,
+        // or the token minted by workload identity federation.
         // See: https://buf.build/docs/bsr/authentication
         BUF_TOKEN: inputs.token,
         // See: https://buf.build/docs/reference/inputs#https

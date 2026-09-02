@@ -18,7 +18,22 @@ import assert from "node:assert/strict";
 import { exchangeIDTokenForBufToken } from "./federation.ts";
 import type { ExchangeOptions } from "./federation.ts";
 
-const idToken = "header.payload.signature";
+// A GitHub OIDC token with a decodable payload, so tests can check that debug
+// output reports claims without ever reproducing the token or its segments.
+const idTokenClaims = {
+  iss: "https://token.actions.githubusercontent.com",
+  sub: "repo:acme/protos:ref:refs/heads/main",
+  aud: "https://buf.build",
+  jti: "f3a1c1a2-7d0b-4a6b-9a0c-1f5e2b3c4d5e",
+  exp: Math.floor(Date.now() / 1000) + 300,
+  repository: "acme/protos",
+  ref: "refs/heads/main",
+  workflow_ref: "acme/protos/.github/workflows/buf-ci.yaml@refs/heads/main",
+};
+const idTokenPayload = Buffer.from(JSON.stringify(idTokenClaims)).toString(
+  "base64url",
+);
+const idToken = `eyJhbGciOiJSUzI1NiJ9.${idTokenPayload}.c2lnbmF0dXJl`;
 const mintedToken = "buf_minted_token";
 
 // harness records what the exchange did, so tests can assert on the request it
@@ -29,6 +44,7 @@ interface Harness {
   masked: string[];
   events: string[];
   sleeps: number[];
+  debugLines: string[];
 }
 
 function newHarness(
@@ -40,6 +56,7 @@ function newHarness(
     masked: [],
     events: [],
     sleeps: [],
+    debugLines: [],
     options: {} as ExchangeOptions,
   };
   let attempt = 0;
@@ -57,6 +74,10 @@ function newHarness(
     sleep: async (ms: number) => {
       harness.sleeps.push(ms);
     },
+    debug: (message: string) => {
+      harness.debugLines.push(message);
+    },
+    isDebug: () => true,
     fetchFn: (async (url: string | URL | Request, init?: RequestInit) => {
       harness.requests.push({
         url: String(url),
@@ -130,9 +151,9 @@ describe("exchangeIDTokenForBufToken", () => {
   });
 
   test("sends exactly the parameters the registry accepts", async () => {
-    // The registry rejects the RFC 8693 parameters it does not honor — scope,
-    // resource, audience, actor_token, and a requested_token_type it cannot
-    // issue — rather than ignoring them. Adding one here would turn every
+    // The registry rejects, rather than ignores, the RFC 8693 parameters it
+    // does not honor (scope, resource, audience, actor_token, and a
+    // requested_token_type it cannot issue). Adding one here would turn every
     // exchange into an invalid_request, so the key set is pinned.
     const harness = newHarness([() => okResponse()]);
     await exchangeIDTokenForBufToken(harness.options);
@@ -316,6 +337,70 @@ describe("exchangeIDTokenForBufToken", () => {
     await assert.rejects(
       () => exchangeIDTokenForBufToken(harness.options),
       /502 Bad Gateway/,
+    );
+  });
+  test("debug output reports the claims a trust credential matches on", async () => {
+    const harness = newHarness([() => okResponse()]);
+    await exchangeIDTokenForBufToken(harness.options);
+    const claimsLine = harness.debugLines.find((line) =>
+      line.startsWith("GitHub OIDC token claims: "),
+    );
+    assert.ok(claimsLine, "claims must be logged at debug level");
+    const claims = JSON.parse(
+      claimsLine.slice("GitHub OIDC token claims: ".length),
+    );
+    assert.equal(claims.repository, "acme/protos");
+    assert.equal(claims.ref, "refs/heads/main");
+    assert.equal(claims.jti, idTokenClaims.jti);
+    assert.equal(typeof claims.expires_in_seconds, "number");
+  });
+
+  test("debug output never contains a token or a token segment", async () => {
+    // The runner masks a registered secret only as a whole string, so even a
+    // lone base64 segment of the JWT would land in the log unmasked.
+    let call = 0;
+    const harness = newHarness([
+      () => {
+        call++;
+        return call === 1
+          ? new Response(JSON.stringify({ error: "server_error" }), {
+              status: 503,
+              headers: { "x-request-id": "req-123" },
+            })
+          : okResponse();
+      },
+    ]);
+    await exchangeIDTokenForBufToken(harness.options);
+    assert.ok(harness.debugLines.length > 0);
+    for (const line of harness.debugLines) {
+      for (const segment of idToken.split(".")) {
+        assert.ok(
+          !line.includes(segment),
+          `debug output leaks the OIDC token: ${line}`,
+        );
+      }
+      assert.ok(
+        !line.includes(mintedToken),
+        `debug output leaks the minted token: ${line}`,
+      );
+    }
+    assert.ok(
+      harness.debugLines.some((line) => line.includes("x-request-id=req-123")),
+      "correlation headers must be logged",
+    );
+  });
+
+  test("debug output includes the HTTP status of a failed attempt", async () => {
+    const harness = newHarness([
+      () => oauthErrorResponse(400, "invalid_grant", "not authorized"),
+    ]);
+    await assert.rejects(() => exchangeIDTokenForBufToken(harness.options));
+    assert.ok(
+      harness.debugLines.some((line) => line.includes("HTTP 400")),
+      harness.debugLines.join("\n"),
+    );
+    assert.ok(
+      harness.debugLines.some((line) => line.includes("attempt 1 of 3 failed")),
     );
   });
 });
