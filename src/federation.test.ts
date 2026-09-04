@@ -15,7 +15,7 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 
-import { exchangeIDTokenForBufToken } from "./federation.ts";
+import { exchangeIDTokenForBufToken, revokeBufToken } from "./federation.ts";
 import type { ExchangeOptions } from "./federation.ts";
 
 // A GitHub OIDC token with a decodable payload, so tests can check that debug
@@ -401,6 +401,85 @@ describe("exchangeIDTokenForBufToken", () => {
     );
     assert.ok(
       harness.debugLines.some((line) => line.includes("attempt 1 of 3 failed")),
+    );
+  });
+});
+
+describe("revokeBufToken", () => {
+  interface RevokeHarness {
+    requests: { url: string; body: URLSearchParams }[];
+    debugLines: string[];
+    fetchFn: typeof fetch;
+  }
+
+  function newRevokeHarness(response: () => Response): RevokeHarness {
+    const harness: RevokeHarness = {
+      requests: [],
+      debugLines: [],
+      fetchFn: (async (url: string | URL | Request, init?: RequestInit) => {
+        harness.requests.push({
+          url: String(url),
+          body: new URLSearchParams(String(init?.body ?? "")),
+        });
+        return response();
+      }) as unknown as typeof fetch,
+    };
+    return harness;
+  }
+
+  test("posts the token to the revocation endpoint", async () => {
+    const harness = newRevokeHarness(() => new Response("", { status: 200 }));
+
+    await revokeBufToken({
+      domain: "https://bsr.acme.com/",
+      token: mintedToken,
+      fetchFn: harness.fetchFn,
+      debug: (line) => harness.debugLines.push(line),
+    });
+
+    assert.equal(harness.requests.length, 1);
+    assert.equal(harness.requests[0].url, "https://bsr.acme.com/oauth2/revoke");
+    assert.equal(harness.requests[0].body.get("token"), mintedToken);
+    assert.equal(
+      harness.requests[0].body.get("token_type_hint"),
+      "access_token",
+    );
+    assert.ok(harness.debugLines.some((line) => line.includes("HTTP 200")));
+  });
+
+  test("names a registry without the endpoint", async () => {
+    const harness = newRevokeHarness(
+      () => new Response("<html>not found</html>", { status: 404 }),
+    );
+
+    await assert.rejects(
+      revokeBufToken({
+        domain: "buf.build",
+        token: mintedToken,
+        fetchFn: harness.fetchFn,
+        debug: () => {},
+      }),
+      /buf.build does not support token revocation/,
+    );
+  });
+
+  test("surfaces the OAuth error for a refused token", async () => {
+    const harness = newRevokeHarness(() =>
+      oauthErrorResponse(
+        400,
+        "unsupported_token_type",
+        "only tokens minted by workload identity federation can be revoked",
+      ),
+    );
+
+    await assert.rejects(
+      revokeBufToken({
+        domain: "buf.build",
+        token: mintedToken,
+        fetchFn: harness.fetchFn,
+        debug: () => {},
+      }),
+      /unsupported_token_type: only tokens minted by workload identity federation can be revoked/,
     );
   });
 });

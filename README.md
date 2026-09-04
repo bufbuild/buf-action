@@ -76,6 +76,8 @@ Claim values match exactly, not as patterns, so a credential authorizes only wha
 
 If both `token` and `username` are set, `token` wins.
 The minted token is stored with `buf registry login`, exactly as a static token is, so later steps that run `buf` are authenticated too.
+When the job finishes, the action's post step revokes the token, so it stops working as soon as the job does rather than an hour later when it expires.
+Revocation is best-effort: if it fails, the action logs a warning and the token expires on its own.
 
 ### Troubleshooting
 

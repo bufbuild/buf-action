@@ -177,7 +177,8 @@ outputs:
   token:
     description: |-
       The short-lived BSR token minted by workload identity federation. Empty
-      when authenticating with a static token. Masked in logs.
+      when authenticating with a static token. Masked in logs, and revoked by
+      the action's post step when the job finishes.
 
 runs:
   using: "node24"

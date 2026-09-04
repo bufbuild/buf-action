@@ -234,6 +234,8 @@ async function authenticate(bufPath: string, inputs: Inputs) {
       username: inputs.username,
     });
     core.setOutput(Outputs.Token, inputs.token);
+    // The post step revokes it, so it stops working when the job does.
+    core.saveState(Outputs.Token, inputs.token);
   }
   await login(bufPath, inputs);
 }

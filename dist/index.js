@@ -52431,6 +52431,44 @@ async function exchangeIDTokenForBufToken(options) {
     }
     throw describeFailure(lastError, host, username);
 }
+// Timeout for the revocation request. It is best-effort cleanup in the post
+// step, so it fails fast rather than holding the job open.
+const revokeTimeoutMs = 10_000;
+// revokeBufToken retires a token minted by exchangeIDTokenForBufToken through
+// RFC 7009 revocation, so it stops working when the job ends instead of when
+// it expires. The registry only revokes federated tokens this way; a static
+// token is refused with unsupported_token_type.
+async function revokeBufToken(options) {
+    const { domain, token, fetchFn = fetch, debug = core.debug } = options;
+    const host = normalizeDomain(domain);
+    const endpoint = `https://${host}/oauth2/revoke`;
+    const body = new URLSearchParams({
+        token,
+        token_type_hint: "access_token",
+    });
+    const response = await fetchFn(endpoint, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Accept: "application/json",
+        },
+        body: body.toString(),
+        signal: AbortSignal.timeout(revokeTimeoutMs),
+    });
+    const text = await response.text();
+    debug(`Token revocation response from ${endpoint}: HTTP ${response.status}` +
+        describeHeaders(response.headers));
+    if (response.ok) {
+        return;
+    }
+    // A registry that predates the endpoint answers 404 with an HTML page, not
+    // an OAuth error, so it is named before the error body is parsed.
+    if (response.status == 404) {
+        throw new Error(`${host} does not support token revocation; the token expires on its own`);
+    }
+    const { error, description } = parseOAuthError(text);
+    throw new Error(description == "" ? error : `${error}: ${description}`);
+}
 // postTokenExchange performs one exchange request and returns the access token.
 async function postTokenExchange(fetchFn, endpoint, body, debug) {
     const response = await fetchFn(endpoint, {
@@ -52738,6 +52776,8 @@ async function authenticate(bufPath, inputs) {
             username: inputs.username,
         });
         setOutput(Outputs.Token, inputs.token);
+        // The post step revokes it, so it stops working when the job does.
+        saveState(Outputs.Token, inputs.token);
     }
     await login(bufPath, inputs);
 }
