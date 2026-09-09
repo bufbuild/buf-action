@@ -1,0 +1,24 @@
+# This workflow authenticates to a self-hosted BSR as a bot user with the job's
+# own GitHub identity, so no API token is stored. See the README for setup.
+name: Buf CI
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  delete:
+permissions:
+  contents: read
+  pull-requests: write
+  # Required so GitHub mints an OIDC token for the job.
+  id-token: write
+jobs:
+  buf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: bufbuild/buf-action@v1
+        with:
+          # The bot user to authenticate as. Used instead of "token".
+          username: my-bot-user
+          # The registry to authenticate to. Defaults to buf.build.
+          domain: bsr.acme.com
