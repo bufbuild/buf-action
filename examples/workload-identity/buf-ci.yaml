@@ -19,6 +19,6 @@ jobs:
       - uses: bufbuild/buf-action@v1
         with:
           # The bot user to authenticate as. Used instead of "token".
-          username: my-bot-user
+          bot_username: my-bot-user
           # The registry to authenticate to. Defaults to buf.build.
           domain: bsr.acme.com

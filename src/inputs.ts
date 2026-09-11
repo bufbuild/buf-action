@@ -25,7 +25,7 @@ export interface Inputs {
   version: string;
   checksum: string;
   token: string;
-  username: string;
+  bot_username: string;
   domain: string;
   setup_only: boolean;
   pr_comment: boolean;
@@ -55,7 +55,7 @@ export function getInputs(): Inputs {
   const inputs: Inputs = {
     version: core.getInput("version"),
     token: core.getInput("token") || getEnv("BUF_TOKEN"),
-    username: core.getInput("username"),
+    bot_username: core.getInput("bot_username"),
     checksum: core.getInput("checksum"),
     domain: core.getInput("domain"),
     setup_only: core.getBooleanInput("setup_only"),

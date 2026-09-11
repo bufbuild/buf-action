@@ -36924,7 +36924,7 @@ function getInputs() {
     const inputs = {
         version: getInput("version"),
         token: getInput("token") || getEnv("BUF_TOKEN"),
-        username: getInput("username"),
+        bot_username: getInput("bot_username"),
         checksum: getInput("checksum"),
         domain: getInput("domain"),
         setup_only: getBooleanInput("setup_only"),

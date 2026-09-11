@@ -210,28 +210,27 @@ async function runWorkflow(
   return steps;
 }
 
-// authenticate resolves the token for the rest of the run. A static token
-// wins over federation so that adding a username to an existing workflow
-// cannot silently change how it authenticates. Mutates inputs.token so every
-// later step, including run(), uses the same credential.
+// authenticate resolves the token for the rest of the run. Mutates
+// inputs.token so every later step, including run(), uses the same credential.
 async function authenticate(bufPath: string, inputs: Inputs) {
-  if (inputs.token != "" && inputs.username != "") {
-    // The workflow author likely believes they are on federation, while the
-    // static token is what actually grants access.
-    core.warning(
-      `Both a static token (the "token" input or BUF_TOKEN) and "username" ` +
-        `are set. Using the static token; workload identity federation as bot ` +
-        `user ${inputs.username} is not in use. Remove the static token to ` +
-        `authenticate without a stored secret.`,
+  if (inputs.token != "" && inputs.bot_username != "") {
+    // Picking one silently would leave the workflow author believing they
+    // authenticate by federation while a stored secret is what grants access.
+    throw new Error(
+      `Both a static token (the "token" input or BUF_TOKEN) and ` +
+        `"bot_username" are set. Set only one: remove the static token to ` +
+        `authenticate as bot user ${inputs.bot_username} with workload ` +
+        `identity federation, or remove "bot_username" to keep using the ` +
+        `stored token.`,
     );
   }
-  if (inputs.token == "" && inputs.username != "") {
+  if (inputs.token == "" && inputs.bot_username != "") {
     core.info(
-      `Authenticating to ${inputs.domain} as bot user ${inputs.username} using workload identity federation`,
+      `Authenticating to ${inputs.domain} as bot user ${inputs.bot_username} using workload identity federation`,
     );
     inputs.token = await exchangeIDTokenForBufToken({
       domain: inputs.domain,
-      username: inputs.username,
+      username: inputs.bot_username,
     });
     core.setOutput(Outputs.Token, inputs.token);
     // The post step revokes it, so it stops working when the job does.

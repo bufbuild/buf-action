@@ -35,15 +35,18 @@ inputs:
   token:
     description: |-
       API token for logging into the BSR.
-      Takes precedence over "username", so adding federation to an existing
-      workflow cannot silently change how it authenticates.
+      If not set, "bot_username" is used to mint a short-lived token with
+      workload identity federation.
+      See: https://buf.build/docs/bsr/authentication
     required: false
-  username:
+  bot_username:
     description: |-
-      Username of the bot user to authenticate as using workload identity
-      federation, instead of a static API token.
+      Username of the bot user to authenticate as with workload identity
+      federation, instead of a static API token. Cannot be combined with
+      "token".
       Requires "permissions: id-token: write" on the job, and a trust
       credential configured on the bot user.
+      See: https://buf.build/docs/bsr/authentication
     required: false
   domain:
     description: |-

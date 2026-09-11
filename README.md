@@ -46,11 +46,12 @@ This default configuration:
 
 ## Authenticating without a token
 
-Instead of storing a long-lived BSR token as a repository secret, the workflow can authenticate as a bot user with its own GitHub identity.
-GitHub signs a token that says which repository, workflow, and ref is running.
+Instead of storing a long-lived BSR token as a repository secret, the workflow can authenticate as a [bot user](https://buf.build/docs/bsr/admin/instance/bot-users/) with its own GitHub identity.
+GitHub signs an [OpenID Connect token](https://docs.github.com/en/actions/concepts/security/openid-connect) that says which repository, workflow, and ref is running.
 The BSR checks that against a trust credential you configure on the bot user and hands back a short-lived token.
+The action revokes that token when the job finishes.
 
-Set `username` instead of `token`, and grant the job `id-token: write` so GitHub will sign a token for it:
+Set `bot_username` instead of [`token`](https://buf.build/docs/bsr/authentication/), and grant the job `id-token: write` so GitHub will sign a token for it:
 
 ```yaml
 permissions:
@@ -65,10 +66,12 @@ jobs:
       - uses: bufbuild/buf-action@v1
         with:
           # The bot user to authenticate as.
-          username: my-bot-user
+          bot_username: my-bot-user
           # Defaults to buf.build; set it for a self-hosted BSR.
           domain: bsr.acme.com
 ```
+
+Setting both `token` and `bot_username` fails the action, so it is always clear which credential grants access.
 
 In order for the workflow to be allowed to authenticate, a server admin must create a trust credential for the bot user under **Admin → Bot users → _user_ → Trust credentials** in the BSR.
 
@@ -78,9 +81,7 @@ In order for the workflow to be allowed to authenticate, a server admin must cre
 | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `The job must grant "permissions: id-token: write"` | The job cannot request a GitHub OIDC token. Add the permission to the job, not just the workflow.                                                                                                                                                                                                                                                        |
 | `refused to authenticate this workflow`             | The BSR verified the GitHub token but no trust credential authorizes it. Check that the bot user is active and that the credential's claim conditions match this repository, ref, and workflow exactly. |
-
-With [step debug logging](https://docs.github.com/en/actions/monitoring-and-troubleshooting-workflows/enabling-debug-logging) enabled, the action logs the claims GitHub put in the OIDC token, the registry's HTTP status and request ID for each attempt, and the lifetime of the minted token.
-The tokens themselves are registered as secrets and never logged.
+| `Both a static token and "bot_username" are set`    | The workflow supplies two credentials. A `BUF_TOKEN` set in the job or workflow environment counts as a static token, even when the `token` input is unset. |
 
 ## Documentation
 
@@ -107,6 +108,9 @@ See the [migration guide](MIGRATION.md) for more information.
 To debug the action, rerun the workflow with debug logging enabled.
 This will run all buf commands with the `--debug` flag.
 See the [re-run jobs with debug logging](https://github.blog/changelog/2022-05-24-github-actions-re-run-jobs-with-debug-logging/) for more information.
+
+With debug logging enabled, [authenticating without a token](#authenticating-without-a-token) also logs the claims GitHub put in the OIDC token, the registry's HTTP status and request ID for each attempt, and the lifetime of the minted token.
+The tokens themselves are registered as secrets and never logged.
 
 ## Feedback and support
 
