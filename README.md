@@ -71,17 +71,7 @@ jobs:
           domain: bsr.acme.com
 ```
 
-Setting both `token` and `bot_username` fails the action, so it is always clear which credential grants access.
-
 In order for the workflow to be allowed to authenticate, a server admin must create a trust credential for the bot user under **Admin → Bot users → _user_ → Trust credentials** in the BSR.
-
-### Troubleshooting
-
-| Message                                             | Cause                                                                                                                                                                                                                                                                                                                                                    |
-| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `The job must grant "permissions: id-token: write"` | The job cannot request a GitHub OIDC token. Add the permission to the job, not just the workflow.                                                                                                                                                                                                                                                        |
-| `refused to authenticate this workflow`             | The BSR verified the GitHub token but no trust credential authorizes it. Check that the bot user is active and that the credential's claim conditions match this repository, ref, and workflow exactly. |
-| `Both a static token and "bot_username" are set`    | The workflow supplies two credentials. A `BUF_TOKEN` set in the job or workflow environment counts as a static token, even when the `token` input is unset. |
 
 ## Documentation
 
@@ -111,6 +101,14 @@ See the [re-run jobs with debug logging](https://github.blog/changelog/2022-05-2
 
 With debug logging enabled, [authenticating without a token](#authenticating-without-a-token) also logs the claims GitHub put in the OIDC token, the registry's HTTP status and request ID for each attempt, and the lifetime of the minted token.
 The tokens themselves are registered as secrets and never logged.
+
+### Troubleshooting authentication without a token
+
+| Message                                             | Cause                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `The job must grant "permissions: id-token: write"` | The job cannot request a GitHub OIDC token. Add the permission to the job, not just the workflow.                                                                                                                                                                                                                                                        |
+| `refused to authenticate this workflow`             | The BSR verified the GitHub token but no trust credential authorizes it. Check that the bot user is active and that the credential's claim conditions match this repository, ref, and workflow exactly. |
+| `Both a static token and "bot_username" are set`    | The workflow supplies two credentials. A `BUF_TOKEN` set in the job or workflow environment counts as a static token, even when the `token` input is unset. |
 
 ## Feedback and support
 

@@ -42,8 +42,7 @@ inputs:
   bot_username:
     description: |-
       Username of the bot user to authenticate as with workload identity
-      federation, instead of a static API token. Cannot be combined with
-      "token".
+      federation, instead of a static API token.
       Requires "permissions: id-token: write" on the job, and a trust
       credential configured on the bot user.
       See: https://buf.build/docs/bsr/authentication
