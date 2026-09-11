@@ -84,13 +84,6 @@ export interface ExchangeOptions {
   domain: string;
   // Username of the bot user the workload authenticates as.
   username: string;
-  // Injected by tests; defaults to the ambient fetch and @actions/core.
-  fetchFn?: typeof fetch;
-  getIDToken?: (audience: string) => Promise<string>;
-  setSecret?: (secret: string) => void;
-  sleep?: (ms: number) => Promise<void>;
-  debug?: (message: string) => void;
-  isDebug?: () => boolean;
 }
 
 // normalizeDomain strips anything a workflow may have pasted around the bare
@@ -114,16 +107,7 @@ function normalizeDomain(domain: string): string {
 export async function exchangeIDTokenForBufToken(
   options: ExchangeOptions,
 ): Promise<string> {
-  const {
-    domain,
-    username,
-    fetchFn = fetch,
-    getIDToken = core.getIDToken,
-    setSecret = core.setSecret,
-    sleep = defaultSleep,
-    debug = core.debug,
-    isDebug = core.isDebug,
-  } = options;
+  const { domain, username } = options;
 
   // The registry expects its own hostname, the same value its OAuth redirect
   // URLs are built from, so there is nothing to configure here.
@@ -131,11 +115,11 @@ export async function exchangeIDTokenForBufToken(
   const audience = `https://${host}`;
   const endpoint = `https://${host}/oauth2/token`;
   if (host != domain) {
-    debug(`Normalized domain "${domain}" to "${host}"`);
+    core.debug(`Normalized domain "${domain}" to "${host}"`);
   }
   // The request URL is set only when the job has id-token: write, which
   // separates a missing permission from a GitHub outage.
-  debug(
+  core.debug(
     `Requesting GitHub OIDC token for audience ${audience} ` +
       `(ACTIONS_ID_TOKEN_REQUEST_URL is ${
         process.env.ACTIONS_ID_TOKEN_REQUEST_URL ? "set" : "not set"
@@ -143,7 +127,7 @@ export async function exchangeIDTokenForBufToken(
   );
   let idToken: string;
   try {
-    idToken = await getIDToken(audience);
+    idToken = await core.getIDToken(audience);
   } catch (error) {
     throw new Error(
       `Failed to request a GitHub OIDC token for audience ${audience}. ` +
@@ -158,9 +142,9 @@ export async function exchangeIDTokenForBufToken(
         `The job must grant "permissions: id-token: write".`,
     );
   }
-  setSecret(idToken);
-  if (isDebug()) {
-    debug(
+  core.setSecret(idToken);
+  if (core.isDebug()) {
+    core.debug(
       `GitHub OIDC token claims: ${JSON.stringify(describeIDToken(idToken))}`,
     );
   }
@@ -176,17 +160,17 @@ export async function exchangeIDTokenForBufToken(
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const startedAt = Date.now();
     try {
-      const token = await postTokenExchange(fetchFn, endpoint, body, debug);
+      const token = await postTokenExchange(endpoint, body);
       // Mask before returning: every caller path that could log the token
       // runs after this point.
-      setSecret(token);
-      debug(`Token exchange succeeded in ${Date.now() - startedAt} ms`);
+      core.setSecret(token);
+      core.debug(`Token exchange succeeded in ${Date.now() - startedAt} ms`);
       return token;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       const retryable =
         !(lastError instanceof TokenExchangeError) || lastError.retryable;
-      debug(
+      core.debug(
         `Token exchange attempt ${attempt} of ${maxAttempts} failed after ` +
           `${Date.now() - startedAt} ms: ${lastError.message}`,
       );
@@ -206,8 +190,6 @@ const revokeTimeoutMs = 10_000;
 export interface RevokeOptions {
   domain: string;
   token: string;
-  fetchFn?: typeof fetch;
-  debug?: (message: string) => void;
 }
 
 // revokeBufToken retires a token minted by exchangeIDTokenForBufToken through
@@ -215,14 +197,14 @@ export interface RevokeOptions {
 // it expires. The registry only revokes federated tokens this way; a static
 // token is refused with unsupported_token_type.
 export async function revokeBufToken(options: RevokeOptions): Promise<void> {
-  const { domain, token, fetchFn = fetch, debug = core.debug } = options;
+  const { domain, token } = options;
   const host = normalizeDomain(domain);
   const endpoint = `https://${host}/oauth2/revoke`;
   const body = new URLSearchParams({
     token,
     token_type_hint: "access_token",
   });
-  const response = await fetchFn(endpoint, {
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -232,7 +214,7 @@ export async function revokeBufToken(options: RevokeOptions): Promise<void> {
     signal: AbortSignal.timeout(revokeTimeoutMs),
   });
   const text = await response.text();
-  debug(
+  core.debug(
     `Token revocation response from ${endpoint}: HTTP ${response.status}` +
       describeHeaders(response.headers),
   );
@@ -252,12 +234,10 @@ export async function revokeBufToken(options: RevokeOptions): Promise<void> {
 
 // postTokenExchange performs one exchange request and returns the access token.
 async function postTokenExchange(
-  fetchFn: typeof fetch,
   endpoint: string,
   body: URLSearchParams,
-  debug: (message: string) => void,
 ): Promise<string> {
-  const response = await fetchFn(endpoint, {
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -267,7 +247,7 @@ async function postTokenExchange(
     signal: AbortSignal.timeout(requestTimeoutMs),
   });
   const text = await response.text();
-  debug(
+  core.debug(
     `Token exchange response from ${endpoint}: HTTP ${response.status}` +
       describeHeaders(response.headers),
   );
@@ -291,7 +271,7 @@ async function postTokenExchange(
       true,
     );
   }
-  debug(
+  core.debug(
     `Token exchange response fields: ${JSON.stringify(
       pickFields(payload, loggedTokenResponseFields),
     )}`,
@@ -385,7 +365,7 @@ function parseOAuthError(text: string): {
 // deliberately, so that a caller cannot probe which accounts or conditions
 // exist. That means this cannot say which check failed, only what to go and
 // look at.
-export function describeFailure(
+function describeFailure(
   error: Error | undefined,
   domain: string,
   username: string,
@@ -426,6 +406,6 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function defaultSleep(ms: number): Promise<void> {
+function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

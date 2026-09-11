@@ -37094,22 +37094,22 @@ function normalizeDomain(domain) {
 // secrets before either is returned, so neither can reach the log even if a
 // later step or a thrown error would otherwise print it.
 async function exchangeIDTokenForBufToken(options) {
-    const { domain, username, fetchFn = fetch, getIDToken = core.getIDToken, setSecret = core.setSecret, sleep = defaultSleep, debug = core.debug, isDebug = core.isDebug, } = options;
+    const { domain, username } = options;
     // The registry expects its own hostname, the same value its OAuth redirect
     // URLs are built from, so there is nothing to configure here.
     const host = normalizeDomain(domain);
     const audience = `https://${host}`;
     const endpoint = `https://${host}/oauth2/token`;
     if (host != domain) {
-        debug(`Normalized domain "${domain}" to "${host}"`);
+        core.debug(`Normalized domain "${domain}" to "${host}"`);
     }
     // The request URL is set only when the job has id-token: write, which
     // separates a missing permission from a GitHub outage.
-    debug(`Requesting GitHub OIDC token for audience ${audience} ` +
+    core.debug(`Requesting GitHub OIDC token for audience ${audience} ` +
         `(ACTIONS_ID_TOKEN_REQUEST_URL is ${process.env.ACTIONS_ID_TOKEN_REQUEST_URL ? "set" : "not set"})`);
     let idToken;
     try {
-        idToken = await getIDToken(audience);
+        idToken = await core.getIDToken(audience);
     }
     catch (error) {
         throw new Error(`Failed to request a GitHub OIDC token for audience ${audience}. ` +
@@ -37120,9 +37120,9 @@ async function exchangeIDTokenForBufToken(options) {
         throw new Error(`GitHub returned an empty OIDC token for audience ${audience}. ` +
             `The job must grant "permissions: id-token: write".`);
     }
-    setSecret(idToken);
-    if (isDebug()) {
-        debug(`GitHub OIDC token claims: ${JSON.stringify(describeIDToken(idToken))}`);
+    core.setSecret(idToken);
+    if (core.isDebug()) {
+        core.debug(`GitHub OIDC token claims: ${JSON.stringify(describeIDToken(idToken))}`);
     }
     const body = new URLSearchParams({
         grant_type: grantTypeTokenExchange,
@@ -37134,17 +37134,17 @@ async function exchangeIDTokenForBufToken(options) {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         const startedAt = Date.now();
         try {
-            const token = await postTokenExchange(fetchFn, endpoint, body, debug);
+            const token = await postTokenExchange(endpoint, body);
             // Mask before returning: every caller path that could log the token
             // runs after this point.
-            setSecret(token);
-            debug(`Token exchange succeeded in ${Date.now() - startedAt} ms`);
+            core.setSecret(token);
+            core.debug(`Token exchange succeeded in ${Date.now() - startedAt} ms`);
             return token;
         }
         catch (error) {
             lastError = error instanceof Error ? error : new Error(String(error));
             const retryable = !(lastError instanceof TokenExchangeError) || lastError.retryable;
-            debug(`Token exchange attempt ${attempt} of ${maxAttempts} failed after ` +
+            core.debug(`Token exchange attempt ${attempt} of ${maxAttempts} failed after ` +
                 `${Date.now() - startedAt} ms: ${lastError.message}`);
             if (!retryable || attempt === maxAttempts) {
                 break;
@@ -37162,14 +37162,14 @@ const revokeTimeoutMs = 10_000;
 // it expires. The registry only revokes federated tokens this way; a static
 // token is refused with unsupported_token_type.
 async function revokeBufToken(options) {
-    const { domain, token, fetchFn = fetch, debug = core_debug } = options;
+    const { domain, token } = options;
     const host = normalizeDomain(domain);
     const endpoint = `https://${host}/oauth2/revoke`;
     const body = new URLSearchParams({
         token,
         token_type_hint: "access_token",
     });
-    const response = await fetchFn(endpoint, {
+    const response = await fetch(endpoint, {
         method: "POST",
         headers: {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -37179,7 +37179,7 @@ async function revokeBufToken(options) {
         signal: AbortSignal.timeout(revokeTimeoutMs),
     });
     const text = await response.text();
-    debug(`Token revocation response from ${endpoint}: HTTP ${response.status}` +
+    core_debug(`Token revocation response from ${endpoint}: HTTP ${response.status}` +
         describeHeaders(response.headers));
     if (response.ok) {
         return;
@@ -37193,8 +37193,8 @@ async function revokeBufToken(options) {
     throw new Error(description == "" ? error : `${error}: ${description}`);
 }
 // postTokenExchange performs one exchange request and returns the access token.
-async function postTokenExchange(fetchFn, endpoint, body, debug) {
-    const response = await fetchFn(endpoint, {
+async function postTokenExchange(endpoint, body) {
+    const response = await fetch(endpoint, {
         method: "POST",
         headers: {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -37204,7 +37204,7 @@ async function postTokenExchange(fetchFn, endpoint, body, debug) {
         signal: AbortSignal.timeout(requestTimeoutMs),
     });
     const text = await response.text();
-    debug(`Token exchange response from ${endpoint}: HTTP ${response.status}` +
+    core.debug(`Token exchange response from ${endpoint}: HTTP ${response.status}` +
         describeHeaders(response.headers));
     if (!response.ok) {
         const { error, description } = parseOAuthError(text);
@@ -37220,7 +37220,7 @@ async function postTokenExchange(fetchFn, endpoint, body, debug) {
     catch {
         throw new TokenExchangeError("the registry returned a non-JSON response", "invalid_response", true);
     }
-    debug(`Token exchange response fields: ${JSON.stringify(pickFields(payload, loggedTokenResponseFields))}`);
+    core.debug(`Token exchange response fields: ${JSON.stringify(pickFields(payload, loggedTokenResponseFields))}`);
     const accessToken = payload.access_token;
     if (typeof accessToken !== "string" || accessToken == "") {
         throw new TokenExchangeError("the registry returned no access_token", "invalid_response", false);
@@ -37318,7 +37318,7 @@ function describeFailure(error, domain, username) {
 function errorMessage(error) {
     return error instanceof Error ? error.message : String(error);
 }
-function defaultSleep(ms) {
+function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
