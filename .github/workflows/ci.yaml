@@ -285,6 +285,78 @@ jobs:
           push: true
           archive: false
           pr_comment: false
+  test-federation:
+    needs: build
+    runs-on: ubuntu-latest
+    # Needs a bot user with a trust credential for this repository, so it is
+    # skipped until BUF_BOT_USERNAME is set on the repository.
+    if: ${{ github.event_name == 'push' && vars.BUF_BOT_USERNAME != '' }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - run: |
+          mkdir -p proto/foo/v1
+          printf "version: v2\nmodules:\n  - path: proto\n    name: ${BUF_MODULE}\n" > buf.yaml
+          printf "syntax = \"proto3\";\npackage foo.v1;\nmessage Bar {}\n" > proto/foo/v1/bar.proto
+      - uses: ./
+        id: buf
+        with:
+          bot_username: ${{ vars.BUF_BOT_USERNAME }}
+          lint: false
+          format: false
+          breaking: false
+          push: true
+          push_disable_create: true # The trust credential grants no owner access.
+          archive: false
+          pr_comment: false
+      - name: Check a token was minted
+        env:
+          MINTED_TOKEN: ${{ steps.buf.outputs.token }}
+        run: |
+          if [[ -z "${MINTED_TOKEN}" ]]; then
+            echo "::error::The action did not mint a federated token"
+            exit 1
+          fi
+  test-federation-without-permission:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # Withholds id-token: write.
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./
+        id: buf
+        continue-on-error: true # Federation fails without the permission.
+        with:
+          bot_username: not-a-real-bot-user
+          setup_only: true
+      - name: Check the action failed
+        if: steps.buf.outcome != 'failure'
+        run: |
+          echo "::error::Expected federation to fail without id-token: write"
+          exit 1
+  test-federation-conflicting-credentials:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./
+        id: buf
+        continue-on-error: true # Two credentials fail before any request.
+        with:
+          token: not-a-real-token
+          bot_username: not-a-real-bot-user
+          setup_only: true
+      - name: Check the action failed
+        if: steps.buf.outcome != 'failure'
+        run: |
+          echo "::error::Expected conflicting credentials to fail the action"
+          exit 1
   test-push-unnamed:
     needs: build
     runs-on: ubuntu-latest
