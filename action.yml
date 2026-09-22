@@ -27,7 +27,7 @@ inputs:
       Version of the Buf CLI to use.
       Example:
         with:
-          version: 1.72.0
+          version: 1.73.0
     required: false
   checksum:
     description: Checksum of the Buf CLI to verify (sha256).
