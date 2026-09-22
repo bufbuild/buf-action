@@ -28,13 +28,13 @@
     "@bufbuild/license-header": "^0.0.4",
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.1.2",
-    "@types/semver": "^7.7.0",
+    "@types/semver": "^7.8.0",
     "@vercel/ncc": "^0.44.1",
-    "eslint": "^10.0.3",
+    "eslint": "^10.8.1",
     "globals": "^17.9.0",
     "prettier": "3.9.6",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.33.0"
+    "typescript-eslint": "^8.67.0"
   },
   "dependencies": {
     "@actions/core": "^3.0.1",
@@ -43,7 +43,7 @@
     "@actions/io": "^3.0.2",
     "@actions/tool-cache": "^4.0.0",
     "@buf/bufbuild_registry.bufbuild_es": "^2.2.3-20250116203702-1c024d64352b.1",
-    "@bufbuild/protobuf": "^2.2.5",
+    "@bufbuild/protobuf": "^2.13.0",
     "@connectrpc/connect": "^2.0.1",
     "@connectrpc/connect-web": "^2.0.1",
     "@octokit/webhooks-types": "^7.6.1",
