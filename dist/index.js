@@ -7008,7 +7008,13 @@ function processHeader (request, key, val) {
       } else if (typeof val[i] === 'object') {
         throw new InvalidArgumentError(`invalid ${key} header`)
       } else {
-        arr.push(`${val[i]}`)
+        // Coerce primitives (and reject unsafe coercions such as functions
+        // with a crafted toString/Symbol.toPrimitive).
+        const str = `${val[i]}`
+        if (!isValidHeaderValue(str)) {
+          throw new InvalidArgumentError(`invalid ${key} header`)
+        }
+        arr.push(str)
       }
     }
     val = arr
@@ -7019,7 +7025,12 @@ function processHeader (request, key, val) {
   } else if (val === null) {
     val = ''
   } else {
+    // Coerce primitives (and reject unsafe coercions such as functions
+    // with a crafted toString/Symbol.toPrimitive).
     val = `${val}`
+    if (!isValidHeaderValue(val)) {
+      throw new InvalidArgumentError(`invalid ${key} header`)
+    }
   }
 
   if (headerName === 'host') {
@@ -8396,6 +8407,7 @@ const {
   RequestContentLengthMismatchError,
   ResponseContentLengthMismatchError,
   RequestAbortedError,
+  InvalidArgumentError,
   HeadersTimeoutError,
   HeadersOverflowError,
   SocketError,
@@ -9261,7 +9273,7 @@ async function connectH1 (client, socket) {
 
 function clearIdleSocketValidation (socket) {
   if (socket[kIdleSocketValidationTimeout]) {
-    clearTimeout(socket[kIdleSocketValidationTimeout])
+    clearImmediate(socket[kIdleSocketValidationTimeout])
     socket[kIdleSocketValidationTimeout] = null
   }
 
@@ -9270,15 +9282,23 @@ function clearIdleSocketValidation (socket) {
 
 function scheduleIdleSocketValidation (client, socket) {
   socket[kIdleSocketValidation] = 1
-  socket[kIdleSocketValidationTimeout] = setTimeout(() => {
+  // Yield to the check phase (after poll) so unsolicited bytes / FIN / RST
+  // already pending on this idle keep-alive socket are processed before the
+  // next request is written (GHSA-35p6-xmwp-9g52).
+  //
+  // setTimeout(0) pays Node's ~1ms timer floor on every sequential reuse
+  // (#5493). setImmediate avoids that, but an *unref'd* Immediate lets poll
+  // block for ~500ms when the event loop is otherwise idle (#5600 / #5606).
+  // A ref'd Immediate both keeps the pending request alive and makes poll
+  // return immediately — the hybrid those issues asked for.
+  socket[kIdleSocketValidationTimeout] = setImmediate(() => {
     socket[kIdleSocketValidationTimeout] = null
     socket[kIdleSocketValidation] = 2
 
     if (client[kSocket] === socket && !socket.destroyed) {
       client[kResume]()
     }
-  }, 0)
-  socket[kIdleSocketValidationTimeout].unref?.()
+  })
 }
 
 /**
@@ -9379,8 +9399,16 @@ function writeH1 (client, request) {
     }
     body = bodyStream.stream
     contentLength = bodyStream.length
-  } else if (util.isBlobLike(body) && request.contentType == null && body.type) {
-    headers.push('content-type', body.type)
+  } else if (util.isBlobLike(body) && request.contentType == null) {
+    const contentType = body.type
+    if (contentType) {
+      const contentTypeValue = `${contentType}`
+      if (!util.isValidHeaderValue(contentTypeValue)) {
+        util.errorRequest(client, request, new InvalidArgumentError('invalid content-type header'))
+        return false
+      }
+      headers.push('content-type', contentTypeValue)
+    }
   }
 
   if (body && typeof body.read === 'function') {
@@ -12867,6 +12895,28 @@ function calculateRetryAfterHeader (retryAfter) {
   return new Date(retryAfter).getTime() - current
 }
 
+function validatePartialResponseContentLength (headers, range, statusCode, retryCount) {
+  const contentLength = headers['content-length']
+  if (contentLength == null) {
+    return null
+  }
+
+  if (!Number.isFinite(range.start) || !Number.isFinite(range.end)) {
+    return null
+  }
+
+  const length = Number(contentLength)
+  const expectedLength = range.end - range.start + 1
+  if (!Number.isFinite(length) || length !== expectedLength) {
+    return new RequestRetryError('Content-Length mismatch', statusCode, {
+      headers,
+      data: { count: retryCount }
+    })
+  }
+
+  return null
+}
+
 class RetryHandler {
   constructor (opts, handlers) {
     const { retryOptions, ...dispatchOpts } = opts
@@ -12920,6 +12970,7 @@ class RetryHandler {
     this.end = null
     this.etag = null
     this.resume = null
+    this.headersSent = false
 
     // Handle possible onConnect duplication
     this.handler.onConnect(reason => {
@@ -12930,6 +12981,20 @@ class RetryHandler {
         this.reason = reason
       }
     })
+  }
+
+  checkpointResponseEnd (headers, resume) {
+    if (this.end == null && this.opts.method !== 'HEAD') {
+      const contentLength = headers['content-length']
+      this.end = contentLength != null ? Number(contentLength) - 1 : null
+
+      assert(
+        this.end == null || Number.isFinite(this.end),
+        'invalid content-length'
+      )
+    }
+
+    this.resume = this.end != null ? resume : null
   }
 
   onRequestSent () {
@@ -13021,6 +13086,8 @@ class RetryHandler {
 
     if (statusCode >= 300) {
       if (this.retryOpts.statusCodes.includes(statusCode) === false) {
+        this.headersSent = true
+        this.checkpointResponseEnd(headers, resume)
         return this.handler.onHeaders(
           statusCode,
           rawHeaders,
@@ -13081,10 +13148,23 @@ class RetryHandler {
         return false
       }
 
+      const contentLengthError = validatePartialResponseContentLength(headers, contentRange, statusCode, this.retryCount)
+      if (contentLengthError != null) {
+        this.abort(contentLengthError)
+        return false
+      }
+
       const { start, size, end = size - 1 } = contentRange
 
-      assert(this.start === start, 'content-range mismatch')
-      assert(this.end == null || this.end === end, 'content-range mismatch')
+      if (this.start !== start || (this.end != null && this.end !== end)) {
+        this.abort(
+          new RequestRetryError('Content-Range mismatch', statusCode, {
+            headers,
+            data: { count: this.retryCount }
+          })
+        )
+        return false
+      }
 
       this.resume = resume
       return true
@@ -13096,12 +13176,19 @@ class RetryHandler {
         const range = parseRangeHeader(headers['content-range'])
 
         if (range == null) {
+          this.headersSent = true
           return this.handler.onHeaders(
             statusCode,
             rawHeaders,
             resume,
             statusMessage
           )
+        }
+
+        const contentLengthError = validatePartialResponseContentLength(headers, range, statusCode, this.retryCount)
+        if (contentLengthError != null) {
+          this.abort(contentLengthError)
+          return false
         }
 
         const { start, size, end = size - 1 } = range
@@ -13128,6 +13215,7 @@ class RetryHandler {
       )
 
       this.resume = resume
+      this.headersSent = true
       this.etag = headers.etag != null ? headers.etag : null
 
       // Weak etags are not useful for comparison nor cache
@@ -13167,7 +13255,7 @@ class RetryHandler {
   }
 
   onError (err) {
-    if (this.aborted || isDisturbed(this.opts.body)) {
+    if (this.aborted || isDisturbed(this.opts.body) || (this.headersSent && this.resume == null)) {
       return this.handler.onError(err)
     }
 
@@ -17375,7 +17463,7 @@ function validateCookiePath (path) {
 
     if (
       code < 0x20 || // exclude CTLs (0-31)
-      code === 0x7F || // DEL
+      code > 0x7E || // exclude DEL and non-ascii
       code === 0x3B // ;
     ) {
       throw new Error('Invalid cookie path')
@@ -17384,16 +17472,80 @@ function validateCookiePath (path) {
 }
 
 /**
- * I have no idea why these values aren't allowed to be honest,
- * but Deno tests these. - Khafra
+ * <let-dig> ::= <letter> | <digit>
+ *
+ * <letter> ::= any one of the 52 alphabetic characters A through Z in
+ * upper case and a through z in lower case
+ *
+ * <digit> ::= any one of the ten digits 0 through 9r
+ *
+ * @see https://www.rfc-editor.org/rfc/rfc1034#section-3.5
+ * @param {number} code
+ */
+function isLetterOrDigit (code) {
+  return (
+    (code >= 0x30 && code <= 0x39) || // 0-9
+    (code >= 0x41 && code <= 0x5A) || // A-Z
+    (code >= 0x61 && code <= 0x7A) // a-z
+  )
+}
+
+/**
+ * Validates a cookie domain against the "preferred name syntax".
+ *
+ * <domain>      ::= <subdomain> | " "
+ * <subdomain>   ::= <label> | <subdomain> "." <label>
+ * <label>       ::= <let-dig> [ [ <ldh-str> ] <let-dig> ]
+ * <ldh-str>     ::= <let-dig-hyp> | <let-dig-hyp> <ldh-str>
+ * <let-dig-hyp> ::= <let-dig> | "-"
+ *
+ * @see https://www.rfc-editor.org/rfc/rfc1034#section-3.5
+ * @see https://www.rfc-editor.org/rfc/rfc1123#section-2.1
+ * @see https://www.rfc-editor.org/rfc/rfc1035#section-2.3.4
  * @param {string} domain
  */
 function validateCookieDomain (domain) {
-  if (
-    domain.startsWith('-') ||
-    domain.endsWith('.') ||
-    domain.endsWith('-')
-  ) {
+  // <domain> ::= <subdomain> | " "
+  if (domain === ' ') {
+    return
+  }
+
+  if (domain.length > 255) {
+    throw new Error('Invalid cookie domain')
+  }
+
+  let labelLength = 0
+
+  for (let i = 0; i < domain.length; ++i) {
+    const code = domain.charCodeAt(i)
+
+    if (code === 0x2E) {
+      if (labelLength === 0) {
+        throw new Error('Invalid cookie domain')
+      }
+
+      if (domain.charCodeAt(i - 1) === 0x2D) { // "-"
+        throw new Error('Invalid cookie domain')
+      }
+
+      labelLength = 0
+      continue
+    }
+
+    if (labelLength === 0 && !isLetterOrDigit(code)) {
+      throw new Error('Invalid cookie domain')
+    }
+
+    if (!isLetterOrDigit(code) && code !== 0x2D) { // "-"
+      throw new Error('Invalid cookie domain')
+    }
+
+    if (++labelLength > 63) {
+      throw new Error('Invalid cookie domain')
+    }
+  }
+
+  if (labelLength === 0 || domain.charCodeAt(domain.length - 1) === 0x2D) { // "-"
     throw new Error('Invalid cookie domain')
   }
 }
@@ -17536,7 +17688,13 @@ function stringify (cookie) {
 
     const [key, ...value] = part.split('=')
 
-    out.push(`${key.trim()}=${value.join('=')}`)
+    const trimmedKey = key.trim()
+    const joinedValue = value.join('=')
+
+    validateCookieName(trimmedKey)
+    validateCookieValue(joinedValue)
+
+    out.push(`${trimmedKey}=${joinedValue}`)
   }
 
   return out.join('; ')
@@ -17583,6 +17741,49 @@ const COLON = 0x3A
  */
 const SPACE = 0x20
 
+const DATA = Buffer.from('data')
+const EVENT = Buffer.from('event')
+const ID = Buffer.from('id')
+const RETRY = Buffer.from('retry')
+
+function isASCIINumberBytes (buffer, start) {
+  if (start >= buffer.length) {
+    return false
+  }
+
+  for (let i = start; i < buffer.length; i++) {
+    if (buffer[i] < 0x30 || buffer[i] > 0x39) {
+      return false
+    }
+  }
+
+  return true
+}
+
+function isValidLastEventIdBytes (buffer, start) {
+  for (let i = start; i < buffer.length; i++) {
+    if (buffer[i] === 0x00) {
+      return false
+    }
+  }
+
+  return true
+}
+
+function isFieldName (line, length, field) {
+  if (length !== field.length) {
+    return false
+  }
+
+  for (let i = 0; i < length; i++) {
+    if (line[i] !== field[i]) {
+      return false
+    }
+  }
+
+  return true
+}
+
 /**
  * @typedef {object} EventSourceStreamEvent
  * @type {object}
@@ -17623,11 +17824,14 @@ class EventSourceStream extends Transform {
   eventEndCheck = false
 
   /**
-   * @type {Buffer}
+   * @type {Buffer[]}
    */
-  buffer = null
+  chunks = []
 
+  chunkIndex = 0
   pos = 0
+  lineChunkIndex = 0
+  linePos = 0
 
   event = {
     data: undefined,
@@ -17666,92 +17870,20 @@ class EventSourceStream extends Transform {
       return
     }
 
-    // Cache the chunk in the buffer, as the data might not be complete while
-    // processing it
-    // TODO: Investigate if there is a more performant way to handle
-    // incoming chunks
-    // see: https://github.com/nodejs/undici/issues/2630
-    if (this.buffer) {
-      this.buffer = Buffer.concat([this.buffer, chunk])
-    } else {
-      this.buffer = chunk
-    }
+    this.chunks.push(chunk)
 
     // Strip leading byte-order-mark if we opened the stream and started
     // the processing of the incoming data
     if (this.checkBOM) {
-      switch (this.buffer.length) {
-        case 1:
-          // Check if the first byte is the same as the first byte of the BOM
-          if (this.buffer[0] === BOM[0]) {
-            // If it is, we need to wait for more data
-            callback()
-            return
-          }
-          // Set the checkBOM flag to false as we don't need to check for the
-          // BOM anymore
-          this.checkBOM = false
-
-          // The buffer only contains one byte so we need to wait for more data
-          callback()
-          return
-        case 2:
-          // Check if the first two bytes are the same as the first two bytes
-          // of the BOM
-          if (
-            this.buffer[0] === BOM[0] &&
-            this.buffer[1] === BOM[1]
-          ) {
-            // If it is, we need to wait for more data, because the third byte
-            // is needed to determine if it is the BOM or not
-            callback()
-            return
-          }
-
-          // Set the checkBOM flag to false as we don't need to check for the
-          // BOM anymore
-          this.checkBOM = false
-          break
-        case 3:
-          // Check if the first three bytes are the same as the first three
-          // bytes of the BOM
-          if (
-            this.buffer[0] === BOM[0] &&
-            this.buffer[1] === BOM[1] &&
-            this.buffer[2] === BOM[2]
-          ) {
-            // If it is, we can drop the buffered data, as it is only the BOM
-            this.buffer = Buffer.alloc(0)
-            // Set the checkBOM flag to false as we don't need to check for the
-            // BOM anymore
-            this.checkBOM = false
-
-            // Await more data
-            callback()
-            return
-          }
-          // If it is not the BOM, we can start processing the data
-          this.checkBOM = false
-          break
-        default:
-          // The buffer is longer than 3 bytes, so we can drop the BOM if it is
-          // present
-          if (
-            this.buffer[0] === BOM[0] &&
-            this.buffer[1] === BOM[1] &&
-            this.buffer[2] === BOM[2]
-          ) {
-            // Remove the BOM from the buffer
-            this.buffer = this.buffer.subarray(3)
-          }
-
-          // Set the checkBOM flag to false as we don't need to check for the
-          this.checkBOM = false
-          break
+      if (this.handleBOM()) {
+        callback()
+        return
       }
     }
 
-    while (this.pos < this.buffer.length) {
+    while (this.hasCurrentByte()) {
+      const byte = this.currentByte()
+
       // If the previous line ended with an end-of-line, we need to check
       // if the next character is also an end-of-line.
       if (this.eventEndCheck) {
@@ -17764,10 +17896,9 @@ class EventSourceStream extends Transform {
         if (this.crlfCheck) {
           // If the current character is a line feed, we can remove it
           // from the buffer and reset the crlfCheck flag
-          if (this.buffer[this.pos] === LF) {
-            this.buffer = this.buffer.subarray(this.pos + 1)
-            this.pos = 0
+          if (byte === LF) {
             this.crlfCheck = false
+            this.consumeCurrentByte()
 
             // It is possible that the line feed is not the end of the
             // event. We need to check if the next character is an
@@ -17783,19 +17914,17 @@ class EventSourceStream extends Transform {
           this.crlfCheck = false
         }
 
-        if (this.buffer[this.pos] === LF || this.buffer[this.pos] === CR) {
+        if (byte === LF || byte === CR) {
           // If the current character is a carriage return, we need to
           // set the crlfCheck flag to true, as we need to check if the
           // next character is a line feed so we can remove it from the
           // buffer
-          if (this.buffer[this.pos] === CR) {
+          if (byte === CR) {
             this.crlfCheck = true
           }
 
-          this.buffer = this.buffer.subarray(this.pos + 1)
-          this.pos = 0
-          if (
-            this.event.data !== undefined || this.event.event || this.event.id || this.event.retry) {
+          this.consumeCurrentByte()
+          if (this.hasPendingEvent()) {
             this.processEvent(this.event)
           }
           this.clearEvent()
@@ -17809,22 +17938,18 @@ class EventSourceStream extends Transform {
 
       // If the current character is an end-of-line, we can process the
       // line
-      if (this.buffer[this.pos] === LF || this.buffer[this.pos] === CR) {
+      if (byte === LF || byte === CR) {
         // If the current character is a carriage return, we need to
         // set the crlfCheck flag to true, as we need to check if the
         // next character is a line feed
-        if (this.buffer[this.pos] === CR) {
+        if (byte === CR) {
           this.crlfCheck = true
         }
 
         // In any case, we can process the line as we reached an
         // end-of-line character
-        this.parseLine(this.buffer.subarray(0, this.pos), this.event)
-
-        // Remove the processed line from the buffer
-        this.buffer = this.buffer.subarray(this.pos + 1)
-        // Reset the position as we removed the processed line from the buffer
-        this.pos = 0
+        this.parseLine(this.readLine(), this.event)
+        this.consumeCurrentByte()
         // A line was processed and this could be the end of the event. We need
         // to check if the next line is empty to determine if the event is
         // finished.
@@ -17832,7 +17957,7 @@ class EventSourceStream extends Transform {
         continue
       }
 
-      this.pos++
+      this.advanceCursor()
     }
 
     callback()
@@ -17857,64 +17982,53 @@ class EventSourceStream extends Transform {
       return
     }
 
-    let field = ''
-    let value = ''
+    let fieldLength = line.length
+    let valueStart = line.length
 
     // If the line contains a U+003A COLON character (:)
     if (colonPosition !== -1) {
-      // Collect the characters on the line before the first U+003A COLON
-      // character (:), and let field be that string.
-      // TODO: Investigate if there is a more performant way to extract the
-      // field
-      // see: https://github.com/nodejs/undici/issues/2630
-      field = line.subarray(0, colonPosition).toString('utf8')
+      fieldLength = colonPosition
 
       // Collect the characters on the line after the first U+003A COLON
       // character (:), and let value be that string.
       // If value starts with a U+0020 SPACE character, remove it from value.
-      let valueStart = colonPosition + 1
+      valueStart = colonPosition + 1
       if (line[valueStart] === SPACE) {
         ++valueStart
       }
-      // TODO: Investigate if there is a more performant way to extract the
-      // value
-      // see: https://github.com/nodejs/undici/issues/2630
-      value = line.subarray(valueStart).toString('utf8')
-
-      // Otherwise, the string is not empty but does not contain a U+003A COLON
-      // character (:)
-    } else {
-      // Process the field using the steps described below, using the whole
-      // line as the field name, and the empty string as the field value.
-      field = line.toString('utf8')
-      value = ''
     }
 
-    // Modify the event with the field name and value. The value is also
-    // decoded as UTF-8
-    switch (field) {
-      case 'data':
-        if (event[field] === undefined) {
-          event[field] = value
-        } else {
-          event[field] += `\n${value}`
-        }
-        break
-      case 'retry':
-        if (isASCIINumber(value)) {
-          event[field] = value
-        }
-        break
-      case 'id':
-        if (isValidLastEventId(value)) {
-          event[field] = value
-        }
-        break
-      case 'event':
-        if (value.length > 0) {
-          event[field] = value
-        }
-        break
+    if (isFieldName(line, fieldLength, DATA)) {
+      const value = line.toString('utf8', valueStart)
+
+      if (event.data === undefined) {
+        event.data = value
+      } else {
+        event.data += `\n${value}`
+      }
+      return
+    }
+
+    if (isFieldName(line, fieldLength, RETRY)) {
+      if (isASCIINumberBytes(line, valueStart)) {
+        event.retry = line.toString('utf8', valueStart)
+      }
+      return
+    }
+
+    if (isFieldName(line, fieldLength, ID)) {
+      if (isValidLastEventIdBytes(line, valueStart)) {
+        event.id = line.toString('utf8', valueStart)
+      }
+      return
+    }
+
+    if (isFieldName(line, fieldLength, EVENT)) {
+      const value = line.toString('utf8', valueStart)
+
+      if (value.length > 0) {
+        event.event = value
+      }
     }
   }
 
@@ -17944,12 +18058,151 @@ class EventSourceStream extends Transform {
   }
 
   clearEvent () {
-    this.event = {
-      data: undefined,
-      event: undefined,
-      id: undefined,
-      retry: undefined
+    this.event.data = undefined
+    this.event.event = undefined
+    this.event.id = undefined
+    this.event.retry = undefined
+  }
+
+  hasPendingEvent () {
+    return this.event.data !== undefined ||
+      this.event.event !== undefined ||
+      this.event.id !== undefined ||
+      this.event.retry !== undefined
+  }
+
+  hasCurrentByte () {
+    return this.chunkIndex < this.chunks.length &&
+      this.pos < this.chunks[this.chunkIndex].length
+  }
+
+  currentByte () {
+    return this.chunks[this.chunkIndex][this.pos]
+  }
+
+  consumeCurrentByte () {
+    this.advanceCursor()
+    this.syncLineStartToCursor()
+  }
+
+  advanceCursor () {
+    this.pos++
+
+    while (this.chunkIndex < this.chunks.length && this.pos >= this.chunks[this.chunkIndex].length) {
+      this.chunkIndex++
+      this.pos = 0
     }
+  }
+
+  syncLineStartToCursor () {
+    this.lineChunkIndex = this.chunkIndex
+    this.linePos = this.pos
+    this.dropConsumedChunks()
+  }
+
+  dropConsumedChunks () {
+    while (this.lineChunkIndex > 0) {
+      this.chunks.shift()
+      this.lineChunkIndex--
+      this.chunkIndex--
+    }
+
+    if (this.chunkIndex === this.chunks.length) {
+      this.chunks.length = 0
+      this.chunkIndex = 0
+      this.pos = 0
+      this.lineChunkIndex = 0
+      this.linePos = 0
+    }
+  }
+
+  readLine () {
+    if (this.lineChunkIndex === this.chunkIndex) {
+      return this.chunks[this.chunkIndex].subarray(this.linePos, this.pos)
+    }
+
+    const chunks = []
+    let length = 0
+
+    for (let i = this.lineChunkIndex; i <= this.chunkIndex; i++) {
+      const chunk = this.chunks[i]
+      const start = i === this.lineChunkIndex ? this.linePos : 0
+      const end = i === this.chunkIndex ? this.pos : chunk.length
+      const slice = chunk.subarray(start, end)
+      length += slice.length
+      chunks.push(slice)
+    }
+
+    return Buffer.concat(chunks, length)
+  }
+
+  peekBufferedByte (offset) {
+    let chunkIndex = this.lineChunkIndex
+    let pos = this.linePos
+
+    while (chunkIndex < this.chunks.length) {
+      const chunk = this.chunks[chunkIndex]
+      const remaining = chunk.length - pos
+
+      if (offset < remaining) {
+        return chunk[pos + offset]
+      }
+
+      offset -= remaining
+      chunkIndex++
+      pos = 0
+    }
+  }
+
+  discardLeadingBytes (count) {
+    while (count > 0 && this.lineChunkIndex < this.chunks.length) {
+      const chunk = this.chunks[this.lineChunkIndex]
+      const remaining = chunk.length - this.linePos
+
+      if (count < remaining) {
+        this.linePos += count
+        count = 0
+      } else {
+        count -= remaining
+        this.lineChunkIndex++
+        this.linePos = 0
+      }
+    }
+
+    this.chunkIndex = this.lineChunkIndex
+    this.pos = this.linePos
+    this.dropConsumedChunks()
+  }
+
+  handleBOM () {
+    const first = this.peekBufferedByte(0)
+    const second = this.peekBufferedByte(1)
+    const third = this.peekBufferedByte(2)
+
+    if (second === undefined) {
+      if (first === BOM[0]) {
+        return true
+      }
+
+      this.checkBOM = false
+      return true
+    }
+
+    if (third === undefined) {
+      if (first === BOM[0] && second === BOM[1]) {
+        return true
+      }
+
+      this.checkBOM = false
+      return false
+    }
+
+    if (first === BOM[0] && second === BOM[1] && third === BOM[2]) {
+      this.discardLeadingBytes(3)
+    }
+
+    this.checkBOM = false
+    return !this.hasCurrentByte()
   }
 }
 
@@ -29241,7 +29494,7 @@ function establishWebSocketConnection (url, protocols, client, ws, onEstablish, 
         // is specified, the server needs to include the same field and one of
         // the selected subprotocol values in its response for the connection to
         // be established.
-        if (!requestProtocols.includes(secProtocol)) {
+        if (requestProtocols === null || !requestProtocols.includes(secProtocol)) {
           failWebsocketConnection(ws, 'Protocol was not set in the opening handshake.')
           return
         }
@@ -30006,7 +30259,12 @@ class PerMessageDeflate {
 
         if (this.#maxPayloadSize > 0 && this.#inflate[kLength] > this.#maxPayloadSize) {
           callback(new MessageSizeExceededError())
+          // The inflater may still hold buffered input that can emit a late
+          // zlib error. Remove the data listener, then deterministically stop
+          // the stream so a subsequent 'error' cannot fire without a listener
+          // (which would terminate the process as an unhandled error event).
           this.#inflate.removeAllListeners()
+          this.#inflate.destroy()
           this.#inflate = null
           return
         }
@@ -39914,40 +40172,49 @@ var descriptors_ScalarType;
 /**
  * Read a 64 bit varint as two JS numbers.
  *
- * Returns tuple:
- * [0]: low bits
- * [1]: high bits
+ * Stores the low and high words on the reader.
  *
  * Copyright 2008 Google Inc.  All rights reserved.
  *
  * See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/buffer_decoder.js#L175
  */
 function varint64read() {
-    let lowBits = 0;
-    let highBits = 0;
+    const buf = this.buf;
+    let pos = this.pos;
+    let lo = 0;
+    let hi = 0;
     for (let shift = 0; shift < 28; shift += 7) {
-        let b = this.buf[this.pos++];
-        lowBits |= (b & 0x7f) << shift;
+        const b = buf[pos++];
+        lo |= (b & 0x7f) << shift;
         if ((b & 0x80) == 0) {
+            this.pos = pos;
             this.assertBounds();
-            return [lowBits, highBits];
+            this.varint64Lo = lo;
+            this.varint64Hi = hi;
+            return;
         }
     }
-    let middleByte = this.buf[this.pos++];
+    const middleByte = buf[pos++];
     // last four bits of the first 32 bit number
-    lowBits |= (middleByte & 0x0f) << 28;
+    lo |= (middleByte & 0x0f) << 28;
     // 3 upper bits are part of the next 32 bit number
-    highBits = (middleByte & 0x70) >> 4;
+    hi = (middleByte & 0x70) >> 4;
     if ((middleByte & 0x80) == 0) {
+        this.pos = pos;
         this.assertBounds();
-        return [lowBits, highBits];
+        this.varint64Lo = lo;
+        this.varint64Hi = hi;
+        return;
     }
     for (let shift = 3; shift <= 31; shift += 7) {
-        let b = this.buf[this.pos++];
-        highBits |= (b & 0x7f) << shift;
+        const b = buf[pos++];
+        hi |= (b & 0x7f) << shift;
         if ((b & 0x80) == 0) {
+            this.pos = pos;
             this.assertBounds();
-            return [lowBits, highBits];
+            this.varint64Lo = lo;
+            this.varint64Hi = hi;
+            return;
         }
     }
     throw new Error("invalid varint");
@@ -40135,6 +40402,10 @@ const decimalFrom1e7WithLeadingZeros = (digit1e7) => {
  * See https://github.com/protocolbuffers/protobuf/blob/1b18833f4f2a2f681f4e4a25cdf3b0a43115ec26/js/binary/encoder.js#L144
  */
 function varint32write(value, bytes) {
+    if (value >>> 0 < 0x80) {
+        bytes.push(value);
+        return;
+    }
     if (value >= 0) {
         // write value as varint 32
         while (value > 0x7f) {
@@ -40158,26 +40429,26 @@ function varint32write(value, bytes) {
  */
 function varint32read() {
     let b = this.buf[this.pos++];
-    let result = b & 0x7f;
-    if ((b & 0x80) == 0) {
+    if ((b & 0x80) === 0) {
         this.assertBounds();
-        return result;
+        return b;
     }
+    let result = b & 0x7f;
     b = this.buf[this.pos++];
     result |= (b & 0x7f) << 7;
-    if ((b & 0x80) == 0) {
+    if ((b & 0x80) === 0) {
         this.assertBounds();
         return result;
     }
     b = this.buf[this.pos++];
     result |= (b & 0x7f) << 14;
-    if ((b & 0x80) == 0) {
+    if ((b & 0x80) === 0) {
         this.assertBounds();
         return result;
     }
     b = this.buf[this.pos++];
     result |= (b & 0x7f) << 21;
-    if ((b & 0x80) == 0) {
+    if ((b & 0x80) === 0) {
         this.assertBounds();
         return result;
     }
@@ -40186,10 +40457,9 @@ function varint32read() {
     result |= (b & 0x0f) << 28;
     for (let readBytes = 5; (b & 0x80) !== 0 && readBytes < 10; readBytes++)
         b = this.buf[this.pos++];
-    if ((b & 0x80) != 0)
+    if ((b & 0x80) !== 0)
         throw new Error("invalid varint");
     this.assertBounds();
-    // Result can have 32 bits, convert it to unsigned
     return result >>> 0;
 }
 
@@ -40464,7 +40734,7 @@ function isScalarZeroValue(type, value) {
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name = $number;
 const IMPLICIT = 2;
 const unsafeLocal = Symbol.for("reflect unsafe local");
 /**
@@ -40712,19 +40982,19 @@ function hasCustomJsonRepresentation(desc) {
             return isWrapperDesc(desc);
     }
 }
+const wrapperTypeNames = /*@__PURE__*/ new Set([
+    "google.protobuf.DoubleValue",
+    "google.protobuf.FloatValue",
+    "google.protobuf.Int64Value",
+    "google.protobuf.UInt64Value",
+    "google.protobuf.Int32Value",
+    "google.protobuf.UInt32Value",
+    "google.protobuf.BoolValue",
+    "google.protobuf.StringValue",
+    "google.protobuf.BytesValue",
+]);
 function isWrapperTypeName(name) {
-    return (name.startsWith("google.protobuf.") &&
-        [
-            "DoubleValue",
-            "FloatValue",
-            "Int64Value",
-            "UInt64Value",
-            "Int32Value",
-            "UInt32Value",
-            "BoolValue",
-            "StringValue",
-            "BytesValue",
-        ].includes(name.substring(16)));
+    return wrapperTypeNames.has(name);
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/create.js
@@ -40746,12 +41016,11 @@ function isWrapperTypeName(name) {
 
 
 
-
-// bootstrap-inject google.protobuf.Edition.EDITION_PROTO3: const $name: Edition.$localName = $number;
+// bootstrap-inject google.protobuf.Edition.EDITION_PROTO3: const $name = $number;
 const EDITION_PROTO3 = 999;
-// bootstrap-inject google.protobuf.Edition.EDITION_PROTO2: const $name: Edition.$localName = $number;
+// bootstrap-inject google.protobuf.Edition.EDITION_PROTO2: const $name = $number;
 const EDITION_PROTO2 = 998;
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name = $number;
 const create_IMPLICIT = 2;
 /**
  * Create a new message instance.
@@ -40763,181 +41032,231 @@ function create_create(schema, init) {
     if (isMessage(init, schema)) {
         return init;
     }
-    const message = createZeroMessage(schema);
-    if (init !== undefined) {
-        initMessage(schema, message, init);
-    }
-    return message;
+    return compiledCreate(schema)(init);
 }
+const compiledCreates = new WeakMap();
 /**
- * Sets field values from a MessageInitShape on a zero message.
- */
-function initMessage(messageDesc, message, init) {
-    for (const member of messageDesc.members) {
-        let value = init[member.localName];
-        if (value == null) {
-            // intentionally ignore undefined and null
-            continue;
-        }
-        let field;
-        if (member.kind == "oneof") {
-            const oneofField = unsafeOneofCase(init, member);
-            if (!oneofField) {
-                continue;
-            }
-            field = oneofField;
-            value = unsafeGet(init, oneofField);
+ * Return the compiled create function for a message, compiling it on first use. */
+function compiledCreate(desc) {
+    let compiled = compiledCreates.get(desc);
+    if (compiled === undefined) {
+        compiled = compileCreate(desc);
+        compiledCreates.set(desc, compiled);
+    }
+    return compiled;
+}
+/** Singular field: scalar, enum, or message. */
+const INIT_SINGULAR = 0;
+/** List field: a zero message has a fresh empty array. */
+const INIT_LIST = 1;
+/** Map field: a zero message has a fresh empty object. */
+const INIT_MAP = 2;
+/** Oneof group: the ADT is always stored, cases convert by case name. */
+const INIT_ONEOF = 3;
+/* Compile the create function for this message type. */
+function compileCreate(desc) {
+    const typeName = desc.typeName;
+    const { properties, prototype } = compileInitMessage(desc);
+    return (init) => {
+        let message;
+        if (prototype !== undefined) {
+            message = Object.create(prototype);
+            message.$typeName = typeName;
         }
         else {
-            field = member;
+            message = { $typeName: typeName };
         }
-        switch (field.fieldKind) {
-            case "message":
-                value = toMessage(field, value);
-                break;
-            case "scalar":
-                value = initScalar(field, value);
-                break;
-            case "list":
-                value = initList(field, value);
-                break;
-            case "map":
-                value = initMap(field, value);
-                break;
+        for (let i = 0; i < properties.length; i++) {
+            const property = properties[i];
+            const name = property.name;
+            const initValue = init === null || init === void 0 ? void 0 : init[name];
+            switch (property.kind) {
+                case INIT_SINGULAR:
+                    if (initValue != null) {
+                        message[name] =
+                            property.convert !== undefined
+                                ? property.convert(initValue)
+                                : initValue;
+                    }
+                    else if (property.constant !== undefined) {
+                        message[name] = property.constant;
+                    }
+                    break;
+                case INIT_LIST:
+                    message[name] =
+                        property.convert !== undefined && Array.isArray(initValue)
+                            ? initValue.map(property.convert)
+                            : (initValue !== null && initValue !== void 0 ? initValue : []);
+                    break;
+                case INIT_MAP:
+                    // Object.create(null) would be desirable for the fresh map, but is
+                    // unsupported by React:
+                    // https://react.dev/reference/react/use-server#serializable-parameters-and-return-values
+                    if (property.convert === undefined || !isObject(initValue)) {
+                        message[name] = initValue !== null && initValue !== void 0 ? initValue : {};
+                    }
+                    else {
+                        const converted = {};
+                        const keys = Object.keys(initValue);
+                        for (let k = 0; k < keys.length; k++) {
+                            converted[keys[k]] = property.convert(initValue[keys[k]]);
+                        }
+                        message[name] = converted;
+                    }
+                    break;
+                case INIT_ONEOF: {
+                    const oneofValue = initValue;
+                    if ((oneofValue === null || oneofValue === void 0 ? void 0 : oneofValue.case) != null) {
+                        const convert = property.convert.get(oneofValue.case);
+                        if (convert !== undefined) {
+                            message[name] = {
+                                case: oneofValue.case,
+                                value: convert(oneofValue.value),
+                            };
+                            break;
+                        }
+                    }
+                    message[name] = { case: undefined };
+                    break;
+                }
+            }
         }
-        unsafeSet(message, field, value);
-    }
-    return message;
+        return message;
+    };
 }
-function initScalar(field, value) {
-    if (field.scalar == descriptors_ScalarType.BYTES) {
-        return toU8Arr(value);
+/**
+ * Classify every member once, so that creating a message is a walk over a
+ * compact list instead of a walk over the descriptor.
+ */
+function compileInitMessage(desc) {
+    var _a, _b;
+    const properties = [];
+    const prototype = {};
+    const usePrototype = needsPrototypeChain(desc);
+    for (const member of desc.members) {
+        const name = member.localName;
+        if (member.kind == "oneof") {
+            properties.push({
+                name,
+                kind: INIT_ONEOF,
+                constant: undefined,
+                convert: compileConvertOneof(member),
+            });
+            continue;
+        }
+        switch (member.fieldKind) {
+            case "message": {
+                // Singular message fields are absent from a zero message.
+                properties.push({
+                    name,
+                    kind: INIT_SINGULAR,
+                    constant: undefined,
+                    convert: compileConvertMessage(member),
+                });
+                break;
+            }
+            case "list": {
+                properties.push({
+                    name,
+                    kind: INIT_LIST,
+                    constant: undefined,
+                    convert: member.listKind == "message"
+                        ? ((_a = compileConvertMessage(member)) !== null && _a !== void 0 ? _a : ((value) => value))
+                        : member.scalar == descriptors_ScalarType.BYTES
+                            ? toU8Arr
+                            : undefined,
+                });
+                break;
+            }
+            case "map": {
+                properties.push({
+                    name,
+                    kind: INIT_MAP,
+                    constant: undefined,
+                    convert: member.mapKind == "message"
+                        ? ((_b = compileConvertMessage(member)) !== null && _b !== void 0 ? _b : ((value) => value))
+                        : member.scalar == descriptors_ScalarType.BYTES
+                            ? toU8Arr
+                            : undefined,
+                });
+                break;
+            }
+            default: {
+                const zeroValue = createZeroValue(member);
+                properties.push({
+                    name,
+                    kind: INIT_SINGULAR,
+                    constant: member.presence == create_IMPLICIT ? zeroValue : undefined,
+                    convert: member.fieldKind == "scalar" && member.scalar == descriptors_ScalarType.BYTES
+                        ? toU8Arr
+                        : undefined,
+                });
+                if (usePrototype) {
+                    prototype[name] = zeroValue;
+                }
+                break;
+            }
+        }
     }
-    return value;
+    return {
+        properties,
+        prototype: usePrototype ? prototype : undefined,
+    };
 }
-function initMap(field, value) {
-    if (isObject(value)) {
-        if (field.scalar == descriptors_ScalarType.BYTES) {
-            return convertObjectValues(value, toU8Arr);
+/**
+ * Compile the conversion of each case of a oneof group, keyed by case name.
+ */
+function compileConvertOneof(oneof) {
+    const converters = new Map();
+    for (const field of oneof.fields) {
+        let convert;
+        if (field.fieldKind == "message") {
+            convert = compileConvertMessage(field);
         }
-        if (field.mapKind == "message") {
-            return convertObjectValues(value, (val) => toMessage(field, val));
+        else if (field.fieldKind == "scalar" &&
+            field.scalar == descriptors_ScalarType.BYTES) {
+            convert = toU8Arr;
         }
+        converters.set(field.localName, convert !== null && convert !== void 0 ? convert : ((value) => value));
     }
-    return value;
+    return converters;
 }
-function initList(field, value) {
-    if (Array.isArray(value)) {
-        if (field.scalar == descriptors_ScalarType.BYTES) {
-            return value.map(toU8Arr);
-        }
-        if (field.listKind == "message") {
-            return value.map((item) => toMessage(field, item));
-        }
-    }
-    return value;
-}
-function toMessage(field, value) {
+/**
+ * Compile the conversion of an init value for a message field, a message
+ * list item, or a message map value. Returns undefined if values are used
+ * as-is.
+ */
+function compileConvertMessage(field) {
     if (field.fieldKind == "message" &&
         !field.oneof &&
         isWrapperDesc(field.message)) {
         // Types from google/protobuf/wrappers.proto are unwrapped when used in
         // a singular field that is not part of a oneof group.
-        return initScalar(field.message.fields[0], value);
+        return field.message.fields[0].scalar == descriptors_ScalarType.BYTES
+            ? toU8Arr
+            : undefined;
     }
-    if (isObject(value)) {
-        if (field.message.typeName == "google.protobuf.Struct" &&
-            field.parent.typeName !== "google.protobuf.Value") {
-            // google.protobuf.Struct is represented with JsonObject when used in a
-            // field, except when used in google.protobuf.Value.
+    if (field.message.typeName == "google.protobuf.Struct" &&
+        field.parent.typeName !== "google.protobuf.Value") {
+        // google.protobuf.Struct is represented with JsonObject when used in a
+        // field, except when used in google.protobuf.Value.
+        return undefined;
+    }
+    const messageDesc = field.message;
+    // Resolved on first use, not here: the message type can be this very field's
+    // parent, whose create function is still being compiled.
+    let compiled;
+    return (value) => {
+        if (!isObject(value) || isMessage(value, messageDesc)) {
             return value;
         }
-        if (!isMessage(value, field.message)) {
-            return create_create(field.message, value);
-        }
-    }
-    return value;
+        compiled !== null && compiled !== void 0 ? compiled : (compiled = compiledCreate(messageDesc));
+        return compiled(value);
+    };
 }
 // converts any ArrayLike<number> to Uint8Array if necessary.
 function toU8Arr(value) {
     return Array.isArray(value) ? new Uint8Array(value) : value;
-}
-function convertObjectValues(obj, fn) {
-    const ret = {};
-    for (const entry of Object.entries(obj)) {
-        ret[entry[0]] = fn(entry[1]);
-    }
-    return ret;
-}
-const tokenZeroMessageField = Symbol();
-const messagePrototypes = new WeakMap();
-/**
- * Create a zero message.
- */
-function createZeroMessage(desc) {
-    let msg;
-    if (!needsPrototypeChain(desc)) {
-        msg = {
-            $typeName: desc.typeName,
-        };
-        for (const member of desc.members) {
-            if (member.kind == "oneof" || member.presence == create_IMPLICIT) {
-                msg[member.localName] = createZeroField(member);
-            }
-        }
-    }
-    else {
-        // Support default values and track presence via the prototype chain
-        const cached = messagePrototypes.get(desc);
-        let prototype;
-        let members;
-        if (cached) {
-            ({ prototype, members } = cached);
-        }
-        else {
-            prototype = {};
-            members = new Set();
-            for (const member of desc.members) {
-                if (member.kind == "oneof") {
-                    // we can only put immutable values on the prototype,
-                    // oneof ADTs are mutable
-                    continue;
-                }
-                if (member.fieldKind != "scalar" && member.fieldKind != "enum") {
-                    // only scalar and enum values are immutable, map, list, and message
-                    // are not
-                    continue;
-                }
-                if (member.presence == create_IMPLICIT) {
-                    // implicit presence tracks field presence by zero values - e.g. 0, false, "", are unset, 1, true, "x" are set.
-                    // message, map, list fields are mutable, and also have IMPLICIT presence.
-                    continue;
-                }
-                members.add(member);
-                prototype[member.localName] = createZeroField(member);
-            }
-            messagePrototypes.set(desc, { prototype, members });
-        }
-        msg = Object.create(prototype);
-        msg.$typeName = desc.typeName;
-        for (const member of desc.members) {
-            if (members.has(member)) {
-                continue;
-            }
-            if (member.kind == "field") {
-                if (member.fieldKind == "message") {
-                    continue;
-                }
-                if (member.fieldKind == "scalar" || member.fieldKind == "enum") {
-                    if (member.presence != create_IMPLICIT) {
-                        continue;
-                    }
-                }
-            }
-            msg[member.localName] = createZeroField(member);
-        }
-    }
-    return msg;
 }
 /**
  * Do we need the prototype chain to track field presence?
@@ -40958,22 +41277,10 @@ function needsPrototypeChain(desc) {
     }
 }
 /**
- * Returns a zero value for oneof groups, and for every field kind except
- * messages. Scalar and enum fields can have default values.
+ * Returns the zero value for a scalar or enum field. Scalar and enum fields
+ * can have default values.
  */
-function createZeroField(field) {
-    if (field.kind == "oneof") {
-        return { case: undefined };
-    }
-    if (field.fieldKind == "list") {
-        return [];
-    }
-    if (field.fieldKind == "map") {
-        return {}; // Object.create(null) would be desirable here, but is unsupported by react https://react.dev/reference/react/use-server#serializable-parameters-and-return-values
-    }
-    if (field.fieldKind == "message") {
-        return tokenZeroMessageField;
-    }
+function createZeroValue(field) {
     const defaultValue = field.getDefaultValue();
     if (defaultValue !== undefined) {
         return field.fieldKind == "scalar" && field.longAsString
@@ -41004,14 +41311,14 @@ const errorNames = [
     "FieldListRangeError",
     "ForeignFieldError",
 ];
-class FieldError extends Error {
+class error_FieldError extends Error {
     constructor(fieldOrOneof, message, name = "FieldValueInvalidError") {
         super(message);
         this.name = name;
         this.field = () => fieldOrOneof;
     }
 }
-function error_isFieldError(arg) {
+function isFieldError(arg) {
     return (arg instanceof Error &&
         errorNames.includes(arg.name) &&
         "field" in arg &&
@@ -41032,36 +41339,55 @@ function error_isFieldError(arg) {
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-const symbol = Symbol.for("@bufbuild/protobuf/text-encoding");
+let te;
 /**
  * Protobuf-ES requires the Text Encoding API to convert UTF-8 from and to
  * binary. This WHATWG API is widely available, but it is not part of the
- * ECMAScript standard. On runtimes where it is not available, use this
- * function to provide your own implementation.
+ * ECMAScript standard. This function used to be the way to supply an
+ * implementation on runtimes that do not provide one.
+ *
+ * It only configures the copy of the library it is imported from. To provide
+ * the encoding API for every copy of Protobuf-ES in an isolate, install
+ * `TextEncoder` (with the methods `encode` and optionally `encodeInto`) and
+ * `TextDecoder` (with the `fatal: true` constructor argument and the `decode`
+ * method) on `globalThis`.
+ *
+ * Providing `encodeUtf8Into` is optional for backwards compatibility. If it
+ * is omitted, we emulate it with a wrapper that calls `encodeUtf8`.
  *
  * Note that the Text Encoding API does not provide a way to validate UTF-8.
- * Our implementation falls back to use encodeURIComponent().
+ * Our implementation uses String.prototype.isWellFormed, and falls back
+ * to use encodeURIComponent().
+ *
+ * @deprecated Install `TextEncoder` and `TextDecoder` on `globalThis` instead.
  */
 function configureTextEncoding(textEncoding) {
-    globalThis[symbol] = textEncoding;
+    var _a;
+    te = Object.assign(Object.assign({}, textEncoding), { encodeUtf8Into: (_a = textEncoding.encodeUtf8Into) !== null && _a !== void 0 ? _a : emulateEncodeInto(textEncoding.encodeUtf8.bind(textEncoding)) });
 }
 function getTextEncoding() {
-    if (globalThis[symbol] == undefined) {
-        const te = new globalThis.TextEncoder();
-        const td = new globalThis.TextDecoder();
-        let tdStrict;
-        globalThis[symbol] = {
+    if (!te) {
+        const globals = globalThis;
+        if (!globals.TextEncoder || !globals.TextDecoder) {
+            throw new Error("encoding API missing: install TextEncoder and TextDecoder on globalThis");
+        }
+        const textEncoder = new globals.TextEncoder();
+        const textDecoder = new globals.TextDecoder();
+        let textDecoderStrict;
+        const config = {
             encodeUtf8(text) {
-                return te.encode(text);
+                return textEncoder.encode(text);
             },
             decodeUtf8(bytes, strict) {
                 if (strict) {
-                    if (tdStrict === undefined) {
-                        tdStrict = new globalThis.TextDecoder("utf-8", { fatal: true });
+                    if (!textDecoderStrict) {
+                        textDecoderStrict = new globals.TextDecoder("utf-8", {
+                            fatal: true,
+                        });
                     }
-                    return tdStrict.decode(bytes);
+                    return textDecoderStrict.decode(bytes);
                 }
-                return td.decode(bytes);
+                return textDecoder.decode(bytes);
             },
             checkUtf8(text) {
                 try {
@@ -41073,8 +41399,33 @@ function getTextEncoding() {
                 }
             },
         };
+        // If encodeInto is available, use it. Otherwise, configureTextEncoding
+        // fills in a slower fallback that uses encodeUtf8.
+        if (textEncoder.encodeInto) {
+            config.encodeUtf8Into = textEncoder.encodeInto.bind(textEncoder);
+        }
+        // Native String.prototype.isWellFormed, if the runtime provides it.
+        const nativeStringIsWellFormed = String.prototype.isWellFormed;
+        if (nativeStringIsWellFormed) {
+            config.checkUtf8 = (text) => {
+                return nativeStringIsWellFormed.call(text);
+            };
+        }
+        configureTextEncoding(config);
     }
-    return globalThis[symbol];
+    return te;
+}
+/**
+ * Simplistic polyfill for encodeUtf8Into.
+ *
+ * @private
+ */
+function emulateEncodeInto(encodeUtf8) {
+    return (text, dest) => {
+        const bytes = encodeUtf8(text);
+        dest.set(bytes);
+        return { written: bytes.byteLength };
+    };
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
@@ -41157,34 +41508,55 @@ const INT32_MAX = 0x7fffffff;
  */
 const INT32_MIN = -0x80000000;
 class BinaryWriter {
-    constructor(encodeUtf8 = getTextEncoding().encodeUtf8) {
-        this.encodeUtf8 = encodeUtf8;
+    constructor(encodeUtf8) {
         /**
-         * Previous fork states.
+         * Previous fork positions (the write position at the time
+         * `fork()` was called).
          */
-        this.stack = [];
-        this.chunks = [];
-        this.buf = [];
+        this.stackPos = [];
+        this.encodeUtf8Into = encodeUtf8
+            ? emulateEncodeInto(encodeUtf8)
+            : getTextEncoding().encodeUtf8Into;
+        this.buffer = EMPTY_BUFFER;
+        this.viewCache = EMPTY_VIEW;
+        this.pos = 0;
+    }
+    ensureCapacity(size) {
+        const required = this.pos + size;
+        if (required > this.buffer.length) {
+            let newLen = this.buffer.length || INITIAL_SIZE;
+            while (newLen < required)
+                newLen *= 2;
+            const newBuf = new Uint8Array(newLen);
+            if (this.pos > 0)
+                newBuf.set(this.buffer);
+            this.buffer = newBuf;
+        }
+    }
+    /**
+     * The DataView over `buffer`, rebuilt only if the buffer has grown since it
+     * was last used.
+     */
+    view() {
+        const bytes = this.buffer;
+        const view = this.viewCache;
+        // Since ensureCapacity() only ever replaces the buffer with a strictly larger one,
+        // equal lengths mean the view is still current. This is faster than comparing
+        // buffers directly.
+        if (view.byteLength === bytes.byteLength)
+            return view;
+        const newView = new DataView(bytes.buffer);
+        this.viewCache = newView;
+        return newView;
     }
     /**
      * Return all bytes written and reset this writer.
      */
     finish() {
-        if (this.buf.length) {
-            this.chunks.push(new Uint8Array(this.buf)); // flush the buffer
-            this.buf = [];
-        }
-        let len = 0;
-        for (let i = 0; i < this.chunks.length; i++)
-            len += this.chunks[i].length;
-        let bytes = new Uint8Array(len);
-        let offset = 0;
-        for (let i = 0; i < this.chunks.length; i++) {
-            bytes.set(this.chunks[i], offset);
-            offset += this.chunks[i].length;
-        }
-        this.chunks = [];
-        return bytes;
+        const result = this.buffer.slice(0, this.pos);
+        this.pos = 0;
+        this.stackPos = [];
+        return result;
     }
     /**
      * Start a new fork for length-delimited data like a message
@@ -41193,9 +41565,11 @@ class BinaryWriter {
      * Must be joined later with `join()`.
      */
     fork() {
-        this.stack.push({ chunks: this.chunks, buf: this.buf });
-        this.chunks = [];
-        this.buf = [];
+        this.stackPos.push(this.pos);
+        // Reserve room for the length prefix. Payloads under 128 bytes, fairly
+        // common, will need no copy in join().
+        this.ensureCapacity(DEFAULT_LEN_PREFIX_SIZE);
+        this.buffer[this.pos++] = 0;
         return this;
     }
     /**
@@ -41203,17 +41577,24 @@ class BinaryWriter {
      * return to the previous state.
      */
     join() {
-        // get chunk of fork
-        let chunk = this.finish();
-        // restore previous state
-        let prev = this.stack.pop();
-        if (!prev)
+        const forkPos = this.stackPos.pop();
+        if (forkPos === undefined)
             throw new Error("invalid state, fork stack empty");
-        this.chunks = prev.chunks;
-        this.buf = prev.buf;
-        // write length of chunk as varint
-        this.uint32(chunk.byteLength);
-        return this.raw(chunk);
+        // fork() presumed the payload would fit the prefix it reserved. If it
+        // doesn't, we need to shift the bytes we just wrote.
+        const len = this.pos - forkPos - DEFAULT_LEN_PREFIX_SIZE;
+        const lenPrefixSize = varint32Size(len);
+        if (lenPrefixSize > DEFAULT_LEN_PREFIX_SIZE) {
+            // Widening pushes the payload past the end of the buffer, so grow first:
+            // copyWithin clamps to the buffer instead of throwing, so a short buffer
+            // would silently drop the tail of the payload.
+            this.ensureCapacity(lenPrefixSize - DEFAULT_LEN_PREFIX_SIZE);
+            this.buffer.copyWithin(forkPos + lenPrefixSize, forkPos + DEFAULT_LEN_PREFIX_SIZE, this.pos);
+        }
+        this.pos = forkPos;
+        this.uint32(len);
+        this.pos += len;
+        return this;
     }
     /**
      * Writes a tag (field number and wire type).
@@ -41229,11 +41610,9 @@ class BinaryWriter {
      * Write a chunk of raw bytes.
      */
     raw(chunk) {
-        if (this.buf.length) {
-            this.chunks.push(new Uint8Array(this.buf));
-            this.buf = [];
-        }
-        this.chunks.push(chunk);
+        this.ensureCapacity(chunk.length);
+        this.buffer.set(chunk, this.pos);
+        this.pos += chunk.length;
         return this;
     }
     /**
@@ -41241,12 +41620,18 @@ class BinaryWriter {
      */
     uint32(value) {
         assertUInt32(value);
-        // write value as varint 32, inlined for speed
-        while (value > 0x7f) {
-            this.buf.push((value & 0x7f) | 0x80);
-            value = value >>> 7;
+        // uint32 varints are at most 5 bytes; reserve once and avoid per-byte
+        // capacity checks.
+        this.ensureCapacity(5);
+        if (value < 0x80) {
+            this.buffer[this.pos++] = value;
+            return this;
         }
-        this.buf.push(value);
+        while (value > 0x7f) {
+            this.buffer[this.pos++] = (value & 0x7f) | 0x80;
+            value >>>= 7;
+        }
+        this.buffer[this.pos++] = value;
         return this;
     }
     /**
@@ -41254,101 +41639,158 @@ class BinaryWriter {
      */
     int32(value) {
         assertInt32(value);
-        varint32write(value, this.buf);
+        if (value >= 0) {
+            return this.uint32(value);
+        }
+        // Negative: sign-extend to 64 bits, encodes to 10 bytes.
+        this.ensureCapacity(10);
+        for (let i = 0; i < 9; i++) {
+            this.buffer[this.pos++] = (value & 0x7f) | 0x80;
+            value >>= 7;
+        }
+        this.buffer[this.pos++] = 1;
         return this;
     }
     /**
      * Write a `bool` value, a varint.
      */
     bool(value) {
-        this.buf.push(value ? 1 : 0);
+        this.ensureCapacity(1);
+        this.buffer[this.pos++] = value ? 1 : 0;
         return this;
     }
     /**
      * Write a `bytes` value, length-delimited arbitrary data.
      */
     bytes(value) {
-        this.uint32(value.byteLength); // write length of chunk as varint
+        this.uint32(value.byteLength);
         return this.raw(value);
     }
     /**
      * Write a `string` value, length-delimited data converted to UTF-8 text.
      */
     string(value) {
-        let chunk = this.encodeUtf8(value);
-        this.uint32(chunk.byteLength); // write length of chunk as varint
-        return this.raw(chunk);
+        // TextEncoder.encode() coerces its argument to string, but encodeInto()
+        // rejects non-strings.
+        if (typeof value !== "string") {
+            value = String(value);
+        }
+        const len = value.length;
+        // Fast path for ASCII.
+        if (len <= ASCII_MAX_LENGTH) {
+            this.ensureCapacity(len + 1);
+            const ascii = this.buffer;
+            let pos = this.pos;
+            ascii[pos++] = len;
+            let i = 0;
+            for (; i < len; i++) {
+                const code = value.charCodeAt(i);
+                if (code > 0x7f)
+                    break;
+                ascii[pos++] = code;
+            }
+            if (i == len) {
+                this.pos = pos;
+                return this;
+            }
+        }
+        // encodeUtf8Into needs the full-length buffer upfront. The length prefix
+        // can be upto 5 bytes, and a UTF-16 code unit takes at most 3 UTF-8 bytes.
+        this.ensureCapacity(len * 3 + 5);
+        // The length prefix goes first, but the byte length is only known after
+        // encoding. We guess the final varint size here (assuming most text is
+        // ASCII) and then encode.
+        const lenPrefixSizeGuess = varint32Size(len);
+        const buf = this.buffer;
+        const start = this.pos;
+        const { written } = this.encodeUtf8Into(value, buf.subarray(start + lenPrefixSizeGuess));
+        // If our guess was incorrect, we need to shift the bytes we just wrote.
+        const lenPrefixSize = varint32Size(written);
+        if (lenPrefixSize != lenPrefixSizeGuess) {
+            buf.copyWithin(start + lenPrefixSize, start + lenPrefixSizeGuess, start + lenPrefixSizeGuess + written);
+        }
+        // Write the lenPrefix and advance the pos.
+        this.uint32(written);
+        this.pos += written;
+        return this;
     }
     /**
      * Write a `float` value, 32-bit floating point number.
      */
     float(value) {
         assertFloat32(value);
-        let chunk = new Uint8Array(4);
-        new DataView(chunk.buffer).setFloat32(0, value, true);
-        return this.raw(chunk);
+        this.ensureCapacity(4);
+        this.view().setFloat32(this.pos, value, true);
+        this.pos += 4;
+        return this;
     }
     /**
      * Write a `double` value, a 64-bit floating point number.
      */
     double(value) {
-        let chunk = new Uint8Array(8);
-        new DataView(chunk.buffer).setFloat64(0, value, true);
-        return this.raw(chunk);
+        this.ensureCapacity(8);
+        this.view().setFloat64(this.pos, value, true);
+        this.pos += 8;
+        return this;
     }
     /**
      * Write a `fixed32` value, an unsigned, fixed-length 32-bit integer.
      */
     fixed32(value) {
         assertUInt32(value);
-        let chunk = new Uint8Array(4);
-        new DataView(chunk.buffer).setUint32(0, value, true);
-        return this.raw(chunk);
+        this.ensureCapacity(4);
+        this.view().setUint32(this.pos, value, true);
+        this.pos += 4;
+        return this;
     }
     /**
      * Write a `sfixed32` value, a signed, fixed-length 32-bit integer.
      */
     sfixed32(value) {
         assertInt32(value);
-        let chunk = new Uint8Array(4);
-        new DataView(chunk.buffer).setInt32(0, value, true);
-        return this.raw(chunk);
+        this.ensureCapacity(4);
+        this.view().setInt32(this.pos, value, true);
+        this.pos += 4;
+        return this;
     }
     /**
      * Write a `sint32` value, a signed, zigzag-encoded 32-bit varint.
      */
     sint32(value) {
         assertInt32(value);
-        // zigzag encode
-        value = ((value << 1) ^ (value >> 31)) >>> 0;
-        varint32write(value, this.buf);
-        return this;
+        // zigzag encode then emit as uint32 varint
+        return this.uint32(((value << 1) ^ (value >> 31)) >>> 0);
     }
     /**
      * Write a `sfixed64` value, a signed, fixed-length 64-bit integer.
      */
     sfixed64(value) {
-        let chunk = new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.enc(value);
-        view.setInt32(0, tc.lo, true);
-        view.setInt32(4, tc.hi, true);
-        return this.raw(chunk);
+        const tc = protoInt64.enc(value);
+        this.ensureCapacity(8);
+        const view = this.view();
+        view.setInt32(this.pos, tc.lo, true);
+        view.setInt32(this.pos + 4, tc.hi, true);
+        this.pos += 8;
+        return this;
     }
     /**
      * Write a `fixed64` value, an unsigned, fixed-length 64 bit integer.
      */
     fixed64(value) {
-        let chunk = new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.uEnc(value);
-        view.setInt32(0, tc.lo, true);
-        view.setInt32(4, tc.hi, true);
-        return this.raw(chunk);
+        const tc = protoInt64.uEnc(value);
+        this.ensureCapacity(8);
+        const view = this.view();
+        view.setInt32(this.pos, tc.lo, true);
+        view.setInt32(this.pos + 4, tc.hi, true);
+        this.pos += 8;
+        return this;
     }
     /**
      * Write a `int64` value, a signed 64-bit varint.
      */
     int64(value) {
-        let tc = protoInt64.enc(value);
-        varint64write(tc.lo, tc.hi, this.buf);
-        return this;
+        const tc = protoInt64.enc(value);
+        return this.writeVarint64(tc.lo, tc.hi);
     }
     /**
      * Write a `sint64` value, a signed, zig-zag-encoded 64-bit varint.
@@ -41357,21 +41799,102 @@ class BinaryWriter {
         const tc = protoInt64.enc(value), 
         // zigzag encode
         sign = tc.hi >> 31, lo = (tc.lo << 1) ^ sign, hi = ((tc.hi << 1) | (tc.lo >>> 31)) ^ sign;
-        varint64write(lo, hi, this.buf);
-        return this;
+        return this.writeVarint64(lo, hi);
     }
     /**
      * Write a `uint64` value, an unsigned 64-bit varint.
      */
     uint64(value) {
         const tc = protoInt64.uEnc(value);
-        varint64write(tc.lo, tc.hi, this.buf);
+        return this.writeVarint64(tc.lo, tc.hi);
+    }
+    /**
+     * Write a 64-bit varint directly into the buffer. Accepts the value as
+     * split low/high 32-bit words.
+     *
+     * Ported from varint64write() to avoid the intermediate number[] buffer.
+     * See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/writer.js#L344
+     */
+    writeVarint64(lo, hi) {
+        // Worst case: 10 bytes.
+        this.ensureCapacity(10);
+        const buf = this.buffer;
+        let pos = this.pos;
+        for (let i = 0; i < 28; i = i + 7) {
+            const shift = lo >>> i;
+            const hasNext = !(shift >>> 7 == 0 && hi == 0);
+            buf[pos++] = (hasNext ? shift | 0x80 : shift) & 0xff;
+            if (!hasNext) {
+                this.pos = pos;
+                return this;
+            }
+        }
+        const splitBits = ((lo >>> 28) & 0x0f) | ((hi & 0x07) << 4);
+        const hasMoreBits = !(hi >> 3 == 0);
+        buf[pos++] = (hasMoreBits ? splitBits | 0x80 : splitBits) & 0xff;
+        if (!hasMoreBits) {
+            this.pos = pos;
+            return this;
+        }
+        for (let i = 3; i < 31; i = i + 7) {
+            const shift = hi >>> i;
+            const hasNext = !(shift >>> 7 == 0);
+            buf[pos++] = (hasNext ? shift | 0x80 : shift) & 0xff;
+            if (!hasNext) {
+                this.pos = pos;
+                return this;
+            }
+        }
+        buf[pos++] = (hi >>> 31) & 0x01;
+        this.pos = pos;
         return this;
     }
+}
+/**
+ * Capacity of the buffer allocated by the first write..
+ */
+const INITIAL_SIZE = 128;
+/**
+ * Bytes `fork()` reserves for the length prefix, betting that the payload will
+ * be under 128 bytes. `join()` fills them in, and widens them if the bet was
+ * wrong.
+ */
+const DEFAULT_LEN_PREFIX_SIZE = 1;
+/**
+ * Shared empty buffer used as the initial value before the first write.
+ * Avoids allocating and zeroing `INITIAL_SIZE` bytes per BinaryWriter when a
+ * writer is only used for a tiny message (or not used at all).
+ */
+const EMPTY_BUFFER = new Uint8Array(0);
+/**
+ * Shared empty view, paired with `EMPTY_BUFFER`. Never written to: any
+ * fixed-width write first grows the buffer, which replaces this view.
+ */
+const EMPTY_VIEW = new DataView(EMPTY_BUFFER.buffer);
+/**
+ * Longest string on the ASCII fast paths. Must stay below 0x80, so
+ * that the writer's length prefix always fits a single varint byte.
+ */
+const ASCII_MAX_LENGTH = 32;
+/**
+ * Number of bytes needed to encode `value` as an unsigned 32-bit varint.
+ */
+function varint32Size(value) {
+    if (value < 0x80)
+        return 1;
+    if (value < 0x4000)
+        return 2;
+    if (value < 0x200000)
+        return 3;
+    if (value < 0x10000000)
+        return 4;
+    return 5;
 }
 class binary_encoding_BinaryReader {
     constructor(buf, decodeUtf8 = getTextEncoding().decodeUtf8) {
         this.decodeUtf8 = decodeUtf8;
+        this.varint64Lo = 0;
+        this.varint64Hi = 0;
         this.varint64 = varint64read; // dirty cast for `this`
         /**
          * Read a `uint32` field, an unsigned 32 bit varint.
@@ -41472,19 +41995,23 @@ class binary_encoding_BinaryReader {
      * Read a `int64` field, a signed 64-bit varint.
      */
     int64() {
-        return protoInt64.dec(...this.varint64());
+        this.varint64();
+        return protoInt64.dec(this.varint64Lo, this.varint64Hi);
     }
     /**
      * Read a `uint64` field, an unsigned 64-bit varint.
      */
     uint64() {
-        return protoInt64.uDec(...this.varint64());
+        this.varint64();
+        return protoInt64.uDec(this.varint64Lo, this.varint64Hi);
     }
     /**
      * Read a `sint64` field, a signed, zig-zag-encoded 64-bit varint.
      */
     sint64() {
-        let [lo, hi] = this.varint64();
+        this.varint64();
+        let lo = this.varint64Lo;
+        let hi = this.varint64Hi;
         // decode zig zag
         let s = -(lo & 1);
         lo = ((lo >>> 1) | ((hi & 1) << 31)) ^ s;
@@ -41495,8 +42022,14 @@ class binary_encoding_BinaryReader {
      * Read a `bool` field, a variant.
      */
     bool() {
-        let [lo, hi] = this.varint64();
-        return lo !== 0 || hi !== 0;
+        // Fast path: most bools are 0x0 or 0x1.
+        const b = this.buf[this.pos];
+        if (b < 0x80) {
+            this.pos++;
+            return b !== 0;
+        }
+        this.varint64();
+        return this.varint64Lo !== 0 || this.varint64Hi !== 0;
     }
     /**
      * Read a `fixed32` field, an unsigned, fixed-length 32-bit integer.
@@ -41552,7 +42085,21 @@ class binary_encoding_BinaryReader {
      * `strict` is true, throw on invalid UTF-8 instead of substituting U+FFFD.
      */
     string(strict) {
-        return this.decodeUtf8(this.bytes(), strict);
+        const bytes = this.bytes();
+        const len = bytes.length;
+        // Fast path for ASCII.
+        if (len <= ASCII_MAX_LENGTH) {
+            const codes = new Array(len);
+            for (let i = 0; i < len; i++) {
+                const byte = bytes[i];
+                if (byte > 0x7f) {
+                    return this.decodeUtf8(bytes, strict);
+                }
+                codes[i] = byte;
+            }
+            return String.fromCharCode.apply(String, codes);
+        }
+        return this.decodeUtf8(bytes, strict);
     }
 }
 /**
@@ -41649,7 +42196,7 @@ function checkField(field, value) {
             reason = reasonSingular(field, value, check);
         }
     }
-    return new FieldError(field, reason);
+    return new error_FieldError(field, reason);
 }
 /**
  * Check whether the given list item is valid for the reflect API.
@@ -41657,7 +42204,7 @@ function checkField(field, value) {
 function checkListItem(field, index, value) {
     const check = checkSingular(field, value);
     if (check !== true) {
-        return new FieldError(field, `list item #${index + 1}: ${reasonSingular(field, value, check)}`);
+        return new error_FieldError(field, `list item #${index + 1}: ${reasonSingular(field, value, check)}`);
     }
     return undefined;
 }
@@ -41665,108 +42212,130 @@ function checkListItem(field, index, value) {
  * Check whether the given map key and value are valid for the reflect API.
  */
 function checkMapEntry(field, key, value) {
-    const checkKey = checkScalarValue(key, field.mapKey);
+    const checkKey = checkScalarValue(field.mapKey)(key);
     if (checkKey !== true) {
-        return new FieldError(field, `invalid map key: ${reasonSingular({ scalar: field.mapKey }, key, checkKey)}`);
+        return new error_FieldError(field, `invalid map key: ${reasonSingular({ scalar: field.mapKey }, key, checkKey)}`);
     }
     const checkVal = checkSingular(field, value);
     if (checkVal !== true) {
-        return new FieldError(field, `map entry ${formatVal(key)}: ${reasonSingular(field, value, checkVal)}`);
+        return new error_FieldError(field, `map entry ${formatVal(key)}: ${reasonSingular(field, value, checkVal)}`);
     }
     return undefined;
 }
 function checkSingular(field, value) {
     if (field.scalar !== undefined) {
-        return checkScalarValue(value, field.scalar);
+        return checkScalarValue(field.scalar)(value);
     }
     if (field.enum !== undefined) {
         if (field.enum.open) {
             // Open enums accept unrecognized values, but enum values are always
             // int32 (see https://protobuf.dev/programming-guides/proto3/#enum).
-            return checkScalarValue(value, descriptors_ScalarType.INT32);
+            return checkScalarValue(descriptors_ScalarType.INT32)(value);
         }
         return field.enum.values.some((v) => v.number === value);
     }
     return isReflectMessage(value, field.message);
 }
-function checkScalarValue(value, scalar) {
+/**
+ * Return the check for values of the given scalar type.
+ *
+ * @private
+ */
+function checkScalarValue(scalar) {
     switch (scalar) {
         case descriptors_ScalarType.DOUBLE:
-            return typeof value == "number";
+            return (value) => typeof value == "number";
         case descriptors_ScalarType.FLOAT:
-            if (typeof value != "number") {
-                return false;
-            }
-            if (Number.isNaN(value) || !Number.isFinite(value)) {
+            return (value) => {
+                if (typeof value != "number") {
+                    return false;
+                }
+                if (Number.isNaN(value) || !Number.isFinite(value)) {
+                    return true;
+                }
+                if (value > FLOAT32_MAX || value < FLOAT32_MIN) {
+                    return `${value.toFixed()} out of range`;
+                }
                 return true;
-            }
-            if (value > FLOAT32_MAX || value < FLOAT32_MIN) {
-                return `${value.toFixed()} out of range`;
-            }
-            return true;
+            };
         case descriptors_ScalarType.INT32:
         case descriptors_ScalarType.SFIXED32:
         case descriptors_ScalarType.SINT32:
             // signed
-            if (typeof value !== "number" || !Number.isInteger(value)) {
-                return false;
-            }
-            if (value > INT32_MAX || value < INT32_MIN) {
-                return `${value.toFixed()} out of range`;
-            }
-            return true;
+            return (value) => {
+                if (typeof value !== "number" || !Number.isInteger(value)) {
+                    return false;
+                }
+                if (value > INT32_MAX || value < INT32_MIN) {
+                    return `${value.toFixed()} out of range`;
+                }
+                return true;
+            };
         case descriptors_ScalarType.FIXED32:
         case descriptors_ScalarType.UINT32:
             // unsigned
-            if (typeof value !== "number" || !Number.isInteger(value)) {
-                return false;
-            }
-            if (value > UINT32_MAX || value < 0) {
-                return `${value.toFixed()} out of range`;
-            }
-            return true;
+            return (value) => {
+                if (typeof value !== "number" || !Number.isInteger(value)) {
+                    return false;
+                }
+                if (value > UINT32_MAX || value < 0) {
+                    return `${value.toFixed()} out of range`;
+                }
+                return true;
+            };
         case descriptors_ScalarType.BOOL:
-            return typeof value == "boolean";
+            return (value) => typeof value == "boolean";
         case descriptors_ScalarType.STRING:
-            if (typeof value != "string") {
-                return false;
-            }
-            return getTextEncoding().checkUtf8(value) || "invalid UTF8";
+            return (value) => {
+                if (typeof value != "string") {
+                    return false;
+                }
+                return getTextEncoding().checkUtf8(value) || "invalid UTF8";
+            };
         case descriptors_ScalarType.BYTES:
-            return value instanceof Uint8Array;
+            return (value) => value instanceof Uint8Array;
         case descriptors_ScalarType.INT64:
         case descriptors_ScalarType.SFIXED64:
         case descriptors_ScalarType.SINT64:
             // signed
-            if (typeof value == "bigint" ||
-                typeof value == "number" ||
-                (typeof value == "string" && value.length > 0)) {
-                try {
-                    protoInt64.parse(value);
-                    return true;
+            return (value) => {
+                if (typeof value == "bigint" ||
+                    typeof value == "number" ||
+                    (typeof value == "string" && value.length > 0)) {
+                    try {
+                        protoInt64.parse(value);
+                        return true;
+                    }
+                    catch (_) {
+                        return `${value} out of range`;
+                    }
                 }
-                catch (_) {
-                    return `${value} out of range`;
-                }
-            }
-            return false;
+                return false;
+            };
         case descriptors_ScalarType.FIXED64:
         case descriptors_ScalarType.UINT64:
             // unsigned
-            if (typeof value == "bigint" ||
-                typeof value == "number" ||
-                (typeof value == "string" && value.length > 0)) {
-                try {
-                    protoInt64.uParse(value);
-                    return true;
+            return (value) => {
+                if (typeof value == "bigint" ||
+                    typeof value == "number" ||
+                    (typeof value == "string" && value.length > 0)) {
+                    try {
+                        protoInt64.uParse(value);
+                        return true;
+                    }
+                    catch (_) {
+                        return `${value} out of range`;
+                    }
                 }
-                catch (_) {
-                    return `${value} out of range`;
-                }
-            }
-            return false;
+                return false;
+            };
     }
 }
+/**
+ * Format the reason why a value is invalid for a singular field.
+ *
+ * @private
+ */
 function reasonSingular(field, val, details) {
     details =
         typeof details == "string" ? `: ${details}` : `, got ${formatVal(val)}`;
@@ -41866,548 +42435,6 @@ function scalarTypeDescription(scalar) {
         case descriptors_ScalarType.SINT32:
             return "number (int32)";
     }
-}
-
-;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/reflect/reflect.js
-// Copyright 2021-2026 Buf Technologies, Inc.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-
-
-
-
-
-
-
-
-/**
- * Create a ReflectMessage.
- */
-function reflect_reflect(messageDesc, message, 
-/**
- * By default, field values are validated when setting them. For example,
- * a value for an uint32 field must be a ECMAScript Number >= 0.
- *
- * When field values are trusted, performance can be improved by disabling
- * checks.
- */
-check = true) {
-    return new ReflectMessageImpl(messageDesc, message, check);
-}
-const messageSortedFields = new WeakMap();
-class ReflectMessageImpl {
-    get sortedFields() {
-        const cached = messageSortedFields.get(this.desc);
-        if (cached) {
-            return cached;
-        }
-        const sortedFields = this.desc.fields
-            .concat()
-            .sort((a, b) => a.number - b.number);
-        messageSortedFields.set(this.desc, sortedFields);
-        return sortedFields;
-    }
-    constructor(messageDesc, message, check = true) {
-        this.lists = new Map();
-        this.maps = new Map();
-        this.check = check;
-        this.desc = messageDesc;
-        this.message = this[unsafeLocal] = message !== null && message !== void 0 ? message : create_create(messageDesc);
-        this.fields = messageDesc.fields;
-        this.oneofs = messageDesc.oneofs;
-        this.members = messageDesc.members;
-    }
-    findNumber(number) {
-        if (!this._fieldsByNumber) {
-            this._fieldsByNumber = new Map(this.desc.fields.map((f) => [f.number, f]));
-        }
-        return this._fieldsByNumber.get(number);
-    }
-    oneofCase(oneof) {
-        assertOwn(this.message, oneof);
-        return unsafeOneofCase(this.message, oneof);
-    }
-    isSet(field) {
-        assertOwn(this.message, field);
-        return unsafeIsSet(this.message, field);
-    }
-    clear(field) {
-        assertOwn(this.message, field);
-        unsafeClear(this.message, field);
-    }
-    get(field) {
-        assertOwn(this.message, field);
-        const value = unsafeGet(this.message, field);
-        switch (field.fieldKind) {
-            case "list":
-                // eslint-disable-next-line no-case-declarations
-                let list = this.lists.get(field);
-                if (!list || list[unsafeLocal] !== value) {
-                    this.lists.set(field, 
-                    // biome-ignore lint/suspicious/noAssignInExpressions: no
-                    (list = new ReflectListImpl(field, value, this.check)));
-                }
-                return list;
-            case "map":
-                let map = this.maps.get(field);
-                if (!map || map[unsafeLocal] !== value) {
-                    this.maps.set(field, 
-                    // biome-ignore lint/suspicious/noAssignInExpressions: no
-                    (map = new ReflectMapImpl(field, value, this.check)));
-                }
-                return map;
-            case "message":
-                return messageToReflect(field, value, this.check);
-            case "scalar":
-                return (value === undefined
-                    ? scalarZeroValue(field.scalar, false)
-                    : longToReflect(field, value));
-            case "enum":
-                return (value !== null && value !== void 0 ? value : field.enum.values[0].number);
-        }
-    }
-    set(field, value) {
-        assertOwn(this.message, field);
-        if (this.check) {
-            const err = checkField(field, value);
-            if (err) {
-                throw err;
-            }
-        }
-        let local;
-        if (field.fieldKind == "message") {
-            local = messageToLocal(field, value);
-        }
-        else if (isReflectMap(value) || isReflectList(value)) {
-            local = value[unsafeLocal];
-        }
-        else {
-            local = longToLocal(field, value);
-        }
-        unsafeSet(this.message, field, local);
-    }
-    getUnknown() {
-        return this.message.$unknown;
-    }
-    setUnknown(value) {
-        this.message.$unknown = value;
-    }
-}
-function assertOwn(owner, member) {
-    if (member.parent.typeName !== owner.$typeName) {
-        throw new FieldError(member, `cannot use ${member.toString()} with message ${owner.$typeName}`, "ForeignFieldError");
-    }
-}
-/**
- * Create a ReflectList.
- */
-function reflectList(field, unsafeInput, 
-/**
- * By default, field values are validated when setting them. For example,
- * a value for an uint32 field must be a ECMAScript Number >= 0.
- *
- * When field values are trusted, performance can be improved by disabling
- * checks.
- */
-check = true) {
-    return new ReflectListImpl(field, unsafeInput !== null && unsafeInput !== void 0 ? unsafeInput : [], check);
-}
-class ReflectListImpl {
-    field() {
-        return this._field;
-    }
-    get size() {
-        return this._arr.length;
-    }
-    constructor(field, unsafeInput, check) {
-        this._field = field;
-        this._arr = this[unsafeLocal] = unsafeInput;
-        this.check = check;
-    }
-    get(index) {
-        const item = this._arr[index];
-        return item === undefined
-            ? undefined
-            : listItemToReflect(this._field, item, this.check);
-    }
-    set(index, item) {
-        if (index < 0 || index >= this._arr.length) {
-            throw new FieldError(this._field, `list item #${index + 1}: out of range`);
-        }
-        if (this.check) {
-            const err = checkListItem(this._field, index, item);
-            if (err) {
-                throw err;
-            }
-        }
-        this._arr[index] = listItemToLocal(this._field, item);
-    }
-    add(item) {
-        if (this.check) {
-            const err = checkListItem(this._field, this._arr.length, item);
-            if (err) {
-                throw err;
-            }
-        }
-        this._arr.push(listItemToLocal(this._field, item));
-        return undefined;
-    }
-    clear() {
-        this._arr.splice(0, this._arr.length);
-    }
-    [Symbol.iterator]() {
-        return this.values();
-    }
-    keys() {
-        return this._arr.keys();
-    }
-    *values() {
-        for (const item of this._arr) {
-            yield listItemToReflect(this._field, item, this.check);
-        }
-    }
-    *entries() {
-        for (let i = 0; i < this._arr.length; i++) {
-            yield [i, listItemToReflect(this._field, this._arr[i], this.check)];
-        }
-    }
-}
-/**
- * Create a ReflectMap.
- */
-function reflectMap(field, unsafeInput, 
-/**
- * By default, field values are validated when setting them. For example,
- * a value for an uint32 field must be a ECMAScript Number >= 0.
- *
- * When field values are trusted, performance can be improved by disabling
- * checks.
- */
-check = true) {
-    return new ReflectMapImpl(field, unsafeInput, check);
-}
-class ReflectMapImpl {
-    constructor(field, unsafeInput, check = true) {
-        this.obj = this[unsafeLocal] = unsafeInput !== null && unsafeInput !== void 0 ? unsafeInput : {};
-        this.check = check;
-        this._field = field;
-    }
-    field() {
-        return this._field;
-    }
-    set(key, value) {
-        if (this.check) {
-            const err = checkMapEntry(this._field, key, value);
-            if (err) {
-                throw err;
-            }
-        }
-        this.obj[mapKeyToLocal(key)] = mapValueToLocal(this._field, value);
-        return this;
-    }
-    delete(key) {
-        const k = mapKeyToLocal(key);
-        const has = Object.prototype.hasOwnProperty.call(this.obj, k);
-        if (has) {
-            delete this.obj[k];
-        }
-        return has;
-    }
-    clear() {
-        for (const key of Object.keys(this.obj)) {
-            delete this.obj[key];
-        }
-    }
-    get(key) {
-        let val = this.obj[mapKeyToLocal(key)];
-        if (val !== undefined) {
-            val = mapValueToReflect(this._field, val, this.check);
-        }
-        return val;
-    }
-    has(key) {
-        return Object.prototype.hasOwnProperty.call(this.obj, mapKeyToLocal(key));
-    }
-    *keys() {
-        for (const objKey of Object.keys(this.obj)) {
-            yield mapKeyToReflect(objKey, this._field.mapKey);
-        }
-    }
-    *entries() {
-        for (const objEntry of Object.entries(this.obj)) {
-            yield [
-                mapKeyToReflect(objEntry[0], this._field.mapKey),
-                mapValueToReflect(this._field, objEntry[1], this.check),
-            ];
-        }
-    }
-    [Symbol.iterator]() {
-        return this.entries();
-    }
-    get size() {
-        return Object.keys(this.obj).length;
-    }
-    *values() {
-        for (const val of Object.values(this.obj)) {
-            yield mapValueToReflect(this._field, val, this.check);
-        }
-    }
-    forEach(callbackfn, thisArg) {
-        for (const mapEntry of this.entries()) {
-            callbackfn.call(thisArg, mapEntry[1], mapEntry[0], this);
-        }
-    }
-}
-function messageToLocal(field, value) {
-    if (!isReflectMessage(value)) {
-        return value;
-    }
-    if (isWrapper(value.message) &&
-        !field.oneof &&
-        field.fieldKind == "message") {
-        // Types from google/protobuf/wrappers.proto are unwrapped when used in
-        // a singular field that is not part of a oneof group.
-        return value.message.value;
-    }
-    if (value.desc.typeName == "google.protobuf.Struct" &&
-        field.parent.typeName != "google.protobuf.Value") {
-        // google.protobuf.Struct is represented with JsonObject when used in a
-        // field, except when used in google.protobuf.Value.
-        return wktStructToLocal(value.message);
-    }
-    return value.message;
-}
-function messageToReflect(field, value, check) {
-    if (value !== undefined) {
-        if (isWrapperDesc(field.message) &&
-            !field.oneof &&
-            field.fieldKind == "message") {
-            // Types from google/protobuf/wrappers.proto are unwrapped when used in
-            // a singular field that is not part of a oneof group.
-            value = {
-                $typeName: field.message.typeName,
-                value: longToReflect(field.message.fields[0], value),
-            };
-        }
-        else if (field.message.typeName == "google.protobuf.Struct" &&
-            field.parent.typeName != "google.protobuf.Value" &&
-            isObject(value)) {
-            // google.protobuf.Struct is represented with JsonObject when used in a
-            // field, except when used in google.protobuf.Value.
-            value = wktStructToReflect(value);
-        }
-    }
-    return new ReflectMessageImpl(field.message, value, check);
-}
-function listItemToLocal(field, value) {
-    if (field.listKind == "message") {
-        return messageToLocal(field, value);
-    }
-    return longToLocal(field, value);
-}
-function listItemToReflect(field, value, check) {
-    if (field.listKind == "message") {
-        return messageToReflect(field, value, check);
-    }
-    return longToReflect(field, value);
-}
-function mapValueToLocal(field, value) {
-    if (field.mapKind == "message") {
-        return messageToLocal(field, value);
-    }
-    return longToLocal(field, value);
-}
-function mapValueToReflect(field, value, check) {
-    if (field.mapKind == "message") {
-        return messageToReflect(field, value, check);
-    }
-    return value;
-}
-function mapKeyToLocal(key) {
-    return typeof key == "string" || typeof key == "number" ? key : String(key);
-}
-/**
- * Converts a map key (any scalar value except float, double, or bytes) from its
- * representation in a message (string or number, the only possible object key
- * types) to the closest possible type in ECMAScript.
- */
-function mapKeyToReflect(key, type) {
-    switch (type) {
-        case descriptors_ScalarType.STRING:
-            return key;
-        case descriptors_ScalarType.INT32:
-        case descriptors_ScalarType.FIXED32:
-        case descriptors_ScalarType.UINT32:
-        case descriptors_ScalarType.SFIXED32:
-        case descriptors_ScalarType.SINT32: {
-            const n = Number.parseInt(key);
-            if (Number.isFinite(n)) {
-                return n;
-            }
-            break;
-        }
-        case descriptors_ScalarType.BOOL:
-            switch (key) {
-                case "true":
-                    return true;
-                case "false":
-                    return false;
-            }
-            break;
-        case descriptors_ScalarType.UINT64:
-        case descriptors_ScalarType.FIXED64:
-            try {
-                return protoInt64.uParse(key);
-            }
-            catch (_a) {
-                //
-            }
-            break;
-        default:
-            // INT64, SFIXED64, SINT64
-            try {
-                return protoInt64.parse(key);
-            }
-            catch (_b) {
-                //
-            }
-            break;
-    }
-    return key;
-}
-function longToReflect(field, value) {
-    switch (field.scalar) {
-        case descriptors_ScalarType.INT64:
-        case descriptors_ScalarType.SFIXED64:
-        case descriptors_ScalarType.SINT64:
-            if ("longAsString" in field &&
-                field.longAsString &&
-                typeof value == "string") {
-                value = protoInt64.parse(value);
-            }
-            break;
-        case descriptors_ScalarType.FIXED64:
-        case descriptors_ScalarType.UINT64:
-            if ("longAsString" in field &&
-                field.longAsString &&
-                typeof value == "string") {
-                value = protoInt64.uParse(value);
-            }
-            break;
-    }
-    return value;
-}
-function longToLocal(field, value) {
-    switch (field.scalar) {
-        case descriptors_ScalarType.INT64:
-        case descriptors_ScalarType.SFIXED64:
-        case descriptors_ScalarType.SINT64:
-            if ("longAsString" in field && field.longAsString) {
-                value = String(value);
-            }
-            else if (typeof value == "string" || typeof value == "number") {
-                value = protoInt64.parse(value);
-            }
-            break;
-        case descriptors_ScalarType.FIXED64:
-        case descriptors_ScalarType.UINT64:
-            if ("longAsString" in field && field.longAsString) {
-                value = String(value);
-            }
-            else if (typeof value == "string" || typeof value == "number") {
-                value = protoInt64.uParse(value);
-            }
-            break;
-    }
-    return value;
-}
-function wktStructToReflect(json) {
-    const struct = {
-        $typeName: "google.protobuf.Struct",
-        fields: {},
-    };
-    if (isObject(json)) {
-        for (const [k, v] of Object.entries(json)) {
-            struct.fields[k] = wktValueToReflect(v);
-        }
-    }
-    return struct;
-}
-function wktStructToLocal(val) {
-    const json = {};
-    for (const [k, v] of Object.entries(val.fields)) {
-        json[k] = wktValueToLocal(v);
-    }
-    return json;
-}
-function wktValueToLocal(val) {
-    switch (val.kind.case) {
-        case "structValue":
-            return wktStructToLocal(val.kind.value);
-        case "listValue":
-            return val.kind.value.values.map(wktValueToLocal);
-        case "nullValue":
-        case undefined:
-            return null;
-        default:
-            return val.kind.value;
-    }
-}
-function wktValueToReflect(json) {
-    const value = {
-        $typeName: "google.protobuf.Value",
-        kind: { case: undefined },
-    };
-    switch (typeof json) {
-        case "number":
-            value.kind = { case: "numberValue", value: json };
-            break;
-        case "string":
-            value.kind = { case: "stringValue", value: json };
-            break;
-        case "boolean":
-            value.kind = { case: "boolValue", value: json };
-            break;
-        case "object":
-            if (json === null) {
-                const nullValue = 0;
-                value.kind = { case: "nullValue", value: nullValue };
-            }
-            else if (Array.isArray(json)) {
-                const listValue = {
-                    $typeName: "google.protobuf.ListValue",
-                    values: [],
-                };
-                if (Array.isArray(json)) {
-                    for (const e of json) {
-                        listValue.values.push(wktValueToReflect(e));
-                    }
-                }
-                value.kind = {
-                    case: "listValue",
-                    value: listValue,
-                };
-            }
-            else {
-                value.kind = {
-                    case: "structValue",
-                    value: wktStructToReflect(json),
-                };
-            }
-            break;
-    }
-    return value;
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/reflect/names.js
@@ -42521,6 +42548,160 @@ function safeObjectProperty(name) {
     return reservedObjectProperties.has(name) ? name + "$" : name;
 }
 
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/reflect/message.js
+// Copyright 2021-2026 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+// google.protobuf.NullValue.NULL_VALUE;
+const NULL_VALUE = 0;
+/**
+ * Return the conversions between the local representation of the field
+ * value and the message it represents.
+ *
+ * @private
+ */
+function localMessageMapper(field) {
+    // google.protobuf.Struct fields are stored as JsonObject.
+    if (usesJsonRepresentation(field)) {
+        return {
+            toMessage: (local) => wktStructToReflect(local),
+            toLocal: (message) => wktStructToLocal(message),
+        };
+    }
+    // Singular wrapper fields outside a oneof are unwrapped to the scalar value.
+    if (field.fieldKind == "message" &&
+        !field.oneof &&
+        isWrapperDesc(field.message)) {
+        const wrapperDesc = field.message;
+        const valueLocalName = wrapperDesc.fields[0].localName;
+        return {
+            toMessage: (local) => {
+                const message = create_create(wrapperDesc);
+                if (local !== undefined) {
+                    message[valueLocalName] = local;
+                }
+                return message;
+            },
+            toLocal: (message) => message[valueLocalName],
+        };
+    }
+    // For all other fields, the local value is the message itself.
+    const childDesc = field.message;
+    return {
+        toMessage: (local) => (local === undefined ? create_create(childDesc) : local),
+        toLocal: (message) => message,
+    };
+}
+/**
+ * Returns true if values of this field are stored as JsonValue instead of
+ * a message: google.protobuf.Struct is represented with JsonObject when
+ * used in a field, except when used in google.protobuf.Value.
+ */
+function usesJsonRepresentation(field) {
+    return (field.message.typeName == "google.protobuf.Struct" &&
+        field.parent.typeName != "google.protobuf.Value");
+}
+/**
+ * Convert the JsonValue representation of a google.protobuf.Struct to the
+ * message representation.
+ *
+ * @private
+ */
+function wktStructToReflect(json) {
+    const struct = {
+        $typeName: "google.protobuf.Struct",
+        fields: {},
+    };
+    if (isObject(json)) {
+        for (const k of Object.keys(json)) {
+            struct.fields[k] = wktValueToReflect(json[k]);
+        }
+    }
+    return struct;
+}
+/**
+ * Convert a google.protobuf.Struct message to its JsonValue representation.
+ *
+ * @private
+ */
+function wktStructToLocal(val) {
+    const json = {};
+    for (const k of Object.keys(val.fields)) {
+        json[k] = wktValueToLocal(val.fields[k]);
+    }
+    return json;
+}
+function wktValueToLocal(val) {
+    switch (val.kind.case) {
+        case "structValue":
+            return wktStructToLocal(val.kind.value);
+        case "listValue":
+            return val.kind.value.values.map(wktValueToLocal);
+        case "nullValue":
+        case undefined:
+            return null;
+        default:
+            return val.kind.value;
+    }
+}
+function wktValueToReflect(json) {
+    const value = {
+        $typeName: "google.protobuf.Value",
+        kind: { case: undefined },
+    };
+    switch (typeof json) {
+        case "number":
+            value.kind = { case: "numberValue", value: json };
+            break;
+        case "string":
+            value.kind = { case: "stringValue", value: json };
+            break;
+        case "boolean":
+            value.kind = { case: "boolValue", value: json };
+            break;
+        case "object":
+            if (json === null) {
+                value.kind = { case: "nullValue", value: NULL_VALUE };
+            }
+            else if (Array.isArray(json)) {
+                const listValue = {
+                    $typeName: "google.protobuf.ListValue",
+                    values: [],
+                };
+                if (Array.isArray(json)) {
+                    for (const e of json) {
+                        listValue.values.push(wktValueToReflect(e));
+                    }
+                }
+                value.kind = {
+                    case: "listValue",
+                    value: listValue,
+                };
+            }
+            else {
+                value.kind = {
+                    case: "structValue",
+                    value: wktStructToReflect(json),
+                };
+            }
+            break;
+    }
+    return value;
+}
+
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wire/base64-encoding.js
 // Copyright 2021-2026 Buf Technologies, Inc.
 //
@@ -42535,6 +42716,8 @@ function safeObjectProperty(name) {
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+// Native Uint8Array.prototype.setFromBase64, if the runtime provides it.
+const nativeSetFromBase64 = Uint8Array.prototype.setFromBase64;
 /**
  * Decodes a base64 string to a byte array.
  *
@@ -42547,14 +42730,35 @@ function safeObjectProperty(name) {
  *   no padding
  */
 function base64_encoding_base64Decode(base64Str) {
+    const len = base64Str.length;
+    // Decoded size, assuming a well-formed string: three bytes per group of
+    // four characters, minus one byte for each padding character.
+    let size = len - ((len + 3) >> 2);
+    if ((len & 3) == 0 && base64Str[len - 1] == "=") {
+        size -= base64Str[len - 2] == "=" ? 2 : 1;
+    }
+    const bytes = new Uint8Array(size);
+    let written = -1;
+    if (nativeSetFromBase64) {
+        try {
+            const result = nativeSetFromBase64.call(bytes, base64Str);
+            if (result.read == len) {
+                written = result.written;
+            }
+        }
+        catch (_a) {
+            // The native decoder rejects base64url and inner padding, which we accept.
+        }
+    }
+    if (written < 0) {
+        written = setFromBase64(bytes, base64Str);
+    }
+    return written == size ? bytes : bytes.subarray(0, written);
+}
+/** Writes into `bytes` from index 0 and returns the number of bytes written. */
+function setFromBase64(bytes, base64Str) {
     const table = getDecodeTable();
-    // estimate byte size, not accounting for inner padding and whitespace
-    let es = (base64Str.length * 3) / 4;
-    if (base64Str[base64Str.length - 2] == "=")
-        es -= 2;
-    else if (base64Str[base64Str.length - 1] == "=")
-        es -= 1;
-    let bytes = new Uint8Array(es), bytePos = 0, // position in byte array
+    let bytePos = 0, // position in byte array
     groupPos = 0, // position in base64 group
     b, // current byte
     p = 0; // previous byte
@@ -42597,8 +42801,14 @@ function base64_encoding_base64Decode(base64Str) {
     }
     if (groupPos == 1)
         throw Error("invalid base64 string");
-    return bytes.subarray(0, bytePos);
+    return bytePos;
 }
+const nativeToBase64 = Uint8Array.prototype.toBase64;
+const toBase64OptionsMap = {
+    std: { alphabet: "base64", omitPadding: false },
+    std_raw: { alphabet: "base64", omitPadding: true },
+    url: { alphabet: "base64url", omitPadding: true },
+};
 /**
  * Encode a byte array to a base64 string.
  *
@@ -42610,6 +42820,9 @@ function base64_encoding_base64Decode(base64Str) {
  * characters +/ by their URL-safe counterparts -_, and omits padding.
  */
 function base64_encoding_base64Encode(bytes, encoding = "std") {
+    if (nativeToBase64) {
+        return nativeToBase64.call(bytes, toBase64OptionsMap[encoding]);
+    }
     const table = getEncodeTable(encoding);
     const pad = encoding == "std";
     let base64 = "", groupPos = 0, // position in base64 group
@@ -43197,43 +43410,43 @@ function initBaseRegistry(inputs) {
     }
     return registry;
 }
-// bootstrap-inject google.protobuf.Edition.EDITION_PROTO2: const $name: Edition.$localName = $number;
+// bootstrap-inject google.protobuf.Edition.EDITION_PROTO2: const $name = $number;
 const registry_EDITION_PROTO2 = 998;
-// bootstrap-inject google.protobuf.Edition.EDITION_PROTO3: const $name: Edition.$localName = $number;
+// bootstrap-inject google.protobuf.Edition.EDITION_PROTO3: const $name = $number;
 const registry_EDITION_PROTO3 = 999;
-// bootstrap-inject google.protobuf.Edition.EDITION_UNSTABLE: const $name: Edition.$localName = $number;
+// bootstrap-inject google.protobuf.Edition.EDITION_UNSTABLE: const $name = $number;
 const EDITION_UNSTABLE = 9999;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_STRING: const $name: FieldDescriptorProto_Type.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_STRING: const $name = $number;
 const TYPE_STRING = 9;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_GROUP: const $name: FieldDescriptorProto_Type.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_GROUP: const $name = $number;
 const TYPE_GROUP = 10;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_MESSAGE: const $name: FieldDescriptorProto_Type.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_MESSAGE: const $name = $number;
 const TYPE_MESSAGE = 11;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_BYTES: const $name: FieldDescriptorProto_Type.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_BYTES: const $name = $number;
 const TYPE_BYTES = 12;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_ENUM: const $name: FieldDescriptorProto_Type.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_ENUM: const $name = $number;
 const TYPE_ENUM = 14;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Label.LABEL_REPEATED: const $name: FieldDescriptorProto_Label.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Label.LABEL_REPEATED: const $name = $number;
 const LABEL_REPEATED = 3;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Label.LABEL_REQUIRED: const $name: FieldDescriptorProto_Label.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Label.LABEL_REQUIRED: const $name = $number;
 const LABEL_REQUIRED = 2;
-// bootstrap-inject google.protobuf.FieldOptions.JSType.JS_STRING: const $name: FieldOptions_JSType.$localName = $number;
+// bootstrap-inject google.protobuf.FieldOptions.JSType.JS_STRING: const $name = $number;
 const JS_STRING = 1;
-// bootstrap-inject google.protobuf.MethodOptions.IdempotencyLevel.IDEMPOTENCY_UNKNOWN: const $name: MethodOptions_IdempotencyLevel.$localName = $number;
+// bootstrap-inject google.protobuf.MethodOptions.IdempotencyLevel.IDEMPOTENCY_UNKNOWN: const $name = $number;
 const IDEMPOTENCY_UNKNOWN = 0;
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.EXPLICIT: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.EXPLICIT: const $name = $number;
 const EXPLICIT = 1;
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name = $number;
 const registry_IMPLICIT = 2;
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.LEGACY_REQUIRED: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.LEGACY_REQUIRED: const $name = $number;
 const LEGACY_REQUIRED = 3;
-// bootstrap-inject google.protobuf.FeatureSet.RepeatedFieldEncoding.PACKED: const $name: FeatureSet_RepeatedFieldEncoding.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.RepeatedFieldEncoding.PACKED: const $name = $number;
 const PACKED = 1;
-// bootstrap-inject google.protobuf.FeatureSet.MessageEncoding.DELIMITED: const $name: FeatureSet_MessageEncoding.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.MessageEncoding.DELIMITED: const $name = $number;
 const DELIMITED = 2;
-// bootstrap-inject google.protobuf.FeatureSet.EnumType.OPEN: const $name: FeatureSet_EnumType.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.EnumType.OPEN: const $name = $number;
 const OPEN = 1;
-// bootstrap-inject google.protobuf.FeatureSet.Utf8Validation.VERIFY: const $name: FeatureSet_Utf8Validation.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.Utf8Validation.VERIFY: const $name = $number;
 const VERIFY = 2;
 // biome-ignore format: want this to read well
 // bootstrap-inject defaults: EDITION_PROTO2 to EDITION_2024: export const minimumEdition: SupportedEdition = $minimumEdition, maximumEdition: SupportedEdition = $maximumEdition;
@@ -43585,6 +43798,7 @@ function newField(proto, parentOrFile, reg, oneof, mapEntries) {
         longAsString: false,
         getDefaultValue: undefined,
     };
+    let toStr;
     if (isExtension) {
         // extension field
         const file = parentOrFile.kind == "file" ? parentOrFile : parentOrFile.file;
@@ -43596,7 +43810,7 @@ function newField(proto, parentOrFile, reg, oneof, mapEntries) {
         field.oneof = undefined;
         field.typeName = typeName;
         field.jsonName = `[${typeName}]`; // option json_name is not allowed on extension fields
-        field.toString = () => `extension ${typeName}`;
+        toStr = () => `extension ${typeName}`;
         const extendee = reg.getMessage(trimLeadingDot(proto.extendee));
         assert(extendee, `invalid FieldDescriptorProto: extendee ${proto.extendee} not found`);
         field.extendee = extendee;
@@ -43611,8 +43825,16 @@ function newField(proto, parentOrFile, reg, oneof, mapEntries) {
             ? protoCamelCase(proto.name)
             : safeObjectProperty(protoCamelCase(proto.name));
         field.jsonName = proto.jsonName;
-        field.toString = () => `field ${parent.typeName}.${proto.name}`;
+        toStr = () => `field ${parent.typeName}.${proto.name}`;
     }
+    // A plain assignment throws where built-in prototypes are frozen. The
+    // attributes match what an assignment produces.
+    Object.defineProperty(field, "toString", {
+        value: toStr,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+    });
     const label = proto.label;
     const type = proto.type;
     const jstype = (_c = proto.options) === null || _c === void 0 ? void 0 : _c.jstype;
@@ -44983,6 +45205,9 @@ const SymbolVisibilitySchema = /*@__PURE__*/ (/* unused pure expression or super
 
 
 
+
+
+
 /**
  * @private Only exported for getExtension()
  */
@@ -44993,9 +45218,9 @@ function makeReadContext(options) {
  * Parse serialized binary data.
  */
 function from_binary_fromBinary(schema, bytes, options) {
-    const msg = reflect_reflect(schema, undefined, false);
-    readMessage(msg, new binary_encoding_BinaryReader(bytes), makeReadContext(options), false, bytes.byteLength);
-    return msg.message;
+    const message = create_create(schema);
+    compiledReader(schema).read(message, new binary_encoding_BinaryReader(bytes), makeReadContext(options), bytes.byteLength);
+    return message;
 }
 /**
  * Parse from binary data, merging fields.
@@ -45007,203 +45232,368 @@ function from_binary_fromBinary(schema, bytes, options) {
  * new data.
  */
 function from_binary_mergeFromBinary(schema, target, bytes, options) {
-    readMessage(reflect(schema, target, false), new BinaryReader(bytes), makeReadContext(options), false, bytes.byteLength);
+    if (target.$typeName !== schema.typeName &&
+        schema.fields.length > 0) {
+        throw new FieldError(schema.fields[0], `cannot use ${schema.fields[0]} with message ${target.$typeName}`, "ForeignFieldError");
+    }
+    compiledReader(schema).read(target, new BinaryReader(bytes), makeReadContext(options), bytes.byteLength);
     return target;
 }
+const compiledReaders = new WeakMap();
 /**
- * If `delimited` is false, read the length given in `lengthOrDelimitedFieldNo`.
- *
- * If `delimited` is true, read until an EndGroup tag. `lengthOrDelimitedFieldNo`
- * is the expected field number.
- *
- * @private
+ * Return the compiled decoder for a message, compiling it on first use.
  */
-function readMessage(message, reader, ctx, delimited, lengthOrDelimitedFieldNo) {
-    var _a;
-    if (++ctx.depth > ctx.recursionLimit) {
-        throw new Error(`cannot decode ${message.desc} from binary: maximum recursion depth of ${ctx.recursionLimit} reached`);
+function compiledReader(desc) {
+    let compiled = compiledReaders.get(desc);
+    if (compiled === undefined) {
+        compiled = compileMessage(desc);
     }
-    const end = delimited ? reader.len : reader.pos + lengthOrDelimitedFieldNo;
-    let fieldNo;
-    let wireType;
-    const unknownFields = (_a = message.getUnknown()) !== null && _a !== void 0 ? _a : [];
-    while (reader.pos < end) {
-        [fieldNo, wireType] = reader.tag();
-        if (delimited && wireType == WireType.EndGroup) {
-            break;
+    return compiled;
+}
+function compileMessage(desc) {
+    const descString = String(desc);
+    const fieldReaders = new Map();
+    const compiled = {
+        read: compileMessageReader(descString, fieldReaders),
+        readGroup: compileGroupReader(descString, fieldReaders),
+    };
+    // Register before compiling fields, so that recursive message types
+    // resolve to this instance instead of compiling endlessly.
+    compiledReaders.set(desc, compiled);
+    for (const field of desc.fields) {
+        fieldReaders.set(field.number, compileFieldReader(field));
+    }
+    return compiled;
+}
+/**
+ * Create a decoder for a length-prefixed message body, dispatching wire
+ * records to the compiled field decoders by field number.
+ */
+function compileMessageReader(descString, fieldReaders) {
+    return (message, reader, ctx, length) => {
+        var _a;
+        if (++ctx.depth > ctx.recursionLimit) {
+            throw new Error(`cannot decode ${descString} from binary: maximum recursion depth of ${ctx.recursionLimit} reached`);
         }
-        const field = message.findNumber(fieldNo);
-        if (!field) {
-            // Use remaining recursion budget for skipping nested groups
-            const recursionLimit = ctx.recursionLimit - ctx.depth;
-            const data = reader.skip(wireType, fieldNo, recursionLimit);
-            if (ctx.readUnknownFields) {
-                unknownFields.push({ no: fieldNo, wireType, data });
+        const end = reader.pos + length;
+        const unknownFields = (_a = message.$unknown) !== null && _a !== void 0 ? _a : [];
+        while (reader.pos < end) {
+            const [fieldNo, wireType] = reader.tag();
+            const fieldReader = fieldReaders.get(fieldNo);
+            if (fieldReader === undefined) {
+                // Use remaining recursion budget for skipping nested groups
+                const data = reader.skip(wireType, fieldNo, ctx.recursionLimit - ctx.depth);
+                if (ctx.readUnknownFields) {
+                    unknownFields.push({ no: fieldNo, wireType, data });
+                }
+                continue;
             }
-            continue;
+            fieldReader(message, reader, ctx, wireType);
         }
-        readField(message, reader, field, wireType, ctx);
-    }
-    if (delimited) {
-        if (wireType != WireType.EndGroup || fieldNo !== lengthOrDelimitedFieldNo) {
+        if (unknownFields.length > 0) {
+            message.$unknown = unknownFields;
+        }
+        ctx.depth--;
+    };
+}
+/**
+ * Create a decoder for a message with the delimited encoding (group),
+ * reading until the EndGroup tag, like compileMessageReader.
+ */
+function compileGroupReader(descString, fieldReaders) {
+    return (message, reader, ctx, fieldNo) => {
+        var _a;
+        if (++ctx.depth > ctx.recursionLimit) {
+            throw new Error(`cannot decode ${descString} from binary: maximum recursion depth of ${ctx.recursionLimit} reached`);
+        }
+        let recordFieldNo;
+        let wireType;
+        const unknownFields = (_a = message.$unknown) !== null && _a !== void 0 ? _a : [];
+        while (reader.pos < reader.len) {
+            [recordFieldNo, wireType] = reader.tag();
+            if (wireType == WireType.EndGroup) {
+                break;
+            }
+            const fieldReader = fieldReaders.get(recordFieldNo);
+            if (fieldReader === undefined) {
+                // Use remaining recursion budget for skipping nested groups
+                const data = reader.skip(wireType, recordFieldNo, ctx.recursionLimit - ctx.depth);
+                if (ctx.readUnknownFields) {
+                    unknownFields.push({ no: recordFieldNo, wireType, data });
+                }
+                continue;
+            }
+            fieldReader(message, reader, ctx, wireType);
+        }
+        if (wireType != WireType.EndGroup || recordFieldNo !== fieldNo) {
             throw new Error("invalid end group tag");
         }
-    }
-    if (unknownFields.length > 0) {
-        message.setUnknown(unknownFields);
-    }
-    ctx.depth--;
+        if (unknownFields.length > 0) {
+            message.$unknown = unknownFields;
+        }
+        ctx.depth--;
+    };
 }
 /**
  * @private Only exported for getExtension()
  */
 function readField(message, reader, field, wireType, ctx) {
-    var _a;
+    compileFieldReader(field)(message[unsafeLocal], reader, ctx, wireType);
+}
+function compileFieldReader(field) {
     switch (field.fieldKind) {
         case "scalar":
-            message.set(field, readScalar(reader, field.scalar, field.utf8Validation));
-            break;
+            return compileScalarFieldReader(field);
         case "enum":
-            const val = readScalar(reader, descriptors_ScalarType.INT32);
-            if (field.enum.open) {
-                message.set(field, val);
+            return compileEnumFieldReader(field);
+        case "message":
+            return compileMessageFieldReader(field);
+        case "list":
+            return compileListFieldReader(field);
+        case "map":
+            return compileMapFieldReader(field);
+    }
+}
+function compileScalarFieldReader(field) {
+    const readScalar = compileScalarReader(field.scalar, field.utf8Validation, field.longAsString);
+    const localName = field.localName;
+    if (field.oneof) {
+        const oneofLocalName = field.oneof.localName;
+        return (message, reader) => {
+            message[oneofLocalName] = {
+                case: localName,
+                value: readScalar(reader),
+            };
+        };
+    }
+    return (message, reader) => {
+        message[localName] = readScalar(reader);
+    };
+}
+function compileEnumFieldReader(field) {
+    var _a;
+    const localName = field.localName;
+    const oneofLocalName = (_a = field.oneof) === null || _a === void 0 ? void 0 : _a.localName;
+    if (field.enum.open) {
+        if (oneofLocalName !== undefined) {
+            return (message, reader) => {
+                message[oneofLocalName] = { case: localName, value: reader.int32() };
+            };
+        }
+        return (message, reader) => {
+            message[localName] = reader.int32();
+        };
+    }
+    // Closed enums: unknown values are stored as unknown fields.
+    const values = field.enum.values;
+    const fieldNo = field.number;
+    return (message, reader, ctx, wireType) => {
+        var _a;
+        const val = reader.int32();
+        if (values.some((v) => v.number === val)) {
+            if (oneofLocalName !== undefined) {
+                message[oneofLocalName] = { case: localName, value: val };
             }
             else {
-                const ok = field.enum.values.some((v) => v.number === val);
-                if (ok) {
-                    message.set(field, val);
-                }
-                else if (ctx.readUnknownFields) {
-                    const bytes = [];
-                    varint32write(val, bytes);
-                    const unknownFields = (_a = message.getUnknown()) !== null && _a !== void 0 ? _a : [];
-                    unknownFields.push({
-                        no: field.number,
-                        wireType,
-                        data: new Uint8Array(bytes),
-                    });
-                    message.setUnknown(unknownFields);
-                }
+                message[localName] = val;
+            }
+        }
+        else if (ctx.readUnknownFields) {
+            const bytes = [];
+            varint32write(val, bytes);
+            const unknownFields = (_a = message.$unknown) !== null && _a !== void 0 ? _a : [];
+            unknownFields.push({
+                no: fieldNo,
+                wireType,
+                data: new Uint8Array(bytes),
+            });
+            message.$unknown = unknownFields;
+        }
+    };
+}
+function compileMessageFieldReader(field) {
+    const localName = field.localName;
+    const { toMessage, toLocal } = localMessageMapper(field);
+    const readChild = compileChildReader(field);
+    if (field.oneof) {
+        const oneofLocalName = field.oneof.localName;
+        return (message, reader, ctx) => {
+            const oneof = message[oneofLocalName];
+            const child = toMessage(oneof.case === localName ? oneof.value : undefined);
+            readChild(child, reader, ctx);
+            message[oneofLocalName] = { case: localName, value: toLocal(child) };
+        };
+    }
+    return (message, reader, ctx) => {
+        const child = toMessage(message[localName]);
+        readChild(child, reader, ctx);
+        message[localName] = toLocal(child);
+    };
+}
+/**
+ * Compile a decoder for the wire format of a message field, honoring the
+ * delimited encoding of the field.
+ */
+function compileChildReader(field) {
+    const compiledChild = compiledReader(field.message);
+    if (field.delimitedEncoding) {
+        const fieldNo = field.number;
+        return (child, reader, ctx) => compiledChild.readGroup(child, reader, ctx, fieldNo);
+    }
+    return (child, reader, ctx) => compiledChild.read(child, reader, ctx, reader.uint32());
+}
+function compileListFieldReader(field) {
+    const localName = field.localName;
+    if (field.listKind == "message") {
+        const { toMessage, toLocal } = localMessageMapper(field);
+        const readChild = compileChildReader(field);
+        return (message, reader, ctx) => {
+            const child = toMessage(undefined);
+            readChild(child, reader, ctx);
+            message[localName].push(toLocal(child));
+        };
+    }
+    const scalarType = field.listKind == "enum" ? descriptors_ScalarType.INT32 : field.scalar;
+    const longAsString = field.listKind == "scalar" ? field.longAsString : false;
+    const readScalar = compileScalarReader(scalarType, field.utf8Validation, longAsString);
+    const packedPossible = scalarType != descriptors_ScalarType.STRING && scalarType != descriptors_ScalarType.BYTES;
+    return (message, reader, ctx, wireType) => {
+        const items = message[localName];
+        if (wireType == WireType.LengthDelimited && packedPossible) {
+            const end = reader.uint32() + reader.pos;
+            while (reader.pos < end) {
+                items.push(readScalar(reader));
+            }
+        }
+        else {
+            items.push(readScalar(reader));
+        }
+    };
+}
+function compileMapFieldReader(field) {
+    const localName = field.localName;
+    const readKey = compileScalarReader(field.mapKey, field.utf8Validation, false);
+    const keyZero = scalarZeroValue(field.mapKey, false);
+    let readValue;
+    let valueDefault;
+    switch (field.mapKind) {
+        case "scalar": {
+            const scalar = field.scalar;
+            const readScalar = compileScalarReader(scalar, field.utf8Validation, false);
+            readValue = (reader) => readScalar(reader);
+            // Bytes zero values are created per entry, so that entries do not share
+            // one instance.
+            if (scalar == descriptors_ScalarType.BYTES) {
+                valueDefault = () => new Uint8Array(0);
+            }
+            else {
+                const zero = scalarZeroValue(scalar, false);
+                valueDefault = () => zero;
             }
             break;
-        case "message":
-            message.set(field, readMessageField(reader, ctx, field, message.get(field)));
+        }
+        case "enum": {
+            const zero = field.enum.values[0].number;
+            readValue = (reader) => reader.int32();
+            valueDefault = () => zero;
             break;
-        case "list":
-            readListField(reader, wireType, message.get(field), ctx);
+        }
+        case "message": {
+            const { toMessage, toLocal } = localMessageMapper(field);
+            const readChild = compiledReader(field.message).read;
+            readValue = (reader, ctx) => {
+                const child = toMessage(undefined);
+                readChild(child, reader, ctx, reader.uint32());
+                return toLocal(child);
+            };
+            valueDefault = () => toLocal(toMessage(undefined));
             break;
-        case "map":
-            readMapEntry(reader, message.get(field), ctx);
-            break;
-    }
-}
-// Read a map field, expecting key field = 1, value field = 2
-function readMapEntry(reader, map, ctx) {
-    const field = map.field();
-    let key;
-    let val;
-    // Read the length of the map entry, which is a varint.
-    const len = reader.uint32();
-    // WARNING: Calculate end AFTER advancing reader.pos (above), so that
-    //          reader.pos is at the start of the map entry.
-    const end = reader.pos + len;
-    while (reader.pos < end) {
-        const [fieldNo] = reader.tag();
-        switch (fieldNo) {
-            case 1:
-                key = readScalar(reader, field.mapKey, field.utf8Validation);
-                break;
-            case 2:
-                switch (field.mapKind) {
-                    case "scalar":
-                        val = readScalar(reader, field.scalar, field.utf8Validation);
-                        break;
-                    case "enum":
-                        val = reader.int32();
-                        break;
-                    case "message":
-                        val = readMessageField(reader, ctx, field);
-                        break;
-                }
-                break;
         }
     }
-    if (key === undefined) {
-        key = scalarZeroValue(field.mapKey, false);
-    }
-    if (val === undefined) {
-        switch (field.mapKind) {
-            case "scalar":
-                val = scalarZeroValue(field.scalar, false);
-                break;
-            case "enum":
-                val = field.enum.values[0].number;
-                break;
-            case "message":
-                val = reflect_reflect(field.message, undefined, false);
-                break;
+    return (message, reader, ctx) => {
+        const record = message[localName];
+        let key;
+        let val;
+        // Read the length of the map entry, which is a varint.
+        const len = reader.uint32();
+        // Calculate end AFTER advancing reader.pos (above), so that reader.pos is
+        // at the start of the map entry.
+        const end = reader.pos + len;
+        while (reader.pos < end) {
+            // Map entries have the key in field 1, and the value in field 2.
+            const [fieldNo] = reader.tag();
+            switch (fieldNo) {
+                case 1:
+                    key = readKey(reader);
+                    break;
+                case 2:
+                    val = readValue(reader, ctx);
+                    break;
+            }
         }
-    }
-    map.set(key, val);
+        if (key === undefined) {
+            key = keyZero;
+        }
+        if (val === undefined) {
+            val = valueDefault();
+        }
+        // Object property keys are always strings or symbols. Assigning with a
+        // boolean, number, or bigint key implicitly converts it to a string.
+        record[key] = val;
+    };
 }
-function readListField(reader, wireType, list, ctx) {
-    var _a;
-    const field = list.field();
-    if (field.listKind === "message") {
-        list.add(readMessageField(reader, ctx, field));
-        return;
-    }
-    const scalarType = (_a = field.scalar) !== null && _a !== void 0 ? _a : descriptors_ScalarType.INT32;
-    const packed = wireType == WireType.LengthDelimited &&
-        scalarType != descriptors_ScalarType.STRING &&
-        scalarType != descriptors_ScalarType.BYTES;
-    if (!packed) {
-        list.add(readScalar(reader, scalarType, field.utf8Validation));
-        return;
-    }
-    const e = reader.uint32() + reader.pos;
-    while (reader.pos < e) {
-        list.add(readScalar(reader, scalarType, field.utf8Validation));
-    }
-}
-function readMessageField(reader, ctx, field, mergeMessage) {
-    const delimited = field.delimitedEncoding;
-    const message = mergeMessage !== null && mergeMessage !== void 0 ? mergeMessage : reflect_reflect(field.message, undefined, false);
-    readMessage(message, reader, ctx, delimited, delimited ? field.number : reader.uint32());
-    return message;
-}
-function readScalar(reader, type, validateUtf8 = false) {
+/**
+ * Returns a reader for a scalar value. For 64-bit integers, BinaryReader
+ * already returns the local representation (bigint or string), so, unlike in
+ * the reflection layer, no validation is needed here.
+ */
+function compileScalarReader(type, utf8Validation, longAsString) {
     switch (type) {
         case descriptors_ScalarType.STRING:
-            return reader.string(validateUtf8);
+            return (reader) => reader.string(utf8Validation);
         case descriptors_ScalarType.BOOL:
-            return reader.bool();
+            return (reader) => reader.bool();
         case descriptors_ScalarType.DOUBLE:
-            return reader.double();
+            return (reader) => reader.double();
         case descriptors_ScalarType.FLOAT:
-            return reader.float();
+            return (reader) => reader.float();
         case descriptors_ScalarType.INT32:
-            return reader.int32();
+            return (reader) => reader.int32();
         case descriptors_ScalarType.INT64:
-            return reader.int64();
+            if (longAsString) {
+                return (reader) => String(reader.int64());
+            }
+            return (reader) => reader.int64();
         case descriptors_ScalarType.UINT64:
-            return reader.uint64();
+            if (longAsString) {
+                return (reader) => String(reader.uint64());
+            }
+            return (reader) => reader.uint64();
         case descriptors_ScalarType.FIXED64:
-            return reader.fixed64();
+            if (longAsString) {
+                return (reader) => String(reader.fixed64());
+            }
+            return (reader) => reader.fixed64();
         case descriptors_ScalarType.BYTES:
-            return reader.bytes();
+            return (reader) => reader.bytes();
         case descriptors_ScalarType.FIXED32:
-            return reader.fixed32();
+            return (reader) => reader.fixed32();
         case descriptors_ScalarType.SFIXED32:
-            return reader.sfixed32();
+            return (reader) => reader.sfixed32();
         case descriptors_ScalarType.SFIXED64:
-            return reader.sfixed64();
+            if (longAsString) {
+                return (reader) => String(reader.sfixed64());
+            }
+            return (reader) => reader.sfixed64();
         case descriptors_ScalarType.SINT64:
-            return reader.sint64();
+            if (longAsString) {
+                return (reader) => String(reader.sint64());
+            }
+            return (reader) => reader.sint64();
         case descriptors_ScalarType.UINT32:
-            return reader.uint32();
+            return (reader) => reader.uint32();
         case descriptors_ScalarType.SINT32:
-            return reader.sint32();
+            return (reader) => reader.sint32();
     }
 }
 
@@ -45284,7 +45674,12 @@ const AnySchema = /*@__PURE__*/ message_messageDesc(file_google_protobuf_any, 0)
 
 
 
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.LEGACY_REQUIRED: const $name: FeatureSet_FieldPresence.$localName = $number;
+
+
+
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name = $number;
+const to_binary_IMPLICIT = 2;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.LEGACY_REQUIRED: const $name = $number;
 const to_binary_LEGACY_REQUIRED = 3;
 // Default options for serializing binary data.
 const writeDefaults = {
@@ -45294,157 +45689,390 @@ function makeWriteOptions(options) {
     return options ? Object.assign(Object.assign({}, writeDefaults), options) : writeDefaults;
 }
 function to_binary_toBinary(schema, message, options) {
-    return writeFields(new BinaryWriter(), makeWriteOptions(options), reflect_reflect(schema, message)).finish();
+    const writer = new BinaryWriter();
+    compiledWriter(schema)(writer, makeWriteOptions(options), message);
+    return writer.finish();
 }
-function writeFields(writer, opts, msg) {
-    var _a;
-    for (const f of msg.sortedFields) {
-        if (!msg.isSet(f)) {
-            if (f.presence == to_binary_LEGACY_REQUIRED) {
-                throw new Error(`cannot encode ${f} to binary: required field not set`);
+const compiledWriters = new WeakMap();
+/**
+ * Return the compiled encoder for a message, compiling it on first use.
+ */
+function compiledWriter(desc) {
+    let compiled = compiledWriters.get(desc);
+    if (compiled === undefined) {
+        compiled = to_binary_compileMessage(desc);
+    }
+    return compiled;
+}
+function to_binary_compileMessage(desc) {
+    const typeName = desc.typeName;
+    const sortedFields = desc.fields.concat().sort((a, b) => a.number - b.number);
+    // The field reported in ForeignFieldError.
+    const foreignField = sortedFields[0];
+    const fieldWriters = [];
+    const compiled = (writer, opts, message) => {
+        if (message.$typeName !== typeName && foreignField !== undefined) {
+            throw new error_FieldError(foreignField, `cannot use ${foreignField} with message ${message.$typeName}`, "ForeignFieldError");
+        }
+        for (let i = 0; i < fieldWriters.length; i++) {
+            fieldWriters[i](writer, opts, message);
+        }
+        const unknown = message.$unknown;
+        if (unknown !== undefined && opts.writeUnknownFields) {
+            for (let i = 0; i < unknown.length; i++) {
+                const { no, wireType, data } = unknown[i];
+                writer.tag(no, wireType).raw(data);
             }
-            continue;
         }
-        writeField(writer, opts, msg, f);
+    };
+    // Register before compiling fields, so that recursive message types
+    // resolve to this instance instead of compiling endlessly.
+    compiledWriters.set(desc, compiled);
+    for (const field of sortedFields) {
+        fieldWriters.push(compileField(field));
     }
-    if (opts.writeUnknownFields) {
-        for (const { no, wireType, data } of (_a = msg.getUnknown()) !== null && _a !== void 0 ? _a : []) {
-            writer.tag(no, wireType).raw(data);
-        }
+    return compiled;
+}
+function compileField(field) {
+    switch (field.fieldKind) {
+        case "message":
+        case "scalar":
+        case "enum":
+            return compileSingularField(field);
+        case "list":
+            return compileListField(field);
+        case "map":
+            return compileMapField(field);
     }
-    return writer;
 }
 /**
+ * Compile an encoder for a singular field: the presence check, and the
+ * value encoder.
+ */
+function compileSingularField(field) {
+    const writeValue = compileSingularValue(field);
+    const localName = field.localName;
+    if (field.oneof) {
+        const oneofLocalName = field.oneof.localName;
+        return (writer, opts, message) => {
+            const oneof = message[oneofLocalName];
+            if (oneof.case === localName) {
+                writeValue(writer, opts, oneof.value);
+            }
+        };
+    }
+    if (field.presence != to_binary_IMPLICIT) {
+        const requiredError = field.presence == to_binary_LEGACY_REQUIRED
+            ? `cannot encode ${field} to binary: required field not set`
+            : undefined;
+        return (writer, opts, message) => {
+            const value = message[localName];
+            // Fields with explicit presence have properties on the prototype
+            // chain for default / zero values (except for proto3).
+            if (value !== undefined &&
+                Object.prototype.hasOwnProperty.call(message, localName)) {
+                writeValue(writer, opts, value);
+            }
+            else if (requiredError !== undefined) {
+                throw new Error(requiredError);
+            }
+        };
+    }
+    // Implicit presence: the field is set when the value is not the zero
+    // value. The check is inlined per type, see isScalarZeroValue.
+    if (field.fieldKind == "enum") {
+        const zero = field.enum.values[0].number;
+        return (writer, opts, message) => {
+            const value = message[localName];
+            if (value !== zero) {
+                writeValue(writer, opts, value);
+            }
+        };
+    }
+    switch (field.scalar) {
+        case descriptors_ScalarType.BOOL:
+            return (writer, opts, message) => {
+                const value = message[localName];
+                if (value !== false) {
+                    writeValue(writer, opts, value);
+                }
+            };
+        case descriptors_ScalarType.STRING:
+            return (writer, opts, message) => {
+                const value = message[localName];
+                if (value !== "") {
+                    writeValue(writer, opts, value);
+                }
+            };
+        case descriptors_ScalarType.BYTES:
+            return (writer, opts, message) => {
+                const value = message[localName];
+                if (!(value instanceof Uint8Array) || value.byteLength > 0) {
+                    writeValue(writer, opts, value);
+                }
+            };
+        case descriptors_ScalarType.DOUBLE:
+        case descriptors_ScalarType.FLOAT:
+            return (writer, opts, message) => {
+                const value = message[localName];
+                // Object.is distinguishes -0 from 0.
+                if (!Object.is(value, 0)) {
+                    writeValue(writer, opts, value);
+                }
+            };
+        default:
+            return (writer, opts, message) => {
+                const value = message[localName];
+                // Loose comparison matches 0n, 0 and "0".
+                if (value != 0) {
+                    writeValue(writer, opts, value);
+                }
+            };
+    }
+}
+/**
+ * Compile an encoder for the value of a singular field, including the tag.
+ */
+function compileSingularValue(field) {
+    switch (field.fieldKind) {
+        case "message": {
+            const { toMessage } = localMessageMapper(field);
+            const writeChild = compileChildWriter(field);
+            return (writer, opts, value) => {
+                writeChild(writer, opts, toMessage(value));
+            };
+        }
+        case "scalar":
+        case "enum": {
+            const scalarType = field.fieldKind == "enum" ? descriptors_ScalarType.INT32 : field.scalar;
+            const fieldNo = field.number;
+            const wireType = writeTypeOfScalar(scalarType);
+            const writeScalar = compileScalarValue(scalarType, field.parent.typeName, field.name);
+            return (writer, opts, value) => {
+                writer.tag(fieldNo, wireType);
+                writeScalar(writer, value);
+            };
+        }
+    }
+}
+function compileListField(field) {
+    const localName = field.localName;
+    const fieldNo = field.number;
+    switch (field.listKind) {
+        case "message": {
+            const { toMessage } = localMessageMapper(field);
+            const writeChild = compileChildWriter(field);
+            return (writer, opts, message) => {
+                const items = message[localName];
+                for (let i = 0; i < items.length; i++) {
+                    writeChild(writer, opts, toMessage(items[i]));
+                }
+            };
+        }
+        case "scalar":
+        case "enum": {
+            const scalarType = field.listKind == "enum" ? descriptors_ScalarType.INT32 : field.scalar;
+            const writeScalar = compileScalarValue(scalarType, field.parent.typeName, field.name);
+            if (field.packed) {
+                return (writer, opts, message) => {
+                    const items = message[localName];
+                    if (items.length == 0) {
+                        return;
+                    }
+                    writer.tag(fieldNo, WireType.LengthDelimited).fork();
+                    for (let i = 0; i < items.length; i++) {
+                        writeScalar(writer, items[i]);
+                    }
+                    writer.join();
+                };
+            }
+            const wireType = writeTypeOfScalar(scalarType);
+            return (writer, opts, message) => {
+                const items = message[localName];
+                for (let i = 0; i < items.length; i++) {
+                    writer.tag(fieldNo, wireType);
+                    writeScalar(writer, items[i]);
+                }
+            };
+        }
+    }
+}
+function compileMapField(field) {
+    const localName = field.localName;
+    const fieldNo = field.number;
+    const writeKey = compileMapKey(field);
+    if (field.mapKind == "message") {
+        const { toMessage } = localMessageMapper(field);
+        const writeMessage = compiledWriter(field.message);
+        return (writer, opts, message) => {
+            const record = message[localName];
+            const keys = Object.keys(record);
+            for (let i = 0; i < keys.length; i++) {
+                const key = keys[i];
+                writer.tag(fieldNo, WireType.LengthDelimited).fork();
+                writeKey(writer, key);
+                // The value of a map entry is always field number 2.
+                writer.tag(2, WireType.LengthDelimited).fork();
+                writeMessage(writer, opts, toMessage(record[key]));
+                writer.join();
+                writer.join();
+            }
+        };
+    }
+    const scalarType = field.mapKind == "enum" ? descriptors_ScalarType.INT32 : field.scalar;
+    const valueWireType = writeTypeOfScalar(scalarType);
+    const writeScalar = compileScalarValue(scalarType, field.parent.typeName, field.name);
+    return (writer, opts, message) => {
+        const record = message[localName];
+        const keys = Object.keys(record);
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            writer.tag(fieldNo, WireType.LengthDelimited).fork();
+            writeKey(writer, key);
+            // The value of a map entry is always field number 2.
+            writer.tag(2, valueWireType);
+            writeScalar(writer, record[key]);
+            writer.join();
+        }
+    };
+}
+/**
+ * Compile an encoder for a map key. Map keys are stored as object keys and
+ * are always strings locally. Convert them to their scalar type before
+ * writing, like the reflect API does when iterating map entries.
+ */
+function compileMapKey(field) {
+    const wireType = writeTypeOfScalar(field.mapKey);
+    const writeScalar = compileScalarValue(field.mapKey, field.parent.typeName, field.name);
+    const convertKey = compileMapKeyConverter(field.mapKey);
+    return (writer, key) => {
+        // The key of a map entry is always field number 1.
+        writer.tag(1, wireType);
+        writeScalar(writer, convertKey(key));
+    };
+}
+/**
+ * Returns a converter from an object key (always a string) to the closest
+ * possible type for the map key type. Invalid keys are passed through to
+ * the scalar writer, which raises an error for them.
+ */
+function compileMapKeyConverter(type) {
+    switch (type) {
+        case descriptors_ScalarType.STRING:
+            return (key) => key;
+        case descriptors_ScalarType.BOOL:
+            return (key) => (key === "true" ? true : key === "false" ? false : key);
+        case descriptors_ScalarType.UINT64:
+        case descriptors_ScalarType.FIXED64:
+            return (key) => {
+                try {
+                    return protoInt64.uParse(key);
+                }
+                catch (_a) {
+                    return key;
+                }
+            };
+        case descriptors_ScalarType.INT64:
+        case descriptors_ScalarType.SFIXED64:
+        case descriptors_ScalarType.SINT64:
+            return (key) => {
+                try {
+                    return protoInt64.parse(key);
+                }
+                catch (_a) {
+                    return key;
+                }
+            };
+        default:
+            // Handles INT32, UINT32, SINT32, FIXED32, SFIXED32.
+            // We do not use individual cases to save a few bytes code size.
+            return (key) => {
+                const n = Number.parseInt(key);
+                return Number.isFinite(n) ? n : key;
+            };
+    }
+}
+/**
+ * Compile an encoder for a bare scalar value (no tag), wrapping errors from
+ * the writer with the message and field name.
+ */
+function compileScalarValue(type, messageName, fieldName) {
+    const writeScalar = compileScalarWrite(type);
+    return (writer, value) => {
+        try {
+            writeScalar(writer, value);
+        }
+        catch (e) {
+            if (e instanceof Error) {
+                throw new Error(`cannot encode field ${messageName}.${fieldName} to binary: ${e.message}`);
+            }
+            throw e;
+        }
+    };
+}
+function compileScalarWrite(type) {
+    switch (type) {
+        case descriptors_ScalarType.STRING:
+            return (writer, value) => writer.string(value);
+        case descriptors_ScalarType.BOOL:
+            return (writer, value) => writer.bool(value);
+        case descriptors_ScalarType.DOUBLE:
+            return (writer, value) => writer.double(value);
+        case descriptors_ScalarType.FLOAT:
+            return (writer, value) => writer.float(value);
+        case descriptors_ScalarType.INT32:
+            return (writer, value) => writer.int32(value);
+        case descriptors_ScalarType.INT64:
+            return (writer, value) => writer.int64(value);
+        case descriptors_ScalarType.UINT64:
+            return (writer, value) => writer.uint64(value);
+        case descriptors_ScalarType.FIXED64:
+            return (writer, value) => writer.fixed64(value);
+        case descriptors_ScalarType.BYTES:
+            return (writer, value) => writer.bytes(value);
+        case descriptors_ScalarType.FIXED32:
+            return (writer, value) => writer.fixed32(value);
+        case descriptors_ScalarType.SFIXED32:
+            return (writer, value) => writer.sfixed32(value);
+        case descriptors_ScalarType.SFIXED64:
+            return (writer, value) => writer.sfixed64(value);
+        case descriptors_ScalarType.SINT64:
+            return (writer, value) => writer.sint64(value);
+        case descriptors_ScalarType.UINT32:
+            return (writer, value) => writer.uint32(value);
+        case descriptors_ScalarType.SINT32:
+            return (writer, value) => writer.sint32(value);
+    }
+}
+/**
+ * Write a single field to binary format, if it is set. Used to serialize
+ * extensions: extensions always have explicit presence, so an extension
+ * value that was just set on the container is always written.
+ *
  * @private
  */
 function writeField(writer, opts, msg, field) {
-    var _a;
-    switch (field.fieldKind) {
-        case "scalar":
-        case "enum":
-            writeScalar(writer, msg.desc.typeName, field.name, (_a = field.scalar) !== null && _a !== void 0 ? _a : descriptors_ScalarType.INT32, field.number, msg.get(field));
-            break;
-        case "list":
-            writeListField(writer, opts, field, msg.get(field));
-            break;
-        case "message":
-            writeMessageField(writer, opts, field, msg.get(field));
-            break;
-        case "map":
-            for (const [key, val] of msg.get(field)) {
-                writeMapEntry(writer, opts, field, key, val);
-            }
-            break;
-    }
+    compileField(field)(writer, opts, msg[unsafeLocal]);
 }
-function writeScalar(writer, msgName, fieldName, scalarType, fieldNo, value) {
-    writeScalarValue(writer.tag(fieldNo, writeTypeOfScalar(scalarType)), msgName, fieldName, scalarType, value);
-}
-function writeMessageField(writer, opts, field, message) {
+/**
+ * Compile an encoder for the wire format of a message field, honoring the
+ * delimited encoding of the field. The tag is written by the encoder.
+ */
+function compileChildWriter(field) {
+    const fieldNo = field.number;
+    const writeMessage = compiledWriter(field.message);
     if (field.delimitedEncoding) {
-        writeFields(writer.tag(field.number, WireType.StartGroup), opts, message).tag(field.number, WireType.EndGroup);
+        return (writer, opts, child) => {
+            writer.tag(fieldNo, WireType.StartGroup);
+            writeMessage(writer, opts, child);
+            writer.tag(fieldNo, WireType.EndGroup);
+        };
     }
-    else {
-        writeFields(writer.tag(field.number, WireType.LengthDelimited).fork(), opts, message).join();
-    }
-}
-function writeListField(writer, opts, field, list) {
-    var _a;
-    if (field.listKind == "message") {
-        for (const item of list) {
-            writeMessageField(writer, opts, field, item);
-        }
-        return;
-    }
-    const scalarType = (_a = field.scalar) !== null && _a !== void 0 ? _a : descriptors_ScalarType.INT32;
-    if (field.packed) {
-        if (!list.size) {
-            return;
-        }
-        writer.tag(field.number, WireType.LengthDelimited).fork();
-        for (const item of list) {
-            writeScalarValue(writer, field.parent.typeName, field.name, scalarType, item);
-        }
+    return (writer, opts, child) => {
+        writer.tag(fieldNo, WireType.LengthDelimited).fork();
+        writeMessage(writer, opts, child);
         writer.join();
-        return;
-    }
-    for (const item of list) {
-        writeScalar(writer, field.parent.typeName, field.name, scalarType, field.number, item);
-    }
-}
-function writeMapEntry(writer, opts, field, key, value) {
-    var _a;
-    writer.tag(field.number, WireType.LengthDelimited).fork();
-    // write key, expecting key field number = 1
-    writeScalar(writer, field.parent.typeName, field.name, field.mapKey, 1, key);
-    // write value, expecting value field number = 2
-    switch (field.mapKind) {
-        case "scalar":
-        case "enum":
-            writeScalar(writer, field.parent.typeName, field.name, (_a = field.scalar) !== null && _a !== void 0 ? _a : descriptors_ScalarType.INT32, 2, value);
-            break;
-        case "message":
-            writeFields(writer.tag(2, WireType.LengthDelimited).fork(), opts, value).join();
-            break;
-    }
-    writer.join();
-}
-function writeScalarValue(writer, msgName, fieldName, type, value) {
-    try {
-        switch (type) {
-            case descriptors_ScalarType.STRING:
-                writer.string(value);
-                break;
-            case descriptors_ScalarType.BOOL:
-                writer.bool(value);
-                break;
-            case descriptors_ScalarType.DOUBLE:
-                writer.double(value);
-                break;
-            case descriptors_ScalarType.FLOAT:
-                writer.float(value);
-                break;
-            case descriptors_ScalarType.INT32:
-                writer.int32(value);
-                break;
-            case descriptors_ScalarType.INT64:
-                writer.int64(value);
-                break;
-            case descriptors_ScalarType.UINT64:
-                writer.uint64(value);
-                break;
-            case descriptors_ScalarType.FIXED64:
-                writer.fixed64(value);
-                break;
-            case descriptors_ScalarType.BYTES:
-                writer.bytes(value);
-                break;
-            case descriptors_ScalarType.FIXED32:
-                writer.fixed32(value);
-                break;
-            case descriptors_ScalarType.SFIXED32:
-                writer.sfixed32(value);
-                break;
-            case descriptors_ScalarType.SFIXED64:
-                writer.sfixed64(value);
-                break;
-            case descriptors_ScalarType.SINT64:
-                writer.sint64(value);
-                break;
-            case descriptors_ScalarType.UINT32:
-                writer.uint32(value);
-                break;
-            case descriptors_ScalarType.SINT32:
-                writer.sint32(value);
-                break;
-        }
-    }
-    catch (e) {
-        if (e instanceof Error) {
-            throw new Error(`cannot encode field ${msgName}.${fieldName} to binary: ${e.message}`);
-        }
-        throw e;
-    }
+    };
 }
 function writeTypeOfScalar(type) {
     switch (type) {
@@ -45593,6 +46221,472 @@ var NullValue;
  */
 const NullValueSchema = /*@__PURE__*/ (/* unused pure expression or super */ null && (enumDesc(file_google_protobuf_struct, 0)));
 
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/reflect/reflect.js
+// Copyright 2021-2026 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+
+
+
+
+
+
+
+/**
+ * Create a ReflectMessage.
+ */
+function reflect(messageDesc, message, 
+/**
+ * By default, field values are validated when setting them. For example,
+ * a value for an uint32 field must be a ECMAScript Number >= 0.
+ *
+ * When field values are trusted, performance can be improved by disabling
+ * checks.
+ */
+check = true) {
+    return new ReflectMessageImpl(messageDesc, message, check);
+}
+const messageSortedFields = new WeakMap();
+class ReflectMessageImpl {
+    get sortedFields() {
+        const cached = messageSortedFields.get(this.desc);
+        if (cached) {
+            return cached;
+        }
+        const sortedFields = this.desc.fields
+            .concat()
+            .sort((a, b) => a.number - b.number);
+        messageSortedFields.set(this.desc, sortedFields);
+        return sortedFields;
+    }
+    constructor(messageDesc, message, check = true) {
+        this.lists = new Map();
+        this.maps = new Map();
+        this.check = check;
+        this.desc = messageDesc;
+        this.message = this[unsafeLocal] = message !== null && message !== void 0 ? message : create_create(messageDesc);
+        this.fields = messageDesc.fields;
+        this.oneofs = messageDesc.oneofs;
+        this.members = messageDesc.members;
+    }
+    findNumber(number) {
+        if (!this._fieldsByNumber) {
+            this._fieldsByNumber = new Map(this.desc.fields.map((f) => [f.number, f]));
+        }
+        return this._fieldsByNumber.get(number);
+    }
+    oneofCase(oneof) {
+        assertOwn(this.message, oneof);
+        return unsafeOneofCase(this.message, oneof);
+    }
+    isSet(field) {
+        assertOwn(this.message, field);
+        return unsafeIsSet(this.message, field);
+    }
+    clear(field) {
+        assertOwn(this.message, field);
+        unsafeClear(this.message, field);
+    }
+    get(field) {
+        assertOwn(this.message, field);
+        const value = unsafeGet(this.message, field);
+        switch (field.fieldKind) {
+            case "list":
+                // eslint-disable-next-line no-case-declarations
+                let list = this.lists.get(field);
+                if (!list || list[unsafeLocal] !== value) {
+                    this.lists.set(field, 
+                    // biome-ignore lint/suspicious/noAssignInExpressions: no
+                    (list = new ReflectListImpl(field, value, this.check)));
+                }
+                return list;
+            case "map":
+                let map = this.maps.get(field);
+                if (!map || map[unsafeLocal] !== value) {
+                    this.maps.set(field, 
+                    // biome-ignore lint/suspicious/noAssignInExpressions: no
+                    (map = new ReflectMapImpl(field, value, this.check)));
+                }
+                return map;
+            case "message":
+                return messageToReflect(field, value, this.check);
+            case "scalar":
+                return (value === undefined
+                    ? scalarZeroValue(field.scalar, false)
+                    : longToReflect(field, value));
+            case "enum":
+                return (value !== null && value !== void 0 ? value : field.enum.values[0].number);
+        }
+    }
+    set(field, value) {
+        assertOwn(this.message, field);
+        if (this.check) {
+            const err = checkField(field, value);
+            if (err) {
+                throw err;
+            }
+        }
+        let local;
+        if (field.fieldKind == "message") {
+            local = messageToLocal(field, value);
+        }
+        else if (isReflectMap(value) || isReflectList(value)) {
+            local = value[unsafeLocal];
+        }
+        else {
+            local = longToLocal(field, value);
+        }
+        unsafeSet(this.message, field, local);
+    }
+    getUnknown() {
+        return this.message.$unknown;
+    }
+    setUnknown(value) {
+        this.message.$unknown = value;
+    }
+}
+function assertOwn(owner, member) {
+    if (member.parent.typeName !== owner.$typeName) {
+        throw new error_FieldError(member, `cannot use ${member.toString()} with message ${owner.$typeName}`, "ForeignFieldError");
+    }
+}
+/**
+ * Create a ReflectList.
+ */
+function reflectList(field, unsafeInput, 
+/**
+ * By default, field values are validated when setting them. For example,
+ * a value for an uint32 field must be a ECMAScript Number >= 0.
+ *
+ * When field values are trusted, performance can be improved by disabling
+ * checks.
+ */
+check = true) {
+    return new ReflectListImpl(field, unsafeInput !== null && unsafeInput !== void 0 ? unsafeInput : [], check);
+}
+class ReflectListImpl {
+    field() {
+        return this._field;
+    }
+    get size() {
+        return this._arr.length;
+    }
+    constructor(field, unsafeInput, check) {
+        this._field = field;
+        this._arr = this[unsafeLocal] = unsafeInput;
+        this.check = check;
+    }
+    get(index) {
+        const item = this._arr[index];
+        return item === undefined
+            ? undefined
+            : listItemToReflect(this._field, item, this.check);
+    }
+    set(index, item) {
+        if (index < 0 || index >= this._arr.length) {
+            throw new error_FieldError(this._field, `list item #${index + 1}: out of range`);
+        }
+        if (this.check) {
+            const err = checkListItem(this._field, index, item);
+            if (err) {
+                throw err;
+            }
+        }
+        this._arr[index] = listItemToLocal(this._field, item);
+    }
+    add(item) {
+        if (this.check) {
+            const err = checkListItem(this._field, this._arr.length, item);
+            if (err) {
+                throw err;
+            }
+        }
+        this._arr.push(listItemToLocal(this._field, item));
+        return undefined;
+    }
+    clear() {
+        this._arr.splice(0, this._arr.length);
+    }
+    [Symbol.iterator]() {
+        return this.values();
+    }
+    keys() {
+        return this._arr.keys();
+    }
+    *values() {
+        for (const item of this._arr) {
+            yield listItemToReflect(this._field, item, this.check);
+        }
+    }
+    *entries() {
+        for (let i = 0; i < this._arr.length; i++) {
+            yield [i, listItemToReflect(this._field, this._arr[i], this.check)];
+        }
+    }
+}
+/**
+ * Create a ReflectMap.
+ */
+function reflectMap(field, unsafeInput, 
+/**
+ * By default, field values are validated when setting them. For example,
+ * a value for an uint32 field must be a ECMAScript Number >= 0.
+ *
+ * When field values are trusted, performance can be improved by disabling
+ * checks.
+ */
+check = true) {
+    return new ReflectMapImpl(field, unsafeInput, check);
+}
+class ReflectMapImpl {
+    constructor(field, unsafeInput, check = true) {
+        this.obj = this[unsafeLocal] = unsafeInput !== null && unsafeInput !== void 0 ? unsafeInput : {};
+        this.check = check;
+        this._field = field;
+    }
+    field() {
+        return this._field;
+    }
+    set(key, value) {
+        if (this.check) {
+            const err = checkMapEntry(this._field, key, value);
+            if (err) {
+                throw err;
+            }
+        }
+        this.obj[mapKeyToLocal(key)] = mapValueToLocal(this._field, value);
+        return this;
+    }
+    delete(key) {
+        const k = mapKeyToLocal(key);
+        const has = Object.prototype.hasOwnProperty.call(this.obj, k);
+        if (has) {
+            delete this.obj[k];
+        }
+        return has;
+    }
+    clear() {
+        for (const key of Object.keys(this.obj)) {
+            delete this.obj[key];
+        }
+    }
+    get(key) {
+        let val = this.obj[mapKeyToLocal(key)];
+        if (val !== undefined) {
+            val = mapValueToReflect(this._field, val, this.check);
+        }
+        return val;
+    }
+    has(key) {
+        return Object.prototype.hasOwnProperty.call(this.obj, mapKeyToLocal(key));
+    }
+    *keys() {
+        for (const objKey of Object.keys(this.obj)) {
+            yield mapKeyToReflect(objKey, this._field.mapKey);
+        }
+    }
+    *entries() {
+        for (const objEntry of Object.entries(this.obj)) {
+            yield [
+                mapKeyToReflect(objEntry[0], this._field.mapKey),
+                mapValueToReflect(this._field, objEntry[1], this.check),
+            ];
+        }
+    }
+    [Symbol.iterator]() {
+        return this.entries();
+    }
+    get size() {
+        return Object.keys(this.obj).length;
+    }
+    *values() {
+        for (const val of Object.values(this.obj)) {
+            yield mapValueToReflect(this._field, val, this.check);
+        }
+    }
+    forEach(callbackfn, thisArg) {
+        for (const mapEntry of this.entries()) {
+            callbackfn.call(thisArg, mapEntry[1], mapEntry[0], this);
+        }
+    }
+}
+function messageToLocal(field, value) {
+    if (!isReflectMessage(value)) {
+        return value;
+    }
+    if (isWrapper(value.message) &&
+        !field.oneof &&
+        field.fieldKind == "message") {
+        // Types from google/protobuf/wrappers.proto are unwrapped when used in
+        // a singular field that is not part of a oneof group.
+        return value.message.value;
+    }
+    if (value.desc.typeName == "google.protobuf.Struct" &&
+        field.parent.typeName != "google.protobuf.Value") {
+        // google.protobuf.Struct is represented with JsonObject when used in a
+        // field, except when used in google.protobuf.Value.
+        return wktStructToLocal(value.message);
+    }
+    return value.message;
+}
+function messageToReflect(field, value, check) {
+    if (value !== undefined) {
+        if (isWrapperDesc(field.message) &&
+            !field.oneof &&
+            field.fieldKind == "message") {
+            // Types from google/protobuf/wrappers.proto are unwrapped when used in
+            // a singular field that is not part of a oneof group.
+            value = {
+                $typeName: field.message.typeName,
+                value: longToReflect(field.message.fields[0], value),
+            };
+        }
+        else if (field.message.typeName == "google.protobuf.Struct" &&
+            field.parent.typeName != "google.protobuf.Value" &&
+            isObject(value)) {
+            // google.protobuf.Struct is represented with JsonObject when used in a
+            // field, except when used in google.protobuf.Value.
+            value = wktStructToReflect(value);
+        }
+    }
+    return new ReflectMessageImpl(field.message, value, check);
+}
+function listItemToLocal(field, value) {
+    if (field.listKind == "message") {
+        return messageToLocal(field, value);
+    }
+    return longToLocal(field, value);
+}
+function listItemToReflect(field, value, check) {
+    if (field.listKind == "message") {
+        return messageToReflect(field, value, check);
+    }
+    return longToReflect(field, value);
+}
+function mapValueToLocal(field, value) {
+    if (field.mapKind == "message") {
+        return messageToLocal(field, value);
+    }
+    return longToLocal(field, value);
+}
+function mapValueToReflect(field, value, check) {
+    if (field.mapKind == "message") {
+        return messageToReflect(field, value, check);
+    }
+    return value;
+}
+function mapKeyToLocal(key) {
+    return typeof key == "string" || typeof key == "number" ? key : String(key);
+}
+/**
+ * Converts a map key (any scalar value except float, double, or bytes) from its
+ * representation in a message (string or number, the only possible object key
+ * types) to the closest possible type in ECMAScript.
+ */
+function mapKeyToReflect(key, type) {
+    switch (type) {
+        case descriptors_ScalarType.STRING:
+            return key;
+        case descriptors_ScalarType.INT32:
+        case descriptors_ScalarType.FIXED32:
+        case descriptors_ScalarType.UINT32:
+        case descriptors_ScalarType.SFIXED32:
+        case descriptors_ScalarType.SINT32: {
+            const n = Number.parseInt(key);
+            if (Number.isFinite(n)) {
+                return n;
+            }
+            break;
+        }
+        case descriptors_ScalarType.BOOL:
+            switch (key) {
+                case "true":
+                    return true;
+                case "false":
+                    return false;
+            }
+            break;
+        case descriptors_ScalarType.UINT64:
+        case descriptors_ScalarType.FIXED64:
+            try {
+                return protoInt64.uParse(key);
+            }
+            catch (_a) {
+                //
+            }
+            break;
+        default:
+            // INT64, SFIXED64, SINT64
+            try {
+                return protoInt64.parse(key);
+            }
+            catch (_b) {
+                //
+            }
+            break;
+    }
+    return key;
+}
+function longToReflect(field, value) {
+    switch (field.scalar) {
+        case descriptors_ScalarType.INT64:
+        case descriptors_ScalarType.SFIXED64:
+        case descriptors_ScalarType.SINT64:
+            if ("longAsString" in field &&
+                field.longAsString &&
+                typeof value == "string") {
+                value = protoInt64.parse(value);
+            }
+            break;
+        case descriptors_ScalarType.FIXED64:
+        case descriptors_ScalarType.UINT64:
+            if ("longAsString" in field &&
+                field.longAsString &&
+                typeof value == "string") {
+                value = protoInt64.uParse(value);
+            }
+            break;
+    }
+    return value;
+}
+function longToLocal(field, value) {
+    switch (field.scalar) {
+        case descriptors_ScalarType.INT64:
+        case descriptors_ScalarType.SFIXED64:
+        case descriptors_ScalarType.SINT64:
+            if ("longAsString" in field && field.longAsString) {
+                value = String(value);
+            }
+            else if (typeof value == "string" || typeof value == "number") {
+                value = protoInt64.parse(value);
+            }
+            break;
+        case descriptors_ScalarType.FIXED64:
+        case descriptors_ScalarType.UINT64:
+            if ("longAsString" in field && field.longAsString) {
+                value = String(value);
+            }
+            else if (typeof value == "string" || typeof value == "number") {
+                value = protoInt64.uParse(value);
+            }
+            break;
+    }
+    return value;
+}
+
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/extensions.js
 // Copyright 2021-2026 Buf Technologies, Inc.
 //
@@ -45732,7 +46826,7 @@ function createExtensionContainer(extension, value) {
     const desc = Object.assign(Object.assign({}, extension.extendee), { fields: [field], members: [field], oneofs: [] });
     const container = create_create(desc, value !== undefined ? { [localName]: value } : undefined);
     return [
-        reflect_reflect(desc, container),
+        reflect(desc, container),
         field,
         () => {
             const value = container[localName];
@@ -45753,6 +46847,49 @@ function assertExtendee(extension, message) {
         throw new Error(`extension ${extension.typeName} can only be applied to message ${extension.extendee.typeName}`);
     }
 }
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/json.js
+// Copyright 2021-2026 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/**
+ * Minimum google.protobuf.Timestamp in milliseconds (inclusive).
+ * Only enforced in ProtoJSON.
+ *
+ * @private
+ */
+const timestampMsMin = /*@__PURE__*/ Date.parse("0001-01-01T00:00:00Z");
+/**
+ * Maximum google.protobuf.Timestamp in milliseconds (inclusive).
+ * Only enforced in ProtoJSON.
+ *
+ * @private
+ */
+const timestampMsMax = /*@__PURE__*/ Date.parse("9999-12-31T23:59:59Z");
+/**
+ * Minimum google.protobuf.Duration in seconds.
+ * Only enforced in ProtoJSON.
+ *
+ * @private
+ */
+const durationSecondsMin = -315576000000;
+/**
+ * Maximum google.protobuf.Duration in seconds.
+ * Only enforced in ProtoJSON.
+ *
+ * @private
+ */
+const durationSecondsMax = 315576000000;
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/from-json.js
 // Copyright 2021-2026 Buf Technologies, Inc.
@@ -45778,6 +46915,11 @@ function assertExtendee(extension, message) {
 
 
 
+
+
+
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name = $number;
+const from_json_IMPLICIT = 2;
 function from_json_makeReadContext(options) {
     return Object.assign(Object.assign({ ignoreUnknownFields: false, recursionLimit: 100 }, options), { depth: 0 });
 }
@@ -45811,20 +46953,9 @@ function mergeFromJsonString(schema, target, json, options) {
  * duplicate-key checking.
  */
 function fromJson(schema, json, options) {
-    const msg = reflect_reflect(schema);
-    try {
-        from_json_readMessage(msg, json, from_json_makeReadContext(options));
-    }
-    catch (e) {
-        if (error_isFieldError(e)) {
-            // @ts-expect-error we use the ES2022 error CTOR option "cause" for better stack traces
-            throw new Error(`cannot decode ${e.field()} from JSON: ${e.message}`, {
-                cause: e,
-            });
-        }
-        throw e;
-    }
-    return msg.message;
+    const message = create_create(schema);
+    readMessage(schema, message, json, options);
+    return message;
 }
 /**
  * Parse a message from a JSON value, merging fields into the target.
@@ -45839,8 +46970,20 @@ function fromJson(schema, json, options) {
  * for strict checking.
  */
 function mergeFromJson(schema, target, json, options) {
+    if (target.$typeName !== schema.typeName &&
+        schema.fields.length > 0) {
+        throw new FieldError(schema.fields[0], `cannot use ${schema.fields[0]} with message ${target.$typeName}`, "ForeignFieldError");
+    }
+    readMessage(schema, target, json, options);
+    return target;
+}
+/**
+ * Run the compiled decoder for the message, wrapping FieldErrors with the
+ * standard error message.
+ */
+function readMessage(schema, message, json, options) {
     try {
-        from_json_readMessage(reflect(schema, target), json, from_json_makeReadContext(options));
+        from_json_compiledReader(schema)(message, json, from_json_makeReadContext(options));
     }
     catch (e) {
         if (isFieldError(e)) {
@@ -45851,13 +46994,14 @@ function mergeFromJson(schema, target, json, options) {
         }
         throw e;
     }
-    return target;
 }
 /**
  * Parses an enum value from JSON.
  */
 function enumFromJson(descEnum, json) {
-    return readEnum(descEnum, json, false);
+    // With ignoreUnknownFields false, the converter never returns the token
+    // for ignored unknown enum values.
+    return compileEnumConverter(descEnum)(json, false);
 }
 /**
  * Is the given value a JSON enum value?
@@ -45865,315 +47009,646 @@ function enumFromJson(descEnum, json) {
 function isEnumJson(descEnum, value) {
     return undefined !== descEnum.values.find((v) => v.name === value);
 }
-const messageJsonFields = new WeakMap();
-function getJsonField(desc, jsonKey) {
-    var _a;
-    if (!messageJsonFields.has(desc)) {
-        const jsonNames = new Map();
-        for (const field of desc.fields) {
-            jsonNames.set(field.name, field).set(field.jsonName, field);
-        }
-        messageJsonFields.set(desc, jsonNames);
+const from_json_compiledReaders = new WeakMap();
+/**
+ * Return the compiled decoder for a message, compiling it on first use.
+ */
+function from_json_compiledReader(desc) {
+    let compiled = from_json_compiledReaders.get(desc);
+    if (compiled === undefined) {
+        compiled = from_json_compileMessage(desc);
     }
-    return (_a = messageJsonFields.get(desc)) === null || _a === void 0 ? void 0 : _a.get(jsonKey);
+    return compiled;
 }
-function from_json_readMessage(msg, json, ctx) {
-    var _a;
-    if (++ctx.depth > ctx.recursionLimit) {
-        throw new Error(`cannot decode ${msg.desc} from JSON: maximum recursion depth of ${ctx.recursionLimit} reached`);
-    }
-    if (tryWktFromJson(msg, json, ctx)) {
-        ctx.depth--;
-        return;
-    }
-    if (json == null || Array.isArray(json) || typeof json != "object") {
-        throw new Error(`cannot decode ${msg.desc} from JSON: ${formatVal(json)}`);
-    }
-    const oneofSeen = new Map();
-    const fieldSeen = new Set();
-    for (const [jsonKey, jsonValue] of Object.entries(json)) {
-        const field = getJsonField(msg.desc, jsonKey);
-        if (field) {
-            if (fieldSeen.has(field)) {
-                // The same field may be set by its proto name and its JSON name, or by
-                // a duplicate or unicode-escaped key that JSON.parse already collapsed.
-                // Checked before the null-skip below so that a null entry still counts.
-                throw new FieldError(field, "set multiple times");
+function from_json_compileMessage(desc) {
+    const descString = String(desc);
+    const readWkt = compileWkt(desc);
+    if (readWkt !== undefined) {
+        // All message decoders count against the recursion limit, including
+        // well-known types with a custom JSON representation.
+        const compiled = (message, json, ctx) => {
+            if (++ctx.depth > ctx.recursionLimit) {
+                throw new Error(`cannot decode ${descString} from JSON: maximum recursion depth of ${ctx.recursionLimit} reached`);
             }
-            fieldSeen.add(field);
-            if (field.oneof && jsonValue === null && field.fieldKind == "scalar") {
-                // see conformance test Required.Proto3.JsonInput.OneofFieldNull{First,Second}
-                continue;
-            }
-            if (field.oneof) {
-                const seen = oneofSeen.get(field.oneof);
-                if (seen !== undefined) {
-                    throw new FieldError(field.oneof, `oneof set multiple times by ${seen.name} and ${field.name}`);
+            readWkt(message, json, ctx);
+            ctx.depth--;
+        };
+        from_json_compiledReaders.set(desc, compiled);
+        return compiled;
+    }
+    const typeName = desc.typeName;
+    // Fields are looked up by their proto name and their JSON name.
+    const fieldsByJsonKey = new Map();
+    const compiled = (message, json, ctx) => {
+        var _a;
+        if (++ctx.depth > ctx.recursionLimit) {
+            throw new Error(`cannot decode ${descString} from JSON: maximum recursion depth of ${ctx.recursionLimit} reached`);
+        }
+        if (json == null || Array.isArray(json) || typeof json != "object") {
+            throw new Error(`cannot decode ${descString} from JSON: ${formatVal(json)}`);
+        }
+        const oneofSeen = new Map();
+        const fieldSeen = new Set();
+        const jsonKeys = Object.keys(json);
+        for (let i = 0; i < jsonKeys.length; i++) {
+            const jsonKey = jsonKeys[i];
+            const jsonValue = json[jsonKey];
+            const entry = fieldsByJsonKey.get(jsonKey);
+            if (entry !== undefined) {
+                const field = entry.field;
+                if (fieldSeen.has(field)) {
+                    // The same field may be set by its proto name and its JSON name, or by
+                    // a duplicate or unicode-escaped key that JSON.parse already collapsed.
+                    // Checked before the null-skip below so that a null entry still counts.
+                    throw new error_FieldError(field, "set multiple times");
                 }
-                oneofSeen.set(field.oneof, field);
+                fieldSeen.add(field);
+                if (entry.oneofScalarNullSkip && jsonValue === null) {
+                    continue;
+                }
+                if (entry.oneof) {
+                    const seen = oneofSeen.get(entry.oneof);
+                    if (seen !== undefined) {
+                        throw new error_FieldError(entry.oneof, `oneof set multiple times by ${seen.name} and ${field.name}`);
+                    }
+                    oneofSeen.set(entry.oneof, field);
+                }
+                entry.read(message, jsonValue, ctx);
             }
-            from_json_readField(msg, field, jsonValue, ctx);
+            else {
+                const extension = jsonKey.startsWith("[") && jsonKey.endsWith("]")
+                    ? (_a = ctx.registry) === null || _a === void 0 ? void 0 : _a.getExtension(jsonKey.substring(1, jsonKey.length - 1))
+                    : undefined;
+                if ((extension === null || extension === void 0 ? void 0 : extension.extendee.typeName) == typeName) {
+                    const [container, field, get] = createExtensionContainer(extension);
+                    from_json_compileFieldReader(field)(container[unsafeLocal], jsonValue, ctx);
+                    setExtension(message, extension, get());
+                }
+                if (extension === undefined && !ctx.ignoreUnknownFields) {
+                    throw new Error(`cannot decode ${descString} from JSON: key "${jsonKey}" is unknown`);
+                }
+            }
         }
-        else {
-            let extension = undefined;
-            if (jsonKey.startsWith("[") &&
-                jsonKey.endsWith("]") &&
-                // biome-ignore lint/suspicious/noAssignInExpressions: no
-                (extension = (_a = ctx.registry) === null || _a === void 0 ? void 0 : _a.getExtension(jsonKey.substring(1, jsonKey.length - 1))) &&
-                extension.extendee.typeName === msg.desc.typeName) {
-                const [container, field, get] = createExtensionContainer(extension);
-                from_json_readField(container, field, jsonValue, ctx);
-                setExtension(msg.message, extension, get());
-            }
-            if (!extension && !ctx.ignoreUnknownFields) {
-                throw new Error(`cannot decode ${msg.desc} from JSON: key "${jsonKey}" is unknown`);
-            }
-        }
+        ctx.depth--;
+    };
+    // Register before compiling fields, so that recursive message types
+    // resolve to this instance instead of compiling endlessly.
+    from_json_compiledReaders.set(desc, compiled);
+    for (const field of desc.fields) {
+        const entry = {
+            read: from_json_compileFieldReader(field),
+            field,
+            oneof: field.oneof,
+            oneofScalarNullSkip: field.oneof !== undefined && field.fieldKind == "scalar",
+        };
+        fieldsByJsonKey.set(field.name, entry).set(field.jsonName, entry);
     }
-    ctx.depth--;
+    return compiled;
 }
-function from_json_readField(msg, field, json, ctx) {
+/**
+ * Compile a decoder for a well-known type with a custom JSON representation,
+ * or return undefined for other messages. The recursion limit is enforced by
+ * the caller.
+ */
+function compileWkt(desc) {
+    if (!desc.typeName.startsWith("google.protobuf.")) {
+        return undefined;
+    }
+    switch (desc.typeName) {
+        case "google.protobuf.Any":
+            return (message, json, ctx) => anyFromJson(message, json, ctx);
+        case "google.protobuf.Timestamp":
+            return (message, json) => timestampFromJson(message, json);
+        case "google.protobuf.Duration":
+            return (message, json) => durationFromJson(message, json);
+        case "google.protobuf.FieldMask":
+            return (message, json) => fieldMaskFromJson(message, json);
+        case "google.protobuf.Struct":
+            return (message, json, ctx) => structFromJson(message, json, ctx);
+        case "google.protobuf.Value":
+            return (message, json, ctx) => valueFromJson(message, json, ctx);
+        case "google.protobuf.ListValue":
+            return (message, json, ctx) => listValueFromJson(message, json, ctx);
+        default:
+            if (isWrapperDesc(desc)) {
+                const valueField = desc.fields[0];
+                const localName = valueField.localName;
+                const scalar = valueField.scalar;
+                const longAsString = valueField.longAsString;
+                const readScalar = compileScalarConverter(valueField);
+                return (message, json) => {
+                    if (json === null) {
+                        message[localName] = scalarZeroValue(scalar, longAsString);
+                    }
+                    else {
+                        message[localName] = readScalar(json);
+                    }
+                };
+            }
+            return undefined;
+    }
+}
+function from_json_compileFieldReader(field) {
     switch (field.fieldKind) {
         case "scalar":
-            readScalarField(msg, field, json);
-            break;
+            return from_json_compileScalarFieldReader(field);
         case "enum":
-            readEnumField(msg, field, json, ctx);
-            break;
+            return from_json_compileEnumFieldReader(field);
         case "message":
-            from_json_readMessageField(msg, field, json, ctx);
-            break;
+            return from_json_compileMessageFieldReader(field);
         case "list":
-            from_json_readListField(msg.get(field), json, ctx);
-            break;
+            return from_json_compileListFieldReader(field);
         case "map":
-            readMapField(msg.get(field), json, ctx);
-            break;
+            return from_json_compileMapFieldReader(field);
     }
 }
-function readListOrMapItem(field, json, ctx) {
-    if (field.scalar && json !== null) {
-        return scalarFromJson(field, json);
+function from_json_compileScalarFieldReader(field) {
+    const readScalar = compileScalarConverter(field);
+    const localName = field.localName;
+    if (field.oneof) {
+        // JSON null for a oneof scalar member is skipped by the message decoder.
+        const oneofLocalName = field.oneof.localName;
+        return (message, json) => {
+            message[oneofLocalName] = {
+                case: localName,
+                value: readScalar(json),
+            };
+        };
     }
-    if (field.message && !isResetSentinelNullValue(field, json)) {
-        const msgValue = reflect_reflect(field.message);
-        from_json_readMessage(msgValue, json, ctx);
-        return msgValue;
-    }
-    if (field.enum && !isResetSentinelNullValue(field, json)) {
-        return readEnum(field.enum, json, ctx.ignoreUnknownFields);
-    }
-    throw new FieldError(field, `${field.fieldKind === "list" ? "list item" : "map value"} must not be null`);
-}
-function readMapField(map, json, ctx) {
-    if (json === null) {
-        return;
-    }
-    const field = map.field();
-    if (typeof json != "object" || Array.isArray(json)) {
-        throw new FieldError(field, "expected object, got " + formatVal(json));
-    }
-    const seen = new Set();
-    for (const [jsonMapKey, jsonMapValue] of Object.entries(json)) {
-        const key = mapKeyFromJson(field.mapKey, jsonMapKey);
-        if (seen.has(key)) {
-            throw new FieldError(field, `duplicate map key "${jsonMapKey}"`);
+    const clear = compileClear(field);
+    return (message, json) => {
+        if (json === null) {
+            clear(message);
         }
-        seen.add(key);
-        const value = readListOrMapItem(field, jsonMapValue, ctx);
-        if (value !== tokenIgnoredUnknownEnum) {
-            map.set(key, value);
+        else {
+            message[localName] = readScalar(json);
         }
-    }
-}
-function from_json_readListField(list, json, ctx) {
-    if (json === null) {
-        return;
-    }
-    const field = list.field();
-    if (!Array.isArray(json)) {
-        throw new FieldError(field, "expected Array, got " + formatVal(json));
-    }
-    for (const jsonItem of json) {
-        const value = readListOrMapItem(field, jsonItem, ctx);
-        if (value !== tokenIgnoredUnknownEnum) {
-            list.add(value);
-        }
-    }
-}
-function from_json_readMessageField(msg, field, json, ctx) {
-    if (isResetSentinelNullValue(field, json)) {
-        msg.clear(field);
-        return;
-    }
-    const msgValue = msg.isSet(field) ? msg.get(field) : reflect_reflect(field.message);
-    from_json_readMessage(msgValue, json, ctx);
-    msg.set(field, msgValue);
-}
-function readEnumField(msg, field, json, ctx) {
-    if (isResetSentinelNullValue(field, json)) {
-        msg.clear(field);
-        return;
-    }
-    const enumValue = readEnum(field.enum, json, ctx.ignoreUnknownFields);
-    if (enumValue !== tokenIgnoredUnknownEnum) {
-        msg.set(field, enumValue);
-    }
-}
-function readScalarField(msg, field, json) {
-    if (json === null) {
-        msg.clear(field);
-    }
-    else {
-        msg.set(field, scalarFromJson(field, json));
-    }
+    };
 }
 /**
- * Indicates whether a value is a sentinel for reseting a field.
- *
- * For this to be true, the value must be a JSON null and the field must not
- * permit a present, Protobuf-serializable null.
- *
- * Only message google.protobuf.Value and enum google.protobuf.NullValue fields
- * permit Protobuf-serializable nulls.
- *
- * Note that field-resetting sentinel nulls are not permitted in lists and maps.
+ * Compile a function that resets the field to unset, mirroring the clear
+ * operation of the reflect API for fields that are not part of a oneof.
  */
-function isResetSentinelNullValue(field, json) {
-    var _a, _b;
-    return (json === null &&
-        ((_a = field.message) === null || _a === void 0 ? void 0 : _a.typeName) != "google.protobuf.Value" &&
-        ((_b = field.enum) === null || _b === void 0 ? void 0 : _b.typeName) != "google.protobuf.NullValue");
+function compileClear(field) {
+    const localName = field.localName;
+    if (field.presence != from_json_IMPLICIT) {
+        // Fields with explicit presence have properties on the prototype chain
+        // for default / zero values (except for proto3). By deleting their own
+        // property, the field is reset.
+        return (message) => {
+            delete message[localName];
+        };
+    }
+    if (field.fieldKind == "enum") {
+        const zero = field.enum.values[0].number;
+        return (message) => {
+            message[localName] = zero;
+        };
+    }
+    const scalar = field.scalar;
+    const longAsString = field.longAsString;
+    return (message) => {
+        message[localName] = scalarZeroValue(scalar, longAsString);
+    };
+}
+function from_json_compileEnumFieldReader(field) {
+    const readEnumValue = compileEnumConverter(field.enum);
+    const checkEnum = compileEnumCheck(field.enum);
+    const localName = field.localName;
+    // Fields with enum google.protobuf.NullValue permit a Protobuf-serializable
+    // null; for all other enums, JSON null resets the field.
+    const nullResets = field.enum.typeName != "google.protobuf.NullValue";
+    if (field.oneof) {
+        const oneofLocalName = field.oneof.localName;
+        return (message, json, ctx) => {
+            if (json === null && nullResets) {
+                const oneof = message[oneofLocalName];
+                if (oneof.case === localName) {
+                    message[oneofLocalName] = { case: undefined };
+                }
+                return;
+            }
+            const value = readEnumValue(json, ctx.ignoreUnknownFields);
+            if (value === tokenIgnoredUnknownEnum) {
+                return;
+            }
+            const check = checkEnum(value);
+            if (check !== true) {
+                throw new error_FieldError(field, reasonSingular(field, value, check));
+            }
+            message[oneofLocalName] = { case: localName, value };
+        };
+    }
+    const clear = compileClear(field);
+    return (message, json, ctx) => {
+        if (json === null && nullResets) {
+            clear(message);
+            return;
+        }
+        const value = readEnumValue(json, ctx.ignoreUnknownFields);
+        if (value === tokenIgnoredUnknownEnum) {
+            return;
+        }
+        const check = checkEnum(value);
+        if (check !== true) {
+            throw new error_FieldError(field, reasonSingular(field, value, check));
+        }
+        message[localName] = value;
+    };
+}
+function from_json_compileMessageFieldReader(field) {
+    const localName = field.localName;
+    const { toMessage, toLocal } = localMessageMapper(field);
+    const readChild = from_json_compiledReader(field.message);
+    // Fields with message google.protobuf.Value permit a Protobuf-serializable
+    // null; for all other messages, JSON null resets the field.
+    const nullResets = field.message.typeName != "google.protobuf.Value";
+    if (field.oneof) {
+        const oneofLocalName = field.oneof.localName;
+        return (message, json, ctx) => {
+            const oneof = message[oneofLocalName];
+            if (json === null && nullResets) {
+                if (oneof.case === localName) {
+                    message[oneofLocalName] = { case: undefined };
+                }
+                return;
+            }
+            const child = toMessage(oneof.case === localName ? oneof.value : undefined);
+            readChild(child, json, ctx);
+            message[oneofLocalName] = { case: localName, value: toLocal(child) };
+        };
+    }
+    return (message, json, ctx) => {
+        if (json === null && nullResets) {
+            delete message[localName];
+            return;
+        }
+        const child = toMessage(message[localName]);
+        readChild(child, json, ctx);
+        message[localName] = toLocal(child);
+    };
+}
+function from_json_compileListFieldReader(field) {
+    const localName = field.localName;
+    const readItem = compileListItemReader(field);
+    return (message, json, ctx) => {
+        if (json === null) {
+            return;
+        }
+        if (!Array.isArray(json)) {
+            throw new error_FieldError(field, "expected Array, got " + formatVal(json));
+        }
+        const items = message[localName];
+        for (let i = 0; i < json.length; i++) {
+            const value = readItem(json[i], ctx, items.length);
+            if (value !== tokenIgnoredUnknownEnum) {
+                items.push(value);
+            }
+        }
+    };
+}
+/**
+ * Compile a decoder for a list item. The index is only used in errors, and
+ * accounts for previously merged items.
+ */
+function compileListItemReader(field) {
+    switch (field.listKind) {
+        case "scalar": {
+            const parseScalar = compileScalarParse(field);
+            const checkValue = checkScalarValue(field.scalar);
+            const toLocal = compileScalarToLocal(field);
+            return (json, ctx, index) => {
+                if (json === null) {
+                    throw new error_FieldError(field, "list item must not be null");
+                }
+                const value = parseScalar(json);
+                const check = checkValue(value);
+                if (check !== true) {
+                    throw new error_FieldError(field, `list item #${index + 1}: ${reasonSingular(field, value, check)}`);
+                }
+                return toLocal(value);
+            };
+        }
+        case "enum": {
+            const readEnumValue = compileEnumConverter(field.enum);
+            const checkEnum = compileEnumCheck(field.enum);
+            const nullResets = field.enum.typeName != "google.protobuf.NullValue";
+            return (json, ctx, index) => {
+                if (json === null && nullResets) {
+                    throw new error_FieldError(field, "list item must not be null");
+                }
+                const value = readEnumValue(json, ctx.ignoreUnknownFields);
+                if (value === tokenIgnoredUnknownEnum) {
+                    return value;
+                }
+                const check = checkEnum(value);
+                if (check !== true) {
+                    throw new error_FieldError(field, `list item #${index + 1}: ${reasonSingular(field, value, check)}`);
+                }
+                return value;
+            };
+        }
+        case "message": {
+            const { toMessage, toLocal } = localMessageMapper(field);
+            const readChild = from_json_compiledReader(field.message);
+            const nullResets = field.message.typeName != "google.protobuf.Value";
+            return (json, ctx) => {
+                if (json === null && nullResets) {
+                    throw new error_FieldError(field, "list item must not be null");
+                }
+                const child = toMessage(undefined);
+                readChild(child, json, ctx);
+                return toLocal(child);
+            };
+        }
+    }
+}
+function from_json_compileMapFieldReader(field) {
+    const localName = field.localName;
+    const mapKey = field.mapKey;
+    const parseMapKey = compileMapKeyParse(mapKey);
+    const checkMapKey = checkScalarValue(mapKey);
+    let parseValue;
+    // Additional validation for scalar and enum values, matching the checks
+    // of the reflect API. Message values need no validation.
+    let checkValue;
+    let toLocalValue = (value) => value;
+    // Fields with google.protobuf.Value or google.protobuf.NullValue values
+    // permit a Protobuf-serializable null.
+    let nullResets = true;
+    switch (field.mapKind) {
+        case "scalar": {
+            parseValue = compileScalarParse(field);
+            checkValue = checkScalarValue(field.scalar);
+            toLocalValue = compileScalarToLocal(field);
+            break;
+        }
+        case "enum": {
+            const readEnumValue = compileEnumConverter(field.enum);
+            parseValue = (json, ctx) => readEnumValue(json, ctx.ignoreUnknownFields);
+            checkValue = compileEnumCheck(field.enum);
+            nullResets = field.enum.typeName != "google.protobuf.NullValue";
+            break;
+        }
+        case "message": {
+            const { toMessage, toLocal } = localMessageMapper(field);
+            const readChild = from_json_compiledReader(field.message);
+            nullResets = field.message.typeName != "google.protobuf.Value";
+            parseValue = (json, ctx) => {
+                const child = toMessage(undefined);
+                readChild(child, json, ctx);
+                return toLocal(child);
+            };
+            break;
+        }
+    }
+    return (message, json, ctx) => {
+        if (json === null) {
+            return;
+        }
+        if (typeof json != "object" || Array.isArray(json)) {
+            throw new error_FieldError(field, "expected object, got " + formatVal(json));
+        }
+        const record = message[localName];
+        const seen = new Set();
+        const jsonMapKeys = Object.keys(json);
+        for (let i = 0; i < jsonMapKeys.length; i++) {
+            const jsonMapKey = jsonMapKeys[i];
+            const jsonMapValue = json[jsonMapKey];
+            const key = parseMapKey(jsonMapKey);
+            if (seen.has(key)) {
+                throw new error_FieldError(field, `duplicate map key "${jsonMapKey}"`);
+            }
+            seen.add(key);
+            if (jsonMapValue === null && nullResets) {
+                throw new error_FieldError(field, "map value must not be null");
+            }
+            const value = parseValue(jsonMapValue, ctx);
+            if (value === tokenIgnoredUnknownEnum) {
+                continue;
+            }
+            const checkKey = checkMapKey(key);
+            if (checkKey !== true) {
+                throw new error_FieldError(field, `invalid map key: ${reasonSingular({ scalar: mapKey }, key, checkKey)}`);
+            }
+            if (checkValue !== undefined) {
+                const check = checkValue(value);
+                if (check !== true) {
+                    throw new error_FieldError(field, `map entry ${formatVal(key)}: ${reasonSingular(field, value, check)}`);
+                }
+            }
+            // Object property keys are always strings or symbols. Assigning with a
+            // boolean, number, or bigint key implicitly converts it to a string.
+            record[key] = toLocalValue(value);
+        }
+    };
 }
 const tokenIgnoredUnknownEnum = Symbol();
-function readEnum(desc, json, ignoreUnknownFields) {
-    if (json === null) {
-        return desc.values[0].number;
-    }
-    switch (typeof json) {
-        case "number":
-            if (Number.isInteger(json)) {
-                return json;
+/**
+ * Compile a converter from a JSON value to an enum value. JSON null returns
+ * the enum's first value. With ignoreUnknownFields false, unknown string
+ * values raise an error; with true, they return tokenIgnoredUnknownEnum.
+ * The value is not checked against the enum's values, see compileEnumCheck.
+ */
+function compileEnumConverter(desc) {
+    const zero = desc.values[0].number;
+    const values = desc.values;
+    return (json, ignoreUnknownFields) => {
+        if (json === null) {
+            return zero;
+        }
+        switch (typeof json) {
+            case "number":
+                if (Number.isInteger(json)) {
+                    return json;
+                }
+                break;
+            case "string": {
+                const value = values.find((ev) => ev.name === json);
+                if (value !== undefined) {
+                    return value.number;
+                }
+                if (ignoreUnknownFields) {
+                    return tokenIgnoredUnknownEnum;
+                }
+                break;
             }
-            break;
-        case "string":
-            const value = desc.values.find((ev) => ev.name === json);
-            if (value !== undefined) {
-                return value.number;
-            }
-            if (ignoreUnknownFields) {
-                return tokenIgnoredUnknownEnum;
-            }
-            break;
-    }
-    throw new Error(`cannot decode ${desc} from JSON: ${formatVal(json)}`);
+        }
+        throw new Error(`cannot decode ${desc} from JSON: ${formatVal(json)}`);
+    };
 }
 /**
- * Try to parse a JSON value to a scalar value for the reflect API.
- *
- * Returns the input if the JSON value cannot be converted. Raises a FieldError
- * if conversion would be ambiguous.
+ * Compile the check that the reflect API performs for enum values: open
+ * enums accept any int32 value, closed enums accept only declared values.
  */
-function scalarFromJson(field, json) {
-    // int64, sfixed64, sint64, fixed64, uint64: Reflect supports string and number.
-    // string, bool: Supported by reflect.
+function compileEnumCheck(desc) {
+    if (desc.open) {
+        return checkScalarValue(descriptors_ScalarType.INT32);
+    }
+    const values = desc.values;
+    return (value) => values.some((v) => v.number === value);
+}
+/**
+ * Compile a converter from a JSON value to the local representation of a
+ * scalar, fusing JSON parsing, the validation of the reflect API, and the
+ * conversion to the local 64-bit integer representation.
+ */
+function compileScalarConverter(field) {
+    const parseScalar = compileScalarParse(field);
+    const checkValue = checkScalarValue(field.scalar);
+    const toLocal = compileScalarToLocal(field);
+    return (json) => {
+        const value = parseScalar(json);
+        const check = checkValue(value);
+        if (check !== true) {
+            throw new error_FieldError(field, reasonSingular(field, value, check));
+        }
+        return toLocal(value);
+    };
+}
+/**
+ * Compile the JSON-specific parsing step for a scalar value: the special
+ * string values of float and double, string-encoded numbers, and base64
+ * bytes. Returns the input unchanged if the JSON value cannot be converted;
+ * the validation step raises an error for it.
+ */
+function compileScalarParse(field) {
     switch (field.scalar) {
         // float, double: JSON value will be a number or one of the special string values "NaN", "Infinity", and "-Infinity".
         // Either numbers or strings are accepted. Exponent notation is also accepted.
         case descriptors_ScalarType.DOUBLE:
         case descriptors_ScalarType.FLOAT:
-            if (json === "NaN")
-                return NaN;
-            if (json === "Infinity")
-                return Number.POSITIVE_INFINITY;
-            if (json === "-Infinity")
-                return Number.NEGATIVE_INFINITY;
-            if (typeof json == "number") {
-                if (Number.isNaN(json)) {
-                    // NaN must be encoded with string constants
-                    throw new FieldError(field, "unexpected NaN number");
+            return (json) => {
+                if (json === "NaN")
+                    return NaN;
+                if (json === "Infinity")
+                    return Number.POSITIVE_INFINITY;
+                if (json === "-Infinity")
+                    return Number.NEGATIVE_INFINITY;
+                if (typeof json == "number") {
+                    if (Number.isNaN(json)) {
+                        // NaN must be encoded with string constants
+                        throw new error_FieldError(field, "unexpected NaN number");
+                    }
+                    if (!Number.isFinite(json)) {
+                        // Infinity must be encoded with string constants
+                        throw new error_FieldError(field, "unexpected infinite number");
+                    }
+                    return json;
                 }
-                if (!Number.isFinite(json)) {
-                    // Infinity must be encoded with string constants
-                    throw new FieldError(field, "unexpected infinite number");
+                if (typeof json == "string") {
+                    if (json === "") {
+                        // empty string is not a number
+                        return json;
+                    }
+                    if (json.trim().length !== json.length) {
+                        // extra whitespace
+                        return json;
+                    }
+                    const float = Number(json);
+                    if (!Number.isFinite(float)) {
+                        // Infinity and NaN must be encoded with string constants
+                        return json;
+                    }
+                    return float;
                 }
-                break;
-            }
-            if (typeof json == "string") {
-                if (json === "") {
-                    // empty string is not a number
-                    break;
-                }
-                if (json.trim().length !== json.length) {
-                    // extra whitespace
-                    break;
-                }
-                const float = Number(json);
-                if (!Number.isFinite(float)) {
-                    // Infinity and NaN must be encoded with string constants
-                    break;
-                }
-                return float;
-            }
-            break;
+                return json;
+            };
         // int32, fixed32, uint32: JSON value will be a decimal number. Either numbers or strings are accepted.
         case descriptors_ScalarType.INT32:
         case descriptors_ScalarType.FIXED32:
         case descriptors_ScalarType.SFIXED32:
         case descriptors_ScalarType.SINT32:
         case descriptors_ScalarType.UINT32:
-            return int32FromJson(json);
+            return int32FromJson;
         // bytes: JSON value will be the data encoded as a string using standard base64 encoding with paddings.
         // Either standard or URL-safe base64 encoding with/without paddings are accepted.
         case descriptors_ScalarType.BYTES:
-            if (typeof json == "string") {
-                if (json === "") {
-                    return new Uint8Array(0);
+            return (json) => {
+                if (typeof json == "string") {
+                    if (json === "") {
+                        return new Uint8Array(0);
+                    }
+                    try {
+                        return base64_encoding_base64Decode(json);
+                    }
+                    catch (e) {
+                        const message = e instanceof Error ? e.message : String(e);
+                        throw new error_FieldError(field, message);
+                    }
                 }
-                try {
-                    return base64_encoding_base64Decode(json);
-                }
-                catch (e) {
-                    const message = e instanceof Error ? e.message : String(e);
-                    throw new FieldError(field, message);
-                }
-            }
-            break;
+                return json;
+            };
+        // int64, sfixed64, sint64, fixed64, uint64: The validation step accepts
+        // string and number. string, bool: no conversion.
+        default:
+            return (json) => json;
     }
-    return json;
 }
 /**
- * Try to parse a JSON value to a map key for the reflect API.
- * Canonicalizes 64-bit integers given as string, so that "01 and "1" are one
- * key, and duplicates can raise an error.
- * Returns the input if the JSON value cannot be converted.
+ * Compile the conversion of a validated scalar value to its local
+ * representation: 64-bit integers become bigint, or string with the
+ * longAsString option.
  */
-function mapKeyFromJson(type, jsonString) {
+function compileScalarToLocal(field) {
+    const longAsString = field.fieldKind !== "map" && field.longAsString;
+    switch (field.scalar) {
+        case descriptors_ScalarType.INT64:
+        case descriptors_ScalarType.SFIXED64:
+        case descriptors_ScalarType.SINT64:
+            if (longAsString) {
+                return (value) => String(value);
+            }
+            return (value) => typeof value == "string" || typeof value == "number"
+                ? protoInt64.parse(value)
+                : value;
+        case descriptors_ScalarType.FIXED64:
+        case descriptors_ScalarType.UINT64:
+            if (longAsString) {
+                return (value) => String(value);
+            }
+            return (value) => typeof value == "string" || typeof value == "number"
+                ? protoInt64.uParse(value)
+                : value;
+        default:
+            return (value) => value;
+    }
+}
+/**
+ * Return a parser from a JSON value to a map key for the given key type.
+ * Canonicalizes 64-bit integers given as string, so that "01" and "1" are
+ * one key, and duplicates can raise an error.
+ * The parser returns the input if the JSON value cannot be converted.
+ */
+function compileMapKeyParse(type) {
     switch (type) {
         case descriptors_ScalarType.BOOL:
-            switch (jsonString) {
-                case "true":
-                    return true;
-                case "false":
-                    return false;
-            }
-            return jsonString;
+            return (jsonString) => {
+                switch (jsonString) {
+                    case "true":
+                        return true;
+                    case "false":
+                        return false;
+                }
+                return jsonString;
+            };
         case descriptors_ScalarType.INT32:
         case descriptors_ScalarType.FIXED32:
         case descriptors_ScalarType.UINT32:
         case descriptors_ScalarType.SFIXED32:
         case descriptors_ScalarType.SINT32:
-            return int32FromJson(jsonString);
+            return int32FromJson;
         case descriptors_ScalarType.INT64:
         case descriptors_ScalarType.SINT64:
         case descriptors_ScalarType.SFIXED64:
         case descriptors_ScalarType.UINT64:
         case descriptors_ScalarType.FIXED64:
-            return /^-?0+$/.test(jsonString)
+            return (jsonString) => /^-?0+$/.test(jsonString)
                 ? "0"
                 : jsonString.replace(/^(-?)0+(?=\d)/, "$1");
         default:
-            return jsonString;
+            // ScalarType.STRING
+            return (jsonString) => jsonString;
     }
 }
 /**
@@ -46293,46 +47768,6 @@ function checkDuplicateKeys(jsonString, typeName) {
         }
     }
 }
-function tryWktFromJson(msg, jsonValue, ctx) {
-    if (!msg.desc.typeName.startsWith("google.protobuf.")) {
-        return false;
-    }
-    switch (msg.desc.typeName) {
-        case "google.protobuf.Any":
-            anyFromJson(msg.message, jsonValue, ctx);
-            return true;
-        case "google.protobuf.Timestamp":
-            timestampFromJson(msg.message, jsonValue);
-            return true;
-        case "google.protobuf.Duration":
-            durationFromJson(msg.message, jsonValue);
-            return true;
-        case "google.protobuf.FieldMask":
-            fieldMaskFromJson(msg.message, jsonValue);
-            return true;
-        case "google.protobuf.Struct":
-            structFromJson(msg.message, jsonValue, ctx);
-            return true;
-        case "google.protobuf.Value":
-            valueFromJson(msg.message, jsonValue, ctx);
-            return true;
-        case "google.protobuf.ListValue":
-            listValueFromJson(msg.message, jsonValue, ctx);
-            return true;
-        default:
-            if (isWrapperDesc(msg.desc)) {
-                const valueField = msg.desc.fields[0];
-                if (jsonValue === null) {
-                    msg.clear(valueField);
-                }
-                else {
-                    msg.set(valueField, scalarFromJson(valueField, jsonValue));
-                }
-                return true;
-            }
-            return false;
-    }
-}
 function anyFromJson(any, json, ctx) {
     var _a;
     if (json === null || Array.isArray(json) || typeof json != "object") {
@@ -46355,19 +47790,18 @@ function anyFromJson(any, json, ctx) {
     if (!desc) {
         throw new Error(`cannot decode message ${any.$typeName} from JSON: ${typeUrl} is not in the type registry`);
     }
-    const msg = reflect_reflect(desc);
+    const message = create_create(desc);
     if (hasCustomJsonRepresentation(desc) &&
         Object.prototype.hasOwnProperty.call(json, "value")) {
-        const value = json.value;
-        from_json_readMessage(msg, value, ctx);
+        from_json_compiledReader(desc)(message, json.value, ctx);
     }
     else {
         const copy = Object.assign({}, json);
         // biome-ignore lint/performance/noDelete: <explanation>
         delete copy["@type"];
-        from_json_readMessage(msg, copy, ctx);
+        from_json_compiledReader(desc)(message, copy, ctx);
     }
-    anyPack(msg.desc, msg.message, any);
+    anyPack(desc, message, any);
 }
 function timestampFromJson(timestamp, json) {
     if (typeof json !== "string") {
@@ -46383,8 +47817,7 @@ function timestampFromJson(timestamp, json) {
     if (Number.isNaN(ms)) {
         throw new Error(`cannot decode message ${timestamp.$typeName} from JSON: invalid RFC 3339 string`);
     }
-    if (ms < Date.parse("0001-01-01T00:00:00Z") ||
-        ms > Date.parse("9999-12-31T23:59:59Z")) {
+    if (ms < timestampMsMin || ms > timestampMsMax) {
         throw new Error(`cannot decode message ${timestamp.$typeName} from JSON: must be from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59Z inclusive`);
     }
     timestamp.seconds = protoInt64.parse(ms / 1000);
@@ -46404,7 +47837,7 @@ function durationFromJson(duration, json) {
         throw new Error(`cannot decode message ${duration.$typeName} from JSON: ${formatVal(json)}`);
     }
     const longSeconds = Number(match[1]);
-    if (longSeconds > 315576000000 || longSeconds < -315576000000) {
+    if (longSeconds > durationSecondsMax || longSeconds < durationSecondsMin) {
         throw new Error(`cannot decode message ${duration.$typeName} from JSON: ${formatVal(json)}`);
     }
     duration.seconds = protoInt64.parse(longSeconds);
@@ -46435,10 +47868,12 @@ function structFromJson(struct, json, ctx) {
     if (typeof json != "object" || json == null || Array.isArray(json)) {
         throw new Error(`cannot decode message ${struct.$typeName} from JSON ${formatVal(json)}`);
     }
-    for (const [k, v] of Object.entries(json)) {
-        const parsedV = create_create(ValueSchema);
-        valueFromJson(parsedV, v, ctx);
-        struct.fields[k] = parsedV;
+    const keys = Object.keys(json);
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        const parsedValue = create_create(ValueSchema);
+        valueFromJson(parsedValue, json[key], ctx);
+        struct.fields[key] = parsedValue;
     }
 }
 function valueFromJson(value, json, ctx) {
@@ -46480,9 +47915,9 @@ function listValueFromJson(listValue, json, ctx) {
     if (!Array.isArray(json)) {
         throw new Error(`cannot decode message ${listValue.$typeName} from JSON ${formatVal(json)}`);
     }
-    for (const e of json) {
+    for (let i = 0; i < json.length; i++) {
         const value = create_create(ValueSchema);
-        valueFromJson(value, e, ctx);
+        valueFromJson(value, json[i], ctx);
         listValue.values.push(value);
     }
 }
@@ -46881,9 +48316,13 @@ function createMessage(message, code) {
 
 
 
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.LEGACY_REQUIRED: const $name: FeatureSet_FieldPresence.$localName = $number;
+
+
+
+
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.LEGACY_REQUIRED: const $name = $number;
 const to_json_LEGACY_REQUIRED = 3;
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name = $number;
 const to_json_IMPLICIT = 2;
 // Default options for serializing to JSON.
 const jsonWriteDefaults = {
@@ -46899,7 +48338,7 @@ function to_json_makeWriteOptions(options) {
  * passed to JSON.stringify().
  */
 function to_json_toJson(schema, message, options) {
-    return reflectToJson(reflect_reflect(schema, message), to_json_makeWriteOptions(options));
+    return to_json_compiledWriter(schema)(to_json_makeWriteOptions(options), message);
 }
 /**
  * Serialize the message to a JSON string.
@@ -46923,123 +48362,337 @@ function enumToJson(descEnum, value) {
     }
     return name;
 }
-function reflectToJson(msg, opts) {
-    var _a;
-    const wktJson = tryWktToJson(msg, opts);
-    if (wktJson !== undefined)
-        return wktJson;
-    const json = {};
-    for (const f of msg.sortedFields) {
-        if (!msg.isSet(f)) {
-            if (f.presence == to_json_LEGACY_REQUIRED) {
-                throw new Error(`cannot encode ${f} to JSON: required field not set`);
-            }
-            if (!opts.alwaysEmitImplicit || f.presence !== to_json_IMPLICIT) {
-                // Fields with implicit presence omit zero values (e.g. empty string) by default
-                continue;
-            }
-        }
-        const jsonValue = fieldToJson(f, msg.get(f), opts);
-        if (jsonValue !== undefined) {
-            json[jsonName(f, opts)] = jsonValue;
-        }
+const to_json_compiledWriters = new WeakMap();
+/**
+ * Return the compiled encoder for a message, compiling it on first use.
+ */
+function to_json_compiledWriter(desc) {
+    let compiled = to_json_compiledWriters.get(desc);
+    if (compiled === undefined) {
+        compiled = to_json_compileMessage(desc);
     }
-    if (opts.registry) {
-        const tagSeen = new Set();
-        for (const { no } of (_a = msg.getUnknown()) !== null && _a !== void 0 ? _a : []) {
-            // Same tag can appear multiple times, so we
-            // keep track and skip identical ones.
-            if (!tagSeen.has(no)) {
-                tagSeen.add(no);
-                const extension = opts.registry.getExtensionFor(msg.desc, no);
-                if (!extension) {
-                    continue;
-                }
-                const value = getExtension(msg.message, extension);
-                const [container, field] = createExtensionContainer(extension, value);
-                const jsonValue = fieldToJson(field, container.get(field), opts);
-                if (jsonValue !== undefined) {
-                    json[extension.jsonName] = jsonValue;
-                }
-            }
-        }
-    }
-    return json;
+    return compiled;
 }
-function fieldToJson(f, val, opts) {
-    switch (f.fieldKind) {
+function to_json_compileMessage(desc) {
+    const typeName = desc.typeName;
+    const writeWkt = to_json_compileWkt(desc);
+    if (writeWkt !== undefined) {
+        // The field reported in ForeignFieldError. All well-known types with a
+        // custom JSON representation have at least one field.
+        const foreignField = desc.fields[0];
+        const compiledWriter = (opts, message) => {
+            if (message.$typeName !== typeName && foreignField !== undefined) {
+                throw new error_FieldError(foreignField, `cannot use ${foreignField} with message ${message.$typeName}`, "ForeignFieldError");
+            }
+            return writeWkt(opts, message);
+        };
+        to_json_compiledWriters.set(desc, compiledWriter);
+        return compiledWriter;
+    }
+    const sortedFields = desc.fields.concat().sort((a, b) => a.number - b.number);
+    // The field reported in ForeignFieldError.
+    const foreignField = sortedFields[0];
+    const fieldWriters = [];
+    const compiledWriter = (opts, message) => {
+        if (message.$typeName !== typeName && foreignField !== undefined) {
+            throw new error_FieldError(foreignField, `cannot use ${foreignField} with message ${message.$typeName}`, "ForeignFieldError");
+        }
+        const json = {};
+        for (let i = 0; i < fieldWriters.length; i++) {
+            fieldWriters[i](opts, message, json);
+        }
+        if (opts.registry) {
+            writeExtensions(json, opts, opts.registry, message, desc);
+        }
+        return json;
+    };
+    // Register before compiling fields, so that recursive message types
+    // resolve to this instance instead of compiling endlessly.
+    to_json_compiledWriters.set(desc, compiledWriter);
+    for (const field of sortedFields) {
+        fieldWriters.push(to_json_compileField(field));
+    }
+    return compiledWriter;
+}
+/**
+ * Compile an encoder for a well-known type with a custom JSON representation,
+ * or return undefined for other messages.
+ */
+function to_json_compileWkt(desc) {
+    if (!desc.typeName.startsWith("google.protobuf.")) {
+        return undefined;
+    }
+    switch (desc.typeName) {
+        case "google.protobuf.Any":
+            return (opts, message) => anyToJson(message, opts);
+        case "google.protobuf.Timestamp":
+            return (opts, message) => timestampToJson(message);
+        case "google.protobuf.Duration":
+            return (opts, message) => durationToJson(message);
+        case "google.protobuf.FieldMask":
+            return (opts, message) => fieldMaskToJson(message);
+        case "google.protobuf.Struct":
+            return (opts, message) => structToJson(message);
+        case "google.protobuf.Value":
+            return (opts, message) => valueToJson(message);
+        case "google.protobuf.ListValue":
+            return (opts, message) => listValueToJson(message);
+        default:
+            if (isWrapperDesc(desc)) {
+                const valueField = desc.fields[0];
+                const localName = valueField.localName;
+                const zero = scalarZeroValue(valueField.scalar, false);
+                const writeScalar = to_json_compileScalarValue(valueField);
+                return (opts, message) => {
+                    const value = message[localName];
+                    return writeScalar(opts, value === undefined ? zero : value);
+                };
+            }
+            return undefined;
+    }
+}
+function to_json_compileField(field) {
+    switch (field.fieldKind) {
         case "scalar":
-            return scalarToJson(f, val);
-        case "message":
-            return reflectToJson(val, opts);
         case "enum":
-            return enumToJsonInternal(f.enum, val, opts.enumAsInteger);
+        case "message":
+            return to_json_compileSingularField(field);
         case "list":
-            return listToJson(val, opts);
+        case "map": {
+            const writeValue = field.fieldKind == "list"
+                ? compileListValue(field)
+                : compileMapValue(field);
+            const protoName = field.name;
+            const jsonKey = field.jsonName;
+            const localName = field.localName;
+            return (opts, message, json) => {
+                const value = writeValue(opts, message[localName]);
+                if (value !== undefined) {
+                    json[opts.useProtoFieldName ? protoName : jsonKey] = value;
+                }
+            };
+        }
+    }
+}
+/**
+ * Compile an encoder for a singular field: the presence check, and the
+ * value encoder.
+ */
+function to_json_compileSingularField(field) {
+    const writeValue = to_json_compileSingularValue(field);
+    const protoName = field.name;
+    const jsonKey = field.jsonName;
+    const localName = field.localName;
+    if (field.oneof) {
+        const oneofLocalName = field.oneof.localName;
+        return (opts, message, json) => {
+            const oneof = message[oneofLocalName];
+            if (oneof.case === localName) {
+                json[opts.useProtoFieldName ? protoName : jsonKey] = writeValue(opts, oneof.value);
+            }
+        };
+    }
+    if (field.presence != to_json_IMPLICIT) {
+        const requiredError = field.presence == to_json_LEGACY_REQUIRED
+            ? `cannot encode ${field} to JSON: required field not set`
+            : undefined;
+        return (opts, message, json) => {
+            const value = message[localName];
+            // Fields with explicit presence have properties on the prototype
+            // chain for default / zero values (except for proto3).
+            if (value !== undefined &&
+                Object.prototype.hasOwnProperty.call(message, localName)) {
+                json[opts.useProtoFieldName ? protoName : jsonKey] = writeValue(opts, value);
+            }
+            else if (requiredError !== undefined) {
+                throw new Error(requiredError);
+            }
+        };
+    }
+    // Implicit presence: the field is emitted when the value is not the zero
+    // value, or when alwaysEmitImplicit is enabled. The zero check is inlined
+    // per type, see isScalarZeroValue.
+    if (field.fieldKind == "enum") {
+        const zero = field.enum.values[0].number;
+        return (opts, message, json) => {
+            const value = message[localName];
+            if (value !== zero || opts.alwaysEmitImplicit) {
+                json[opts.useProtoFieldName ? protoName : jsonKey] = writeValue(opts, value);
+            }
+        };
+    }
+    switch (field.scalar) {
+        case descriptors_ScalarType.BOOL:
+            return (opts, message, json) => {
+                const value = message[localName];
+                if (value !== false || opts.alwaysEmitImplicit) {
+                    json[opts.useProtoFieldName ? protoName : jsonKey] = writeValue(opts, value);
+                }
+            };
+        case descriptors_ScalarType.STRING:
+            return (opts, message, json) => {
+                const value = message[localName];
+                if (value !== "" || opts.alwaysEmitImplicit) {
+                    json[opts.useProtoFieldName ? protoName : jsonKey] = writeValue(opts, value);
+                }
+            };
+        case descriptors_ScalarType.BYTES:
+            return (opts, message, json) => {
+                const value = message[localName];
+                if (!(value instanceof Uint8Array) ||
+                    value.byteLength > 0 ||
+                    opts.alwaysEmitImplicit) {
+                    json[opts.useProtoFieldName ? protoName : jsonKey] = writeValue(opts, value);
+                }
+            };
+        case descriptors_ScalarType.DOUBLE:
+        case descriptors_ScalarType.FLOAT:
+            return (opts, message, json) => {
+                const value = message[localName];
+                // Object.is distinguishes -0 from 0.
+                if (!Object.is(value, 0) || opts.alwaysEmitImplicit) {
+                    json[opts.useProtoFieldName ? protoName : jsonKey] = writeValue(opts, value);
+                }
+            };
+        default:
+            return (opts, message, json) => {
+                const value = message[localName];
+                // Loose comparison matches 0n, 0 and "0".
+                if (value != 0 || opts.alwaysEmitImplicit) {
+                    json[opts.useProtoFieldName ? protoName : jsonKey] = writeValue(opts, value);
+                }
+            };
+    }
+}
+/**
+ * Compile an encoder for the value of a field of any kind. Used for
+ * extension values.
+ */
+function compileFieldValue(field) {
+    switch (field.fieldKind) {
+        case "scalar":
+        case "enum":
+        case "message":
+            return to_json_compileSingularValue(field);
+        case "list":
+            return compileListValue(field);
         case "map":
-            return mapToJson(val, opts);
+            return compileMapValue(field);
     }
 }
-function mapToJson(map, opts) {
-    const f = map.field();
-    const jsonObj = {};
-    switch (f.mapKind) {
+/**
+ * Compile an encoder for the value of a singular field.
+ */
+function to_json_compileSingularValue(field) {
+    switch (field.fieldKind) {
         case "scalar":
-            for (const [entryKey, entryValue] of map) {
-                jsonObj[entryKey] = scalarToJson(f, entryValue);
-            }
-            break;
-        case "message":
-            for (const [entryKey, entryValue] of map) {
-                jsonObj[entryKey] = reflectToJson(entryValue, opts);
-            }
-            break;
+            return to_json_compileScalarValue(field);
         case "enum":
-            for (const [entryKey, entryValue] of map) {
-                jsonObj[entryKey] = enumToJsonInternal(f.enum, entryValue, opts.enumAsInteger);
-            }
-            break;
+            return compileEnumValue(field);
+        case "message":
+            return compileMessageValue(field);
     }
-    return opts.alwaysEmitImplicit || map.size > 0 ? jsonObj : undefined;
 }
-function listToJson(list, opts) {
-    const f = list.field();
-    const jsonArr = [];
-    switch (f.listKind) {
+/**
+ * Compile an encoder for the value of a message field.
+ */
+function compileMessageValue(field) {
+    const { toMessage } = localMessageMapper(field);
+    const writeMessage = to_json_compiledWriter(field.message);
+    return (opts, value) => writeMessage(opts, toMessage(value));
+}
+/**
+ * Compile an encoder for a list field value. Returns undefined for an empty
+ * list, unless alwaysEmitImplicit is enabled.
+ */
+function compileListValue(field) {
+    const writeItem = compileListItemValue(field);
+    return (opts, value) => {
+        const items = value;
+        if (items.length == 0 && !opts.alwaysEmitImplicit) {
+            return undefined;
+        }
+        const jsonArray = [];
+        for (let i = 0; i < items.length; i++) {
+            jsonArray.push(writeItem(opts, items[i]));
+        }
+        return jsonArray;
+    };
+}
+function compileListItemValue(field) {
+    switch (field.listKind) {
         case "scalar":
-            for (const item of list) {
-                jsonArr.push(scalarToJson(f, item));
-            }
-            break;
+            return to_json_compileScalarValue(field);
         case "enum":
-            for (const item of list) {
-                jsonArr.push(enumToJsonInternal(f.enum, item, opts.enumAsInteger));
-            }
-            break;
+            return compileEnumValue(field);
         case "message":
-            for (const item of list) {
-                jsonArr.push(reflectToJson(item, opts));
-            }
-            break;
+            return compileMessageValue(field);
     }
-    return opts.alwaysEmitImplicit || jsonArr.length > 0 ? jsonArr : undefined;
 }
-function enumToJsonInternal(desc, value, enumAsInteger) {
-    var _a;
-    if (typeof value != "number") {
-        throw new Error(`cannot encode ${desc} to JSON: expected number, got ${formatVal(value)}`);
+/**
+ * Compile an encoder for a map field value. Returns undefined for an empty
+ * map, unless alwaysEmitImplicit is enabled. Map keys are stored as object
+ * keys and are used as JSON keys as-is.
+ */
+function compileMapValue(field) {
+    const writeMapValue = compileMapEntryValue(field);
+    return (opts, value) => {
+        const record = value;
+        const keys = Object.keys(record);
+        if (keys.length == 0 && !opts.alwaysEmitImplicit) {
+            return undefined;
+        }
+        const jsonObject = {};
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            jsonObject[key] = writeMapValue(opts, record[key]);
+        }
+        return jsonObject;
+    };
+}
+function compileMapEntryValue(field) {
+    switch (field.mapKind) {
+        case "scalar":
+            return to_json_compileScalarValue(field);
+        case "enum":
+            return compileEnumValue(field);
+        case "message":
+            return compileMessageValue(field);
     }
+}
+/**
+ * Compile an encoder for an enum value.
+ */
+function compileEnumValue(field) {
+    const desc = field.enum;
     if (desc.typeName == "google.protobuf.NullValue") {
-        return null;
+        return (opts, value) => {
+            if (typeof value != "number") {
+                throw errorEnumValue(desc, value);
+            }
+            return null;
+        };
     }
-    if (enumAsInteger) {
-        return value;
-    }
-    const val = desc.value[value];
-    return (_a = val === null || val === void 0 ? void 0 : val.name) !== null && _a !== void 0 ? _a : value; // if we don't know the enum value, just return the number
+    return (opts, value) => {
+        var _a, _b;
+        if (typeof value != "number") {
+            throw errorEnumValue(desc, value);
+        }
+        if (opts.enumAsInteger) {
+            return value;
+        }
+        // If we don't know the enum value, just return the number.
+        return (_b = (_a = desc.value[value]) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : value;
+    };
 }
-function scalarToJson(field, value) {
-    var _a, _b, _c, _d, _e, _f;
+function errorEnumValue(desc, value) {
+    return new Error(`cannot encode ${desc} to JSON: expected number, got ${formatVal(value)}`);
+}
+/**
+ * Compile an encoder for a scalar value. Errors report the original field
+ * descriptor, which may be a list or map field for items of those fields.
+ */
+function to_json_compileScalarValue(field) {
     switch (field.scalar) {
         // int32, fixed32, uint32: JSON value will be a decimal number. Either numbers or strings are accepted.
         case descriptors_ScalarType.INT32:
@@ -47047,86 +48700,100 @@ function scalarToJson(field, value) {
         case descriptors_ScalarType.SINT32:
         case descriptors_ScalarType.FIXED32:
         case descriptors_ScalarType.UINT32:
-            if (typeof value != "number") {
-                throw new Error(`cannot encode ${field} to JSON: ${(_a = checkField(field, value)) === null || _a === void 0 ? void 0 : _a.message}`);
-            }
-            return value;
+            return (opts, value) => {
+                if (typeof value != "number") {
+                    throw errorScalarValue(field, value);
+                }
+                return value;
+            };
         // float, double: JSON value will be a number or one of the special string values "NaN", "Infinity", and "-Infinity".
         // Either numbers or strings are accepted. Exponent notation is also accepted.
         case descriptors_ScalarType.FLOAT:
-        case descriptors_ScalarType.DOUBLE: // eslint-disable-line no-fallthrough
-            if (typeof value != "number") {
-                throw new Error(`cannot encode ${field} to JSON: ${(_b = checkField(field, value)) === null || _b === void 0 ? void 0 : _b.message}`);
-            }
-            if (Number.isNaN(value))
-                return "NaN";
-            if (value === Number.POSITIVE_INFINITY)
-                return "Infinity";
-            if (value === Number.NEGATIVE_INFINITY)
-                return "-Infinity";
-            return value;
+        case descriptors_ScalarType.DOUBLE:
+            return (opts, value) => {
+                if (typeof value != "number") {
+                    throw errorScalarValue(field, value);
+                }
+                if (Number.isNaN(value))
+                    return "NaN";
+                if (value === Number.POSITIVE_INFINITY)
+                    return "Infinity";
+                if (value === Number.NEGATIVE_INFINITY)
+                    return "-Infinity";
+                return value;
+            };
         // string:
         case descriptors_ScalarType.STRING:
-            if (typeof value != "string") {
-                throw new Error(`cannot encode ${field} to JSON: ${(_c = checkField(field, value)) === null || _c === void 0 ? void 0 : _c.message}`);
-            }
-            return value;
+            return (opts, value) => {
+                if (typeof value != "string") {
+                    throw errorScalarValue(field, value);
+                }
+                return value;
+            };
         // bool:
         case descriptors_ScalarType.BOOL:
-            if (typeof value != "boolean") {
-                throw new Error(`cannot encode ${field} to JSON: ${(_d = checkField(field, value)) === null || _d === void 0 ? void 0 : _d.message}`);
-            }
-            return value;
+            return (opts, value) => {
+                if (typeof value != "boolean") {
+                    throw errorScalarValue(field, value);
+                }
+                return value;
+            };
         // JSON value will be a decimal string. Either numbers or strings are accepted.
         case descriptors_ScalarType.UINT64:
         case descriptors_ScalarType.FIXED64:
         case descriptors_ScalarType.INT64:
         case descriptors_ScalarType.SFIXED64:
         case descriptors_ScalarType.SINT64:
-            if (typeof value == "bigint" ||
-                typeof value == "string" ||
-                (typeof value == "number" && Number.isInteger(value))) {
-                return value.toString();
-            }
-            throw new Error(`cannot encode ${field} to JSON: ${(_e = checkField(field, value)) === null || _e === void 0 ? void 0 : _e.message}`);
+            return (opts, value) => {
+                if (typeof value == "bigint" ||
+                    typeof value == "string" ||
+                    (typeof value == "number" && Number.isInteger(value))) {
+                    return value.toString();
+                }
+                throw errorScalarValue(field, value);
+            };
         // bytes: JSON value will be the data encoded as a string using standard base64 encoding with paddings.
         // Either standard or URL-safe base64 encoding with/without paddings are accepted.
         case descriptors_ScalarType.BYTES:
-            if (value instanceof Uint8Array) {
-                return base64_encoding_base64Encode(value);
-            }
-            throw new Error(`cannot encode ${field} to JSON: ${(_f = checkField(field, value)) === null || _f === void 0 ? void 0 : _f.message}`);
+            return (opts, value) => {
+                if (value instanceof Uint8Array) {
+                    return base64_encoding_base64Encode(value);
+                }
+                throw errorScalarValue(field, value);
+            };
     }
 }
-function jsonName(f, opts) {
-    return opts.useProtoFieldName ? f.name : f.jsonName;
+function errorScalarValue(field, value) {
+    var _a;
+    return new Error(`cannot encode ${field} to JSON: ${(_a = checkField(field, value)) === null || _a === void 0 ? void 0 : _a.message}`);
 }
-// returns a json value if wkt, otherwise returns undefined.
-function tryWktToJson(msg, opts) {
-    if (!msg.desc.typeName.startsWith("google.protobuf.")) {
-        return undefined;
+/**
+ * Write extensions for unknown fields that are found in the registry.
+ */
+function writeExtensions(json, opts, registry, message, desc) {
+    const unknown = message.$unknown;
+    if (unknown === undefined) {
+        return;
     }
-    switch (msg.desc.typeName) {
-        case "google.protobuf.Any":
-            return anyToJson(msg.message, opts);
-        case "google.protobuf.Timestamp":
-            return timestampToJson(msg.message);
-        case "google.protobuf.Duration":
-            return durationToJson(msg.message);
-        case "google.protobuf.FieldMask":
-            return fieldMaskToJson(msg.message);
-        case "google.protobuf.Struct":
-            return structToJson(msg.message);
-        case "google.protobuf.Value":
-            return valueToJson(msg.message);
-        case "google.protobuf.ListValue":
-            return listValueToJson(msg.message);
-        default:
-            if (isWrapperDesc(msg.desc)) {
-                const valueField = msg.desc.fields[0];
-                return scalarToJson(valueField, msg.get(valueField));
+    const tagSeen = new Set();
+    for (let i = 0; i < unknown.length; i++) {
+        const { no } = unknown[i];
+        // Same tag can appear multiple times, so we
+        // keep track and skip identical ones.
+        if (!tagSeen.has(no)) {
+            tagSeen.add(no);
+            const extension = registry.getExtensionFor(desc, no);
+            if (!extension) {
+                continue;
             }
-            return undefined;
+            const value = getExtension(message, extension);
+            const [container, field] = createExtensionContainer(extension, value);
+            const local = container[unsafeLocal];
+            const jsonValue = compileFieldValue(field)(opts, local[field.localName]);
+            if (jsonValue !== undefined) {
+                json[extension.jsonName] = jsonValue;
+            }
+        }
     }
 }
 function anyToJson(val, opts) {
@@ -47145,17 +48812,18 @@ function anyToJson(val, opts) {
     if (!desc || !message) {
         throw new Error(`cannot encode message ${val.$typeName} to JSON: "${val.typeUrl}" is not in the type registry`);
     }
-    const reflected = reflect_reflect(desc, message);
     const json = hasCustomJsonRepresentation(desc)
-        ? { value: tryWktToJson(reflected, opts) }
-        : reflectToJson(reflected, opts);
+        ? {
+            value: to_json_compiledWriter(desc)(opts, message),
+        }
+        : to_json_compiledWriter(desc)(opts, message);
     json["@type"] = val.typeUrl;
     return json;
 }
 function durationToJson(val) {
     const seconds = Number(val.seconds);
     const nanos = val.nanos;
-    if (seconds > 315576000000 || seconds < -315576000000) {
+    if (seconds > durationSecondsMax || seconds < durationSecondsMin) {
         throw new Error(`cannot encode message ${val.$typeName} to JSON: value out of range`);
     }
     if ((seconds > 0 && nanos < 0) || (seconds < 0 && nanos > 0)) {
@@ -47190,8 +48858,10 @@ function fieldMaskToJson(val) {
 }
 function structToJson(val) {
     const json = {};
-    for (const [k, v] of Object.entries(val.fields)) {
-        json[k] = valueToJson(v);
+    const keys = Object.keys(val.fields);
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        json[key] = valueToJson(val.fields[key]);
     }
     return json;
 }
@@ -47221,8 +48891,7 @@ function listValueToJson(val) {
 }
 function timestampToJson(val) {
     const ms = Number(val.seconds) * 1000;
-    if (ms < Date.parse("0001-01-01T00:00:00Z") ||
-        ms > Date.parse("9999-12-31T23:59:59Z")) {
+    if (ms < timestampMsMin || ms > timestampMsMax) {
         throw new Error(`cannot encode message ${val.$typeName} to JSON: must be from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59Z inclusive`);
     }
     if (val.nanos < 0) {
