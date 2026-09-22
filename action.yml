@@ -30,12 +30,22 @@ inputs:
           version: 1.72.0
     required: false
   checksum:
-    description:
-      Checksum of the Buf CLI to verify (sha256).
+    description: Checksum of the Buf CLI to verify (sha256).
     required: false
   token:
     description: |-
       API token for logging into the BSR.
+      If not set, "bot_username" is used to mint a short-lived token with
+      workload identity federation.
+      See: https://buf.build/docs/bsr/authentication
+    required: false
+  bot_username:
+    description: |-
+      Username of the bot user to authenticate as with workload identity
+      federation, instead of a static API token.
+      Requires "permissions: id-token: write" on the job, and a trust
+      credential configured on the bot user.
+      See: https://buf.build/docs/bsr/authentication
     required: false
   domain:
     description: |-
@@ -157,6 +167,11 @@ outputs:
   buf_path:
     description: |-
       Path to the Buf CLI binary.
+  token:
+    description: |-
+      The short-lived BSR token minted by workload identity federation. Empty
+      when authenticating with a static token. Masked in logs, and revoked by
+      the action's post step when the job finishes.
 
 runs:
   using: "node24"
