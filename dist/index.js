@@ -48011,7 +48011,7 @@ function decodeBinaryHeader(value, desc, options) {
  * Merge two or more Headers objects by appending all fields from
  * all inputs to a new Headers object.
  */
-function http_headers_appendHeaders(...headers) {
+function appendHeaders(...headers) {
     const h = new Headers();
     for (const e of headers) {
         e.forEach((value, key) => {
@@ -48203,6 +48203,13 @@ class connect_error_ConnectError extends Error {
     constructor(message, code = code_Code.Unknown, metadata, outgoingDetails, cause) {
         super(createMessage(message, code));
         this.name = "ConnectError";
+        /**
+         * @private Internal field, indicates whether this error was parsed from the
+         * wire by a Connect client, as opposed to being created by application code.
+         *
+         * Do not set this field in application code.
+         */
+        this.isWireError = false;
         // see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-2-2.html#example
         Object.setPrototypeOf(this, new.target.prototype);
         this.rawMessage = message;
@@ -49308,6 +49315,9 @@ function runStreamingCall(opt) {
                     const it = res.message[Symbol.asyncIterator]();
                     return {
                         next() {
+                            if (!doneCalled && signal.aborted) {
+                                return abort(getAbortSignalReason(signal));
+                            }
                             return it.next().then((r) => {
                                 if (r.done == true) {
                                     doneCalled = true;
@@ -49776,7 +49786,11 @@ const headers_headerUnaryAcceptEncoding = "Accept-Encoding";
 const headers_headerStreamAcceptEncoding = "Connect-Accept-Encoding";
 const headerTimeout = "Connect-Timeout-Ms";
 const headers_headerProtocolVersion = "Connect-Protocol-Version";
+const headerDate = "Date";
+const headerHost = "Host";
+const headerTrailer = "Trailer";
 const headerUserAgent = "User-Agent";
+const headerUnaryTrailerPrefix = "Trailer-";
 
 ;// CONCATENATED MODULE: ./node_modules/@connectrpc/connect/dist/esm/protocol-connect/version.js
 // Copyright 2021-2026 The Connect Authors
@@ -49940,7 +49954,7 @@ function requestHeader(methodKind, useBinaryFormat, timeoutMs, userProvidedHeade
         // Note that we do not strictly comply with gRPC user agents.
         // We use "connect-es/1.2.3" where gRPC would use "grpc-es/1.2.3".
         // See https://github.com/grpc/grpc/blob/c462bb8d485fc1434ecfae438823ca8d14cf3154/doc/PROTOCOL-HTTP2.md#user-agents
-        result.set(headerUserAgent, "connect-es/2.1.2");
+        result.set(headerUserAgent, "connect-es/2.2.0");
     }
     return result;
 }
@@ -50246,6 +50260,7 @@ function errorFromJson(jsonValue, metadata, fallback) {
         throw fallback;
     }
     const error = new connect_error_ConnectError(message !== null && message !== void 0 ? message : "", code, metadata);
+    error.isWireError = true;
     if ("details" in jsonValue && Array.isArray(jsonValue.details)) {
         for (const detail of jsonValue.details) {
             if (detail === null ||
@@ -50486,7 +50501,12 @@ function endStreamToJson(metadata, error, jsonWriteOptions) {
     const es = {};
     if (error !== undefined) {
         es.error = errorToJson(error, jsonWriteOptions);
-        metadata = appendHeaders(metadata, error.metadata);
+        // Copy any metadata specified in the error into the target Headers.
+        // For errors parsed from the wire, we only relay the structured payload
+        // and ignore the metadata.
+        if (!error.isWireError) {
+            mergeNonProtocolHeaders(metadata, error.metadata);
+        }
     }
     let hasMetadata = false;
     const md = {};
@@ -50641,7 +50661,7 @@ function createConnectTransport(options) {
                     const response = await fetch(req.url, Object.assign(Object.assign({}, fetchOptions), { method: req.requestMethod, headers: req.header, signal: req.signal, body }));
                     const { isUnaryError, unaryError } = validateResponse(method.methodKind, useBinaryFormat, response.status, response.headers);
                     if (isUnaryError) {
-                        throw errorFromJson((await response.json()), http_headers_appendHeaders(...trailerDemux(response.headers)), unaryError);
+                        throw errorFromJson((await response.json()), appendHeaders(...trailerDemux(response.headers)), unaryError);
                     }
                     const [demuxedHeader, demuxedTrailer] = trailerDemux(response.headers);
                     return {
