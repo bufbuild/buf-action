@@ -18,6 +18,7 @@ import * as exec from "@actions/exec";
 import { getInputs, Inputs } from "./inputs";
 import { Outputs } from "./outputs";
 import { revokeBufToken } from "./federation";
+import { saveCache } from "./cache";
 
 // main is the entrypoint for the action's post step.
 async function main() {
@@ -25,6 +26,7 @@ async function main() {
   const bufPath = core.getState(Outputs.BufPath);
   await revoke(inputs);
   await logout(bufPath, inputs);
+  await saveCache();
 }
 
 main()

@@ -31,6 +31,7 @@ import { installBuf, assertBufForInputs } from "./installer";
 import { findCommentOnPR, commentOnPR } from "./comment";
 import { parseModuleNames, ModuleName } from "./config";
 import { exchangeIDTokenForBufToken } from "./federation";
+import { restoreCache } from "./cache";
 
 // URL for the public GitHub API.
 const publicGitHubApiUrl = "https://api.github.com";
@@ -65,6 +66,9 @@ async function main() {
   core.setOutput(Outputs.BufPath, bufPath);
   core.saveState(Outputs.BufPath, bufPath);
   await authenticate(bufPath, inputs);
+  if (inputs.cache) {
+    await restoreCache();
+  }
   if (inputs.setup_only) {
     core.info("Setup only, skipping steps");
     return;

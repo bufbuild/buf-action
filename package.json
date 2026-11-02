@@ -37,9 +37,11 @@
     "typescript-eslint": "^8.67.0"
   },
   "dependencies": {
+    "@actions/cache": "^6.3.0",
     "@actions/core": "^3.0.1",
     "@actions/exec": "^3.0.0",
     "@actions/github": "^9.0.0",
+    "@actions/glob": "^0.7.0",
     "@actions/io": "^3.0.2",
     "@actions/tool-cache": "^4.0.0",
     "@buf/bufbuild_registry.bufbuild_es": "^2.2.3-20250116203702-1c024d64352b.1",

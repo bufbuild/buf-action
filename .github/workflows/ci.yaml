@@ -115,6 +115,30 @@ jobs:
           archive: false
           pr_comment: false
         continue-on-error: true # build fails
+  test-cache:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./
+        with:
+          setup_only: true
+      - run: |
+          mkdir -p proto/test/v1
+          printf 'version: v2\nmodules:\n  - path: proto\ndeps:\n  - buf.build/googleapis/googleapis\n' > buf.yaml
+          printf 'syntax = "proto3"; package test.v1; import "google/type/date.proto"; message A { google.type.Date a = 1; }' > proto/test/v1/test.proto
+          buf dep update
+      - uses: ./
+        with:
+          cache: true
+          lint: false
+          format: false
+          breaking: false
+          push: false
+          archive: false
+          pr_comment: false
+      - name: Check the module cache was populated
+        run: test -d ~/.cache/buf/v3/modules
   test-lint:
     runs-on: ubuntu-latest
     needs: build
