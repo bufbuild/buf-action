@@ -25,8 +25,8 @@ async function main() {
   const inputs = getInputs();
   const bufPath = core.getState(Outputs.BufPath);
   await revoke(inputs);
-  await logout(bufPath, inputs);
   await saveCache();
+  await logout(bufPath, inputs);
 }
 
 main()

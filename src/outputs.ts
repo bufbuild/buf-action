@@ -19,4 +19,6 @@ export enum Outputs {
   // Only set when the token was minted by workload identity federation. It is
   // registered as a secret, so it is masked in logs.
   Token = "token",
+  // Only set when the "cache" input is enabled.
+  CacheHit = "cache_hit",
 }

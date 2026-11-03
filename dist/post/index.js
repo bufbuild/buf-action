@@ -47079,14 +47079,16 @@ function inputs_getEnv(name) {
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // Outputs are the outputs of the action, matching the outputs in the action.yml.
-var Outputs;
+var outputs_Outputs;
 (function (Outputs) {
     Outputs["BufVersion"] = "buf_version";
     Outputs["BufPath"] = "buf_path";
     // Only set when the token was minted by workload identity federation. It is
     // registered as a secret, so it is masked in logs.
     Outputs["Token"] = "token";
-})(Outputs || (Outputs = {}));
+    // Only set when the "cache" input is enabled.
+    Outputs["CacheHit"] = "cache_hit";
+})(outputs_Outputs || (outputs_Outputs = {}));
 
 ;// CONCATENATED MODULE: ./src/federation.ts
 // Copyright 2024-2025 Buf Technologies, Inc.
@@ -103651,6 +103653,7 @@ function saveCacheV2(paths_1, key_1, options_1) {
 
 
 
+
 // State keys passed from the main step to the post step.
 var State;
 (function (State) {
@@ -103664,6 +103667,7 @@ const dependencyPattern = "**/buf.lock";
 // restoreCache restores the Buf cache directory, keyed on the hash of all
 // buf.lock files. Failures are warnings so a cache outage never fails a job.
 async function cache_restoreCache() {
+    core.setOutput(Outputs.CacheHit, false);
     if (!cache.isFeatureAvailable()) {
         core.warning("Caching is not available on this runner, skipping cache");
         return;
@@ -103684,6 +103688,7 @@ async function cache_restoreCache() {
             return;
         }
         core.saveState(State.CacheMatchedKey, matchedKey);
+        core.setOutput(Outputs.CacheHit, matchedKey == primaryKey);
         core.info(`Cache restored from key ${matchedKey}`);
     }
     catch (error) {
@@ -103760,10 +103765,10 @@ function cache_errorMessage(error) {
 // main is the entrypoint for the action's post step.
 async function main() {
     const inputs = getInputs();
-    const bufPath = getState(Outputs.BufPath);
+    const bufPath = getState(outputs_Outputs.BufPath);
     await revoke(inputs);
-    await logout(bufPath, inputs);
     await src_cache_saveCache();
+    await logout(bufPath, inputs);
 }
 main()
     .catch((err) => setFailed(err.message))
@@ -103778,7 +103783,7 @@ async function logout(bufPath, inputs) {
 // Failure is a warning: the token expires within the hour regardless, and a
 // failed post step would obscure the job's real result.
 async function revoke(inputs) {
-    const token = getState(Outputs.Token);
+    const token = getState(outputs_Outputs.Token);
     if (token == "") {
         return;
     }

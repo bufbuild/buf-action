@@ -59820,6 +59820,8 @@ var Outputs;
     // Only set when the token was minted by workload identity federation. It is
     // registered as a secret, so it is masked in logs.
     Outputs["Token"] = "token";
+    // Only set when the "cache" input is enabled.
+    Outputs["CacheHit"] = "cache_hit";
 })(Outputs || (Outputs = {}));
 
 // EXTERNAL MODULE: ./node_modules/semver/index.js
@@ -117465,6 +117467,7 @@ function saveCacheV2(paths_1, key_1, options_1) {
 
 
 
+
 // State keys passed from the main step to the post step.
 var State;
 (function (State) {
@@ -117478,6 +117481,7 @@ const dependencyPattern = "**/buf.lock";
 // restoreCache restores the Buf cache directory, keyed on the hash of all
 // buf.lock files. Failures are warnings so a cache outage never fails a job.
 async function cache_restoreCache() {
+    setOutput(Outputs.CacheHit, false);
     if (!isFeatureAvailable()) {
         warning("Caching is not available on this runner, skipping cache");
         return;
@@ -117498,6 +117502,7 @@ async function cache_restoreCache() {
             return;
         }
         saveState(State.CacheMatchedKey, matchedKey);
+        setOutput(Outputs.CacheHit, matchedKey == primaryKey);
         info(`Cache restored from key ${matchedKey}`);
     }
     catch (error) {

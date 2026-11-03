@@ -20,6 +20,7 @@ import * as core from "@actions/core";
 import * as glob from "@actions/glob";
 
 import { getEnv } from "./inputs";
+import { Outputs } from "./outputs";
 
 // State keys passed from the main step to the post step.
 enum State {
@@ -35,6 +36,7 @@ const dependencyPattern = "**/buf.lock";
 // restoreCache restores the Buf cache directory, keyed on the hash of all
 // buf.lock files. Failures are warnings so a cache outage never fails a job.
 export async function restoreCache(): Promise<void> {
+  core.setOutput(Outputs.CacheHit, false);
   if (!cache.isFeatureAvailable()) {
     core.warning("Caching is not available on this runner, skipping cache");
     return;
@@ -55,6 +57,7 @@ export async function restoreCache(): Promise<void> {
       return;
     }
     core.saveState(State.CacheMatchedKey, matchedKey);
+    core.setOutput(Outputs.CacheHit, matchedKey == primaryKey);
     core.info(`Cache restored from key ${matchedKey}`);
   } catch (error) {
     core.warning(`Failed to restore cache: ${errorMessage(error)}`);

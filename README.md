@@ -75,7 +75,7 @@ In order for the workflow to be allowed to authenticate, a server admin must cre
 
 ## Caching
 
-To reuse modules downloaded from the BSR between workflow runs, set `cache: true`:
+To reuse modules and plugins downloaded from the BSR between workflow runs, set `cache: true`:
 
 ```yaml
       - uses: bufbuild/buf-action@v1
@@ -84,10 +84,11 @@ To reuse modules downloaded from the BSR between workflow runs, set `cache: true
           cache: true
 ```
 
-The action restores the Buf CLI cache directory before running any `buf` commands and saves it when the job finishes.
+The action restores the Buf cache before running any `buf` commands and saves it when the job finishes.
 The cache key is the hash of every `buf.lock` file in the repository, so the cache is rebuilt when dependencies change.
-The directory is `$BUF_CACHE_DIR` if set, otherwise `$XDG_CACHE_HOME/buf` or `~/.cache/buf` (`%LocalAppData%\buf` on Windows), the same location the Buf CLI uses.
+The cached directory is `$BUF_CACHE_DIR` if set, otherwise `$XDG_CACHE_HOME/buf` or `~/.cache/buf` (`%LocalAppData%\buf` on Windows), the same location the Buf CLI uses.
 Caching also applies with `setup_only: true`, for `buf` commands run in later steps.
+The `cache_hit` output is `true` when the cache was restored from an exact key match.
 
 ## Documentation
 
