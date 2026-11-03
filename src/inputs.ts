@@ -32,6 +32,7 @@ export interface Inputs {
   github_actor: string;
   github_token: string;
   public_github_token: string;
+  cache: boolean;
 
   input: string;
   paths: string[];
@@ -63,6 +64,7 @@ export function getInputs(): Inputs {
     github_actor: core.getInput("github_actor"),
     github_token: core.getInput("github_token"),
     public_github_token: core.getInput("public_github_token"),
+    cache: core.getBooleanInput("cache"),
     // Inputs shared between buf steps.
     input: core.getInput("input"),
     paths: core.getMultilineInput("paths"),

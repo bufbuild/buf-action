@@ -65,6 +65,13 @@ inputs:
   public_github_token:
     description: |-
       GitHub token for github.com. Must be set when running on a private GitHub Enterprise instance to authenticate requests, otherwise ignored. Used to resolve buf versions and download buf binaries from github.com. The token only needs read access to public repositories.
+  cache:
+    description: |-
+      Cache modules and plugins downloaded from the BSR between workflow runs.
+      The cache key is derived from the contents of all buf.lock files in the
+      repository.
+    required: false
+    default: "false"
   setup_only:
     description: |-
       Setup only the buf environment, optionally logging into the BSR, but without executing other commands.
@@ -172,6 +179,10 @@ outputs:
       The short-lived BSR token minted by workload identity federation. Empty
       when authenticating with a static token. Masked in logs, and revoked by
       the action's post step when the job finishes.
+  cache_hit:
+    description: |-
+      Whether the cache was restored from an exact match of the cache key.
+      Only set when "cache" is enabled.
 
 runs:
   using: "node24"
